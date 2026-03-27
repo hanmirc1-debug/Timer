@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: const TimerPage(), // ⭐ 여기 중요
+      home: const TimerPage(), // ⭐ 여기 중요 wjdgus221
     );
   }
 }
