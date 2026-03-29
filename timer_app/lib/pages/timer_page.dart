@@ -1,30 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
+import 'shared_design.dart';
 
-class TimerPage extends StatefulWidget {
-  const TimerPage({super.key});
+class TimerAppPage extends StatefulWidget {
+  const TimerAppPage({super.key});
 
   @override
-  State<TimerPage> createState() => _TimerPageState();
+  State<TimerAppPage> createState() => _TimerAppPageState();
 }
 
-class _TimerPageState extends State<TimerPage>
-    with SingleTickerProviderStateMixin {
+class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderStateMixin {
   late AnimationController controller;
-
-  double totalSeconds = 60; // 설정된 시간
-  double currentSeconds = 0;
-
+  double totalSeconds = 60;
+  double currentSeconds = 60;
   bool isRunning = false;
 
   @override
   void initState() {
     super.initState();
-
-    controller = AnimationController(
-      vsync: this,
-      duration: Duration(seconds: totalSeconds.toInt()),
-    )
+    controller = AnimationController(vsync: this, duration: Duration(seconds: totalSeconds.toInt()))
       ..addListener(() {
         setState(() {
           currentSeconds = controller.value * totalSeconds;
@@ -33,34 +27,37 @@ class _TimerPageState extends State<TimerPage>
   }
 
   void start() {
-    controller.forward(from: controller.value);
-    isRunning = true;
+    controller.reverse(from: controller.value == 0.0 ? 1.0 : controller.value);
+    setState(() => isRunning = true);
   }
 
   void stop() {
     controller.stop();
-    isRunning = false;
+    setState(() => isRunning = false);
   }
 
   void reset() {
     controller.reset();
-    currentSeconds = 0;
+    controller.value = 1.0;
+    setState(() {
+      currentSeconds = totalSeconds;
+      isRunning = false;
+    });
   }
 
-  // 드래그로 시간 설정
-  void updateTime(Offset localPosition, Size size) {
+  void updateStartTime(Offset localPosition, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPosition.dx - center.dx;
     final dy = localPosition.dy - center.dy;
-
     double angle = atan2(dx, -dy);
     if (angle < 0) angle += 2 * pi;
 
     setState(() {
       totalSeconds = (angle / (2 * pi)) * 60;
+      if (totalSeconds == 0) totalSeconds = 60;
       controller.duration = Duration(seconds: totalSeconds.toInt());
-      controller.reset();
-      currentSeconds = 0;
+      currentSeconds = totalSeconds;
+      controller.value = 1.0;
     });
   }
 
@@ -72,106 +69,58 @@ class _TimerPageState extends State<TimerPage>
 
   @override
   Widget build(BuildContext context) {
-    final displaySeconds = (totalSeconds - currentSeconds).clamp(0, totalSeconds);
-
-    return Scaffold(
-      appBar: AppBar(title: const Text('Timer')),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          GestureDetector(
-            onPanUpdate: (details) {
-              if (!isRunning) {
-                updateTime(details.localPosition, const Size(250, 250));
-              }
-            },
-            child: CustomPaint(
-              size: const Size(250, 250),
-              painter: ClockPainter(currentSeconds, totalSeconds),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          Text(
-            '${displaySeconds.toInt()} 초',
-            style: const TextStyle(fontSize: 32),
-          ),
-
-          const SizedBox(height: 20),
-
-          Row(
+    // 가로 모드 레이아웃 적용
+    return Row(
+      children: [
+        // 좌측 (빈공간)
+        const Expanded(child: SizedBox()),
+        
+        // 중앙 (시계 + 디지털 숫자)
+        Expanded(
+          flex: 1,
+          child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ElevatedButton(onPressed: start, child: const Text('시작')),
-              const SizedBox(width: 10),
-              ElevatedButton(onPressed: stop, child: const Text('멈춤')),
-              const SizedBox(width: 10),
-              ElevatedButton(onPressed: reset, child: const Text('리셋')),
+              // 시계
+              GestureDetector(
+                onPanUpdate: (details) {
+                  if (!isRunning) updateStartTime(details.localPosition, const Size(250, 250));
+                },
+                child: CustomPaint(
+                  size: const Size(250, 250),
+                  painter: SharedClockPainter(currentSeconds, 60),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // 디지털 숫자 (00:00:30)
+              Text(
+                formatDigitalTimeLong(currentSeconds),
+                style: const TextStyle(
+                  fontSize: 64,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2.0,
+                  color: Colors.redAccent, // 타이머는 빨간색 숫자로 유지
+                ),
+              ),
             ],
           ),
-        ],
-      ),
+        ),
+        
+        // 우측 (조작 버튼)
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              GlassButton(text: '시작', onPressed: start),
+              const SizedBox(height: 15),
+              GlassButton(text: '멈춤', onPressed: stop),
+              const SizedBox(height: 15),
+              GlassButton(text: '리셋', onPressed: reset),
+            ],
+          ),
+        ),
+      ],
     );
   }
-}
-
-class ClockPainter extends CustomPainter {
-  final double current;
-  final double total;
-
-  ClockPainter(this.current, this.total);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
-
-    final paintCircle = Paint()
-      ..color = Colors.black
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-
-    canvas.drawCircle(center, radius, paintCircle);
-
-    // 숫자 표시 (12개)
-    final textPainter = TextPainter(
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.ltr,
-    );
-
-    for (int i = 0; i < 60; i += 5) {
-      final angle = (i / 60) * 2 * pi;
-      final x = center.dx + (radius - 20) * sin(angle);
-      final y = center.dy - (radius - 20) * cos(angle);
-
-      textPainter.text = TextSpan(
-        text: '$i',
-        style: const TextStyle(fontSize: 12, color: Colors.black),
-      );
-
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-      );
-    }
-
-    // 초침
-    final angle = (current / total) * 2 * pi;
-
-    final handPaint = Paint()
-      ..color = Colors.red
-      ..strokeWidth = 3;
-
-    final handLength = radius * 0.8;
-
-    final handX = center.dx + handLength * sin(angle);
-    final handY = center.dy - handLength * cos(angle);
-
-    canvas.drawLine(center, Offset(handX, handY), handPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
