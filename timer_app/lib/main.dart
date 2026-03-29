@@ -43,12 +43,14 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   bool isTimerMode = false; // false = 스탑워치, true = 타이머
+  Color myBgColor = const Color.fromARGB(255, 255, 255, 255); // 👈 진짜 배경색 변수를 하나 만듭니다! 나중에 여기에 현재 배경 색 변수 넣어야댐!
 
   @override
   Widget build(BuildContext context) {
     // 7. 배경화면
     return Scaffold(
-      backgroundColor: Colors.white, 
+      //backgroundColor: const Color.fromARGB(255, 0, 0, 0), 
+      backgroundColor: myBgColor, 
       body: SafeArea(
         child: Stack(
                   children: [
@@ -65,7 +67,9 @@ class _MainScreenState extends State<MainScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          FloatingGlassMenuButton(),
+                          FloatingGlassMenuButton(
+                            backgroundColor: myBgColor, // 지금 배경색을 버튼한테 알려줌!
+                          ),
                           // 2. 오른쪽 위 플로팅 모드 변경 스위치
                           FloatingGlassSwitchButton(
                             value: isTimerMode,
