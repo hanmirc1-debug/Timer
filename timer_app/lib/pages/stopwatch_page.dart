@@ -11,14 +11,14 @@ class StopwatchPage extends StatefulWidget {
 
 class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProviderStateMixin {
   late AnimationController controller;
-  
-  double targetMaxSeconds = 60; // 기본 max 60초
-  double _draggedSeconds = 0;   // 드래그 임시 값
-  double currentSeconds = 0;    // 진행된 시간
-  
+
+  double targetMaxSeconds = 60;
+  double _draggedSeconds = 0;
+  double currentSeconds = 0;
+
   bool isDragging = false;
   bool isRunning = false;
-  bool hasStarted = false;      // 시작 버튼을 한 번이라도 눌렀는지 여부
+  bool hasStarted = false;
 
   @override
   void initState() {
@@ -30,17 +30,14 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
   }
 
   void start() {
-    // 2. 시작 누르면 컨트롤러의 duration을 설정한 max 시간(예: 15초)으로 변경
     controller.duration = Duration(seconds: targetMaxSeconds.toInt());
-    
     if (currentSeconds == 0) {
       controller.reset();
     }
     controller.forward();
-    
     setState(() {
       isRunning = true;
-      hasStarted = true; // 시작되었음을 알림 (Max 스케일 변경을 위해)
+      hasStarted = true;
     });
   }
 
@@ -53,10 +50,10 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
     controller.reset();
     setState(() {
       currentSeconds = 0;
-      targetMaxSeconds = 60; // 다시 60초 시계로 복귀
+      targetMaxSeconds = 60;
       _draggedSeconds = 0;
       isRunning = false;
-      hasStarted = false; // 초기 상태로 복귀
+      hasStarted = false;
     });
   }
 
@@ -84,39 +81,35 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-        final clockSize = availableHeight * 0.7; 
-        final digitalFontSize = availableHeight * 0.15; 
+        final clockSize = availableHeight * 0.7;
+        final digitalFontSize = availableHeight * 0.1;
 
-        // [핵심 로직] 상태에 따라 화면에 그릴 값을 다르게 설정
         double displayMaxScale = hasStarted ? targetMaxSeconds : 60.0;
-        
         double displayDrawnSeconds = 0;
         double displayDigitalSeconds = 0;
 
         if (isDragging) {
-          // 1) 드래그 중: 드래그하는 위치(임시 값)를 보여줌
           displayDrawnSeconds = _draggedSeconds;
           displayDigitalSeconds = _draggedSeconds;
         } else if (!hasStarted) {
-          // 2) 손을 뗐지만 아직 시작 안 함: 설정한 목표치(예: 15초)를 그대로 유지
           displayDrawnSeconds = targetMaxSeconds;
           displayDigitalSeconds = targetMaxSeconds;
         } else {
-          // 3) 시작 버튼 누름: 실제 흘러가는 시간 표시 (MAX 스케일이 바뀌었으므로 0부터 차오름)
           displayDrawnSeconds = currentSeconds;
           displayDigitalSeconds = currentSeconds;
         }
 
         return Stack(
           children: [
+            // 1. 단 하나만 존재하는 시계 & 숫자 영역
             Align(
-              alignment: Alignment.center,
+              alignment: const Alignment(0, -0.2), // 중앙에서 살짝 위로 깔끔하게 배치
               child: Column(
+                mainAxisSize: MainAxisSize.min, // 겹침 및 오버플로우 완벽 방지
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
                     onPanStart: (details) => setState(() {
-                      // 실행 중이 아닐 때만 드래그 허용
                       if (!isRunning && !hasStarted) {
                         isDragging = true;
                         controller.reset();
@@ -130,17 +123,16 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                     onPanEnd: (details) => setState(() {
                       if (!isRunning && !hasStarted) {
                         isDragging = false;
-                        targetMaxSeconds = _draggedSeconds; // 드래그 끝날 때 목표 MAX 시간 확정
+                        targetMaxSeconds = _draggedSeconds;
                       }
                     }),
                     child: CustomPaint(
                       size: Size(clockSize, clockSize),
-                      // 상황에 맞춰 계산된 값과 MAX 스케일을 페인터에 전달
                       painter: SharedClockPainter(displayDrawnSeconds, displayMaxScale),
                     ),
                   ),
                   SizedBox(height: availableHeight * 0.05),
-                  
+
                   Text(
                     formatDigitalTimeLong(displayDigitalSeconds),
                     style: TextStyle(
@@ -152,7 +144,8 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                 ],
               ),
             ),
-            
+
+            // 2. 우측 조작 버튼 영역
             Align(
               alignment: Alignment.centerRight,
               child: Padding(

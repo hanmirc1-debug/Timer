@@ -46,38 +46,38 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 7. 배경화면 완전 흰색
+    // 7. 배경화면
     return Scaffold(
       backgroundColor: Colors.white, 
       body: SafeArea(
-        child: Column(
-          children: [
-            // 상단 바 영역 (수정됨: 메뉴, 스위치 플로팅)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // 1, 3. 왼쪽 위 플로팅 메뉴 버튼 (점 세개로 변경)
-                  FloatingGlassMenuButton(),
-                  
-                  // 2. 오른쪽 위 플로팅 모드 변경 스위치
-                  FloatingGlassSwitchButton(
-                    value: isTimerMode,
-                    onChanged: (value) {
-                      setState(() {
-                        isTimerMode = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
-            
-            // 메인 화면 영역 (토글 상태에 따라 위젯 변경)
-            Expanded(
-              child: isTimerMode ? const TimerAppPage() : const StopwatchPage(),
-            ),
+        child: Stack(
+                  children: [
+                    // 1. 메인 화면 (이제 남은 공간이 아니라 화면 전체를 도화지로 씁니다)
+                    Positioned.fill(
+                      child: isTimerMode ? const TimerAppPage() : const StopwatchPage(),
+                    ),
+                    
+                    // 2. 상단 바 영역 (버튼들이 공간을 차지하지 않고 화면 맨 위에 떠 있음)
+                    Positioned(
+                      top: 15.0,
+                      left: 20.0,
+                      right: 20.0,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          FloatingGlassMenuButton(),
+                          // 2. 오른쪽 위 플로팅 모드 변경 스위치
+                          FloatingGlassSwitchButton(
+                            value: isTimerMode,
+                            onChanged: (value) {
+                              setState(() {
+                                isTimerMode = value;
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
           ],
         ),
       ),
