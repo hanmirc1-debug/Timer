@@ -99,7 +99,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
                       fontSize: digitalFontSize,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0,
-                      color: Colors.redAccent, 
+                      color: const Color.fromARGB(255, 0, 0, 0), 
                     ),
                   ),
                 ],
