@@ -11,20 +11,21 @@ class TimerAppPage extends StatefulWidget {
 
 class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderStateMixin {
   late AnimationController controller;
-  double totalSeconds = 60;
-  double currentSeconds = 60;
+  double targetRedSeconds = 60; // 60초 꽉 찬 상태(전체 빨간색)가 기본값
+  double currentRedSeconds = 60;
   bool isRunning = false;
 
   @override
   void initState() {
     super.initState();
-    controller = AnimationController(vsync: this, duration: Duration(seconds: totalSeconds.toInt()))
+    controller = AnimationController(vsync: this, duration: const Duration(seconds: 60))
       ..addListener(() {
-        setState(() => currentSeconds = controller.value * totalSeconds);
+        setState(() => currentRedSeconds = controller.value * targetRedSeconds);
       });
   }
 
   void start() {
+    controller.duration = Duration(seconds: targetRedSeconds.toInt());
     controller.reverse(from: controller.value == 0.0 ? 1.0 : controller.value);
     setState(() => isRunning = true);
   }
@@ -38,7 +39,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
     controller.reset();
     controller.value = 1.0;
     setState(() {
-      currentSeconds = totalSeconds;
+      currentRedSeconds = targetRedSeconds;
       isRunning = false;
     });
   }
@@ -47,14 +48,23 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPosition.dx - center.dx;
     final dy = localPosition.dy - center.dy;
-    double angle = atan2(dx, -dy);
-    if (angle < 0) angle += 2 * pi;
+
+    // 드래그한 지점의 각도 계산 (12시 기준 시계방향)
+    double angle = atan2(dy, dx); 
+    double clockwiseFromTop = angle - (-pi / 2);
+    if (clockwiseFromTop < 0) clockwiseFromTop += 2 * pi;
+
+    // 드래그한 거리만큼이 '하얀색'이 됨
+    double whiteAmount = (clockwiseFromTop / (2 * pi)) * 60;
 
     setState(() {
-      totalSeconds = (angle / (2 * pi)) * 60;
-      if (totalSeconds == 0) totalSeconds = 60;
-      controller.duration = Duration(seconds: totalSeconds.toInt());
-      currentSeconds = totalSeconds;
+      // 전체 60에서 하얀색을 뺀 나머지가 실제 타이머 시간(빨간색)
+      targetRedSeconds = 60 - whiteAmount;
+      if (targetRedSeconds <= 0 || targetRedSeconds >= 60) {
+        targetRedSeconds = 60; // 0이나 60이면 다시 전체 빨간색으로
+      }
+      currentRedSeconds = targetRedSeconds;
+      controller.duration = Duration(seconds: targetRedSeconds.toInt());
       controller.value = 1.0;
     });
   }
@@ -71,7 +81,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final clockSize = availableHeight * 0.7; 
-        final digitalFontSize = availableHeight * 0.1; 
+        final digitalFontSize = availableHeight * 0.12; 
 
         return Stack(
           children: [
@@ -89,18 +99,19 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
                     },
                     child: CustomPaint(
                       size: Size(clockSize, clockSize),
-                      painter: SharedClockPainter(currentSeconds, 60),
+                      // 타이머 로직 적용 플래그
+                      painter: SharedClockPainter(currentRedSeconds, 60, isTimer: true),
                     ),
                   ),
                   SizedBox(height: availableHeight * 0.05),
                   
                   Text(
-                    formatDigitalTimeLong(currentSeconds),
+                    formatDigitalTimeLong(currentRedSeconds),
                     style: TextStyle(
                       fontSize: digitalFontSize,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0,
-                      color: const Color.fromARGB(255, 0, 0, 0), 
+                      color: Colors.redAccent, 
                     ),
                   ),
                 ],

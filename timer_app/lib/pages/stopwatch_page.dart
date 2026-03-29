@@ -57,14 +57,18 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
     });
   }
 
+  // [수정된 핵심] 스탑워치 전용(일반 시계방향) 드래그 계산식으로 복구!
   void updateTargetTime(Offset localPosition, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPosition.dx - center.dx;
     final dy = localPosition.dy - center.dy;
+    
+    // 12시를 0도로 기준 삼아 시계방향으로 각도를 잼
     double angle = atan2(dx, -dy);
     if (angle < 0) angle += 2 * pi;
 
     setState(() {
+      // 드래그한 각도 그대로 정직하게 시간이 됨
       _draggedSeconds = (angle / (2 * pi)) * 60;
       if (_draggedSeconds == 0) _draggedSeconds = 60;
     });
@@ -82,7 +86,7 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final clockSize = availableHeight * 0.7;
-        final digitalFontSize = availableHeight * 0.1;
+        final digitalFontSize = availableHeight * 0.12;
 
         double displayMaxScale = hasStarted ? targetMaxSeconds : 60.0;
         double displayDrawnSeconds = 0;
@@ -101,11 +105,10 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
 
         return Stack(
           children: [
-            // 1. 단 하나만 존재하는 시계 & 숫자 영역
             Align(
-              alignment: const Alignment(0, -0.2), // 중앙에서 살짝 위로 깔끔하게 배치
+              alignment: const Alignment(0, -0.2), 
               child: Column(
-                mainAxisSize: MainAxisSize.min, // 겹침 및 오버플로우 완벽 방지
+                mainAxisSize: MainAxisSize.min, 
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   GestureDetector(
@@ -128,7 +131,8 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                     }),
                     child: CustomPaint(
                       size: Size(clockSize, clockSize),
-                      painter: SharedClockPainter(displayDrawnSeconds, displayMaxScale),
+                      // isTimer: false 를 통해 일반 시계 방향(오른쪽 15, 왼쪽 45)으로 그림
+                      painter: SharedClockPainter(displayDrawnSeconds, displayMaxScale, isTimer: false),
                     ),
                   ),
                   SizedBox(height: availableHeight * 0.05),
@@ -144,8 +148,7 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                 ],
               ),
             ),
-
-            // 2. 우측 조작 버튼 영역
+            
             Align(
               alignment: Alignment.centerRight,
               child: Padding(

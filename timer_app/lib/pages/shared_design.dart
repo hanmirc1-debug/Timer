@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:timer_app/widgets/popup_menu.dart';
 import 'dart:math';
 import 'dart:ui';
 
-// 1. floating 느낌의 리퀴드 글래스 버튼 (기존꺼 수정)
+// 1. floating 느낌의 리퀴드 글래스 버튼
 class GlassButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -13,8 +12,8 @@ class GlassButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.transparent, // 배경 투명
-      elevation: 5, // 그림자 추가로 띄움
+      color: Colors.transparent,
+      elevation: 5,
       borderRadius: BorderRadius.circular(25.0),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(25.0),
@@ -41,11 +40,10 @@ class GlassButton extends StatelessWidget {
   }
 }
 
-// 1. 상단 플로팅 메뉴 버튼 (점 세개)
+// 2. 상단 플로팅 메뉴 버튼 (점 세개)
 class FloatingGlassMenuButton extends StatelessWidget {
   FloatingGlassMenuButton({super.key});
-
-  final GlobalKey _buttonKey = GlobalKey(); // 추가
+  final GlobalKey _buttonKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -65,24 +63,9 @@ class FloatingGlassMenuButton extends StatelessWidget {
               border: Border.all(color: Colors.black.withOpacity(0.1)),
             ),
             child: IconButton(
-              key: _buttonKey, // 추가
+              key: _buttonKey,
               icon: const Icon(Icons.more_horiz, size: 24),
-              onPressed: () {
-                final RenderBox box =
-                    _buttonKey.currentContext!.findRenderObject() as RenderBox;
-
-                final position = box.localToGlobal(Offset.zero);
-                final size = box.size;
-
-                showDialog(
-                  context: context,
-                  barrierColor: Colors.transparent,
-                  builder: (_) => CustomPopupMenu(
-                    position: position,
-                    buttonSize: size,
-                  ),
-                );
-              },
+              onPressed: () {},
             ),
           ),
         ),
@@ -91,7 +74,7 @@ class FloatingGlassMenuButton extends StatelessWidget {
   }
 }
 
-// 2. 상단 플로팅 스위치 버튼
+// 3. 상단 플로팅 스위치 버튼
 class FloatingGlassSwitchButton extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -115,15 +98,10 @@ class FloatingGlassSwitchButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(25),
               border: Border.all(color: Colors.black.withOpacity(0.1)),
             ),
-            child: Row(
-              children: [
-                // 2. 글자 없앰 (무슨 모드인지 알려주지 않음)
-                Switch(
-                  value: value,
-                  activeColor: Colors.black, 
-                  onChanged: onChanged,
-                ),
-              ],
+            child: Switch(
+              value: value,
+              activeColor: Colors.black, 
+              onChanged: onChanged,
             ),
           ),
         ),
@@ -132,35 +110,47 @@ class FloatingGlassSwitchButton extends StatelessWidget {
   }
 }
 
-// 5. 시계 테두리
+// 4. 시계 그리기 (숫자 반대방향 + 그리는 로직 변경)
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
+  final bool isTimer; // 타이머 여부에 따라 그리는 시작점이 다름
 
-  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds);
+  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // 빨간색 부채꼴 영역
+    // 빨간색 부채꼴 크기
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
+    
+    double startAngle;
+    if (isTimer) {
+      // 타이머: 드래그한 끝 지점(하얀색이 끝나는 곳)부터 시계방향으로 칠해서 12시에 끝남
+      startAngle = -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi;
+    } else {
+      // 스탑워치: 무조건 12시에서 시작
+      startAngle = -pi / 2;
+    }
+
     final paintArc = Paint()
       ..color = Colors.redAccent.withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -pi / 2, 
-      sweepAngle,
-      true, 
-      paintArc,
-    );
+    if (drawnSeconds > 0) {
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        true,
+        paintArc,
+      );
+    }
 
-    // [수정 핵심] 숫자 폰트 크기와 위치를 반지름(radius)에 비례하게 설정
-    final double relativeFontSize = radius * 0.15; // 반지름의 15% 크기를 폰트 크기로
-    final double relativePadding = radius * 0.8;   // 중심에서 반지름의 80% 거리만큼 띄움
+    final double relativeFontSize = radius * 0.15;
+    final double relativePadding = radius * 0.8;
 
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
@@ -168,14 +158,22 @@ class SharedClockPainter extends CustomPainter {
     );
 
     for (int i = 0; i < maxScaleSeconds; i += 5) {
-      final angle = (i / maxScaleSeconds) * 2 * pi;
-      final x = center.dx + relativePadding * sin(angle);
-      final y = center.dy - relativePadding * cos(angle);
+      double angle;
+      // 여기서 스탑워치와 타이머의 숫자 방향이 갈립니다!
+      if (isTimer) {
+        // 타이머: 반시계 방향 (오른쪽이 45, 왼쪽이 15)
+        angle = -pi / 2 - (i / maxScaleSeconds) * 2 * pi;
+      } else {
+        // 스탑워치: 정방향 시계 (오른쪽이 15, 왼쪽이 45)
+        angle = -pi / 2 + (i / maxScaleSeconds) * 2 * pi;
+      }
+      final x = center.dx + relativePadding * cos(angle);
+      final y = center.dy + relativePadding * sin(angle);
 
       textPainter.text = TextSpan(
         text: '$i',
         style: TextStyle(
-          fontSize: relativeFontSize, // 유동적 폰트 크기 적용
+          fontSize: relativeFontSize,
           color: Colors.black, 
           fontWeight: FontWeight.bold
         ),
@@ -190,13 +188,11 @@ class SharedClockPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// 4. 디지털 폰트 HH:MM:SS 포맷 함수
+// 5. 디지털 폰트 함수
 String formatDigitalTimeLong(double seconds) {
   int s = seconds.toInt();
   int h = s ~/ 3600;
   int m = (s % 3600) ~/ 60;
   s = s % 60;
-  
-  // 00:00:00 형태로 출력
   return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
