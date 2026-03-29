@@ -20,9 +20,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
     super.initState();
     controller = AnimationController(vsync: this, duration: Duration(seconds: totalSeconds.toInt()))
       ..addListener(() {
-        setState(() {
-          currentSeconds = controller.value * totalSeconds;
-        });
+        setState(() => currentSeconds = controller.value * totalSeconds);
       });
   }
 
@@ -69,58 +67,64 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    // 가로 모드 레이아웃 적용
-    return Row(
-      children: [
-        // 좌측 (빈공간)
-        const Expanded(child: SizedBox()),
-        
-        // 중앙 (시계 + 디지털 숫자)
-        Expanded(
-          flex: 1,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // 시계
-              GestureDetector(
-                onPanUpdate: (details) {
-                  if (!isRunning) updateStartTime(details.localPosition, const Size(250, 250));
-                },
-                child: CustomPaint(
-                  size: const Size(250, 250),
-                  painter: SharedClockPainter(currentSeconds, 60),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final clockSize = availableHeight * 0.7; 
+        final digitalFontSize = availableHeight * 0.15; 
+
+        return Stack(
+          children: [
+            Align(
+              alignment: Alignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onPanUpdate: (details) {
+                      if (!isRunning) {
+                        updateStartTime(details.localPosition, Size(clockSize, clockSize));
+                      }
+                    },
+                    child: CustomPaint(
+                      size: Size(clockSize, clockSize),
+                      painter: SharedClockPainter(currentSeconds, 60),
+                    ),
+                  ),
+                  SizedBox(height: availableHeight * 0.05),
+                  
+                  Text(
+                    formatDigitalTimeLong(currentSeconds),
+                    style: TextStyle(
+                      fontSize: digitalFontSize,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
+                      color: const Color.fromARGB(255, 0, 0, 0), 
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.only(right: 32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    GlassButton(text: '시작', onPressed: start),
+                    const SizedBox(height: 15),
+                    GlassButton(text: '멈춤', onPressed: stop),
+                    const SizedBox(height: 15),
+                    GlassButton(text: '리셋', onPressed: reset),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-              
-              // 디지털 숫자 (00:00:30)
-              Text(
-                formatDigitalTimeLong(currentSeconds),
-                style: const TextStyle(
-                  fontSize: 64,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 2.0,
-                  color: Colors.redAccent, // 타이머는 빨간색 숫자로 유지
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // 우측 (조작 버튼)
-        Expanded(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              GlassButton(text: '시작', onPressed: start),
-              const SizedBox(height: 15),
-              GlassButton(text: '멈춤', onPressed: stop),
-              const SizedBox(height: 15),
-              GlassButton(text: '리셋', onPressed: reset),
-            ],
-          ),
-        ),
-      ],
+            ),
+          ],
+        );
+      }
     );
   }
 }
