@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'widgets.dart'; // BasePopup을 불러옵니다.
 
 class CustomPopupMenu extends StatelessWidget {
   final Offset position;
@@ -20,25 +21,26 @@ class CustomPopupMenu extends StatelessWidget {
           onTap: () => Navigator.pop(context),
           child: Container(color: Colors.transparent),
         ),
-        Positioned(
-          top: position.dy + buttonSize.height,
-          left: position.dx,
+        Center(
           child: Material(
             borderRadius: BorderRadius.circular(20),
             elevation: 10,
             child: Container(
-              width: screen.width * 0.25,
+              width: screen.width * (1 / 3), // 가로 1/3
+              height: screen.height * (3 / 5), // 세로 3/5
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _menuItem(context, "타이머 추가"),
-                  _menuItem(context, "설정"),
-                  _menuItem(context, "삭제"),
-                ],
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _menuItem(context, "옵션"),
+                    _menuItem(context, "즐겨찾기"),
+                    _menuItem(context, "계정연동"),
+                    _menuItem(context, "추가1"),
+                  ],
+                ),
               ),
             ),
           ),
@@ -50,7 +52,31 @@ class CustomPopupMenu extends StatelessWidget {
   Widget _menuItem(BuildContext context, String text) {
     return InkWell(
       onTap: () {
-        Navigator.pop(context);
+        if (text == "옵션") {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black54,
+            builder: (_) => OptionPopup(),
+          );
+        } else if (text == "즐겨찾기") {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black54,
+            builder: (_) => FavoritePopup(),
+          );
+        } else if (text == "계정연동") {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black54,
+            builder: (_) => AccountPopup(),
+          );
+        } else if (text == "추가1") {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black54,
+            builder: (_) => ExtraPopup(),
+          );
+        }
       },
       child: Container(
         width: double.infinity,
