@@ -59,7 +59,7 @@ class _MainScreenState extends State<MainScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // 1, 3. 왼쪽 위 플로팅 메뉴 버튼 (점 세개로 변경)
-                  const FloatingGlassMenuButton(),
+                  FloatingGlassMenuButton(),
                   
                   // 2. 오른쪽 위 플로팅 모드 변경 스위치
                   FloatingGlassSwitchButton(

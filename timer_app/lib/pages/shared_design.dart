@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:timer_app/widgets/popup_menu.dart';
 import 'dart:math';
 import 'dart:ui';
 
@@ -42,7 +43,9 @@ class GlassButton extends StatelessWidget {
 
 // 1. 상단 플로팅 메뉴 버튼 (점 세개)
 class FloatingGlassMenuButton extends StatelessWidget {
-  const FloatingGlassMenuButton({super.key});
+  FloatingGlassMenuButton({super.key});
+
+  final GlobalKey _buttonKey = GlobalKey(); // 추가
 
   @override
   Widget build(BuildContext context) {
@@ -62,8 +65,24 @@ class FloatingGlassMenuButton extends StatelessWidget {
               border: Border.all(color: Colors.black.withOpacity(0.1)),
             ),
             child: IconButton(
-              icon: const Icon(Icons.more_vert, size: 28), // ☰ -> ... 로 변경
-              onPressed: () {},
+              key: _buttonKey, // 추가
+              icon: const Icon(Icons.more_horiz, size: 24),
+              onPressed: () {
+                final RenderBox box =
+                    _buttonKey.currentContext!.findRenderObject() as RenderBox;
+
+                final position = box.localToGlobal(Offset.zero);
+                final size = box.size;
+
+                showDialog(
+                  context: context,
+                  barrierColor: Colors.transparent,
+                  builder: (_) => CustomPopupMenu(
+                    position: position,
+                    buttonSize: size,
+                  ),
+                );
+              },
             ),
           ),
         ),
