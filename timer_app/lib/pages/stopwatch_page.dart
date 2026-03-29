@@ -86,7 +86,7 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final clockSize = availableHeight * 0.7;
-        final digitalFontSize = availableHeight * 0.12;
+        final digitalFontSize = availableHeight * 0.07;
 
         double displayMaxScale = hasStarted ? targetMaxSeconds : 60.0;
         double displayDrawnSeconds = 0;

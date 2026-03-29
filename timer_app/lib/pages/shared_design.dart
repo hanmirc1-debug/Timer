@@ -136,7 +136,7 @@ class SharedClockPainter extends CustomPainter {
     }
 
     final paintArc = Paint()
-      ..color = Colors.redAccent.withOpacity(0.8)
+      ..color = const Color.fromARGB(255, 240, 14, 14).withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
     if (drawnSeconds > 0) {
@@ -148,7 +148,60 @@ class SharedClockPainter extends CustomPainter {
         paintArc,
       );
     }
+    // =============================================================
+    // // +++ [미니멀 분 선 블록: 선을 없애려면 이 블록 전체를 주석 처리하세요] +++
+    // final tickPaint = Paint()
+    //   ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) // 미세한 느낌을 위해 투명도 적용
+    //   ..strokeWidth = 1.0; // 아주 가늘게
+    
+    // // 60개의 분 선을 테두리 안쪽에 미세하게 배치
+    // for (int t = 0; t < 60; t++) {
+    //   // 12시 기준 시계방향 각도 계산
+    //   final angle = (t / 60) * 2 * pi - pi / 2;
+      
+    //   // 테두리 안쪽(radius * 0.96 ~ 1.0)에 배치하여 미니멀함 유지
+    //   canvas.drawLine(
+    //     center + Offset(cos(angle) * (radius * 0.96), sin(angle) * (radius * 0.96)),
+    //     center + Offset(cos(angle) * radius, sin(angle) * radius),
+    //     tickPaint,
+    //   );
+    // }
 
+    // 기본 분 선(1분 단위) 스타일
+    final tickPaint = Paint()
+      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) // 미세한 느낌을 위해 투명도 적용
+      ..strokeWidth = 1.0; // 아주 가늘게
+
+    // 5분 단위 강조 선 스타일
+    final fiveTickPaint = Paint()
+      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7) // 조금 더 진하게
+      ..strokeWidth = 1.5; // 조금 더 두껍게
+
+    // 선의 크기 기준 (원 반지름에 비례)
+    final double baseHalfLength = radius * 0.02; // 기본 선 길이의 절반 (테두리 안팎으로 나갈 길이)
+
+    // 60개의 분 선을 테두리 안팎에 중앙 정렬로 배치
+    for (int t = 0; t < 60; t++) {
+      // 12시 기준 시계방향 각도 계산
+      final angle = (t / 60) * 2 * pi - pi / 2;
+      
+      // 5분 단위인지 확인 (0, 5, 10, ...)
+      bool isFiveMinute = t % 5 == 0;
+      
+      // 5분 단위면 길이를 두 배로, 아니면 기본 길이로 설정
+      double currentHalfLength = isFiveMinute ? baseHalfLength * 2 : baseHalfLength;
+      
+      // 현재 선에 맞는 Paint 객체 선택
+      Paint currentPaint = isFiveMinute ? fiveTickPaint : tickPaint;
+
+      // 테두리 중앙(radius)을 기준으로 안쪽(-halfLength)과 바깥쪽(+halfLength) 좌표 계산
+      canvas.drawLine(
+        center + Offset(cos(angle) * (radius - currentHalfLength), sin(angle) * (radius - currentHalfLength)),
+        center + Offset(cos(angle) * (radius + currentHalfLength), sin(angle) * (radius + currentHalfLength)),
+        currentPaint,
+      );
+    }
+    // =============================================================
     final double relativeFontSize = radius * 0.15;
     final double relativePadding = radius * 0.8;
 

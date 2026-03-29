@@ -81,7 +81,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final clockSize = availableHeight * 0.7; 
-        final digitalFontSize = availableHeight * 0.12; 
+        final digitalFontSize = availableHeight * 0.07; 
 
         return Stack(
           children: [
