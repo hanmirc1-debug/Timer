@@ -113,7 +113,7 @@ class FloatingGlassSwitchButton extends StatelessWidget {
   }
 }
 
-// 5. 시계 테두리 없앰 (drawCircle 삭제)
+// 5. 시계 테두리
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
@@ -125,9 +125,7 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
 
-    // 시계 테두리(drawCircle) 코드 삭제
-
-    // 빨간색 부채꼴(Pie) 영역
+    // 빨간색 부채꼴 영역
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     final paintArc = Paint()
       ..color = Colors.redAccent.withOpacity(0.8)
@@ -141,7 +139,10 @@ class SharedClockPainter extends CustomPainter {
       paintArc,
     );
 
-    // 숫자 표시 (기존 유지)
+    // [수정 핵심] 숫자 폰트 크기와 위치를 반지름(radius)에 비례하게 설정
+    final double relativeFontSize = radius * 0.15; // 반지름의 15% 크기를 폰트 크기로
+    final double relativePadding = radius * 0.8;   // 중심에서 반지름의 80% 거리만큼 띄움
+
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
       textDirection: TextDirection.ltr,
@@ -149,12 +150,16 @@ class SharedClockPainter extends CustomPainter {
 
     for (int i = 0; i < maxScaleSeconds; i += 5) {
       final angle = (i / maxScaleSeconds) * 2 * pi;
-      final x = center.dx + (radius - 25) * sin(angle);
-      final y = center.dy - (radius - 25) * cos(angle);
+      final x = center.dx + relativePadding * sin(angle);
+      final y = center.dy - relativePadding * cos(angle);
 
       textPainter.text = TextSpan(
         text: '$i',
-        style: const TextStyle(fontSize: 14, color: Colors.black, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          fontSize: relativeFontSize, // 유동적 폰트 크기 적용
+          color: Colors.black, 
+          fontWeight: FontWeight.bold
+        ),
       );
 
       textPainter.layout();
