@@ -7,8 +7,12 @@ import 'package:timer_app/widgets/popup_menu.dart';
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값 (여기에 두어야 모든 페이지에서 꺼내 씁니다)
 // =========================================================
+// 시계 스타일
 final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both"); 
+// 숫자 or 점
 final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>("dot");
+//디지털 폰트 스타일
+final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>("default"); // "default", "segment", "flip"
 
 // // =========================================================
 // // 🌟 1. 공통 깔끔한 껍데기 
@@ -308,8 +312,9 @@ class SharedClockPainter extends CustomPainter {
     }
     // =============================================================
     
-    final double relativeFontSize = radius * 0.15;
-    final double relativePadding = radius * 0.8;
+    final double relativeFontSize = radius * 0.1;
+    // 숫자 위치 0.8이면 원안쪽으로 들어옴
+    final double relativePadding = radius * 1.08;
 
     final textPainter = TextPainter(
       textAlign: TextAlign.center,
@@ -362,4 +367,211 @@ String formatDigitalTimeLong(double seconds) {
   int m = (s % 3600) ~/ 60;
   s = s % 60;
   return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+}
+
+// =========================================================
+// 6. 다기능 디지털 시계 위젯 (기본 / 세그먼트 / 플립)
+// =========================================================
+// =========================================================
+// 🌟 다기능 디지털 시계 위젯 (기본 / 세그먼트 / 플립 애니메이션 추가!)
+// =========================================================
+class CustomDigitalClock extends StatelessWidget {
+  final double seconds;
+  final String styleMode; // "default", "segment", "flip"
+  final double fontSize;
+  final Color defaultColor;
+
+  const CustomDigitalClock({
+    super.key,
+    required this.seconds,
+    required this.styleMode,
+    required this.fontSize,
+    this.defaultColor = Colors.redAccent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    String timeString = formatDigitalTimeLong(seconds);
+
+    if (styleMode == "flip") {
+      // 🕰️ [찐 플립 시계 스타일] - 새로 만든 클래스를 갖다 쓰기만 하면 끝!
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: timeString.split('').map((char) {
+          if (char == ':') {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(':', style: TextStyle(fontSize: fontSize * 0.8, fontWeight: FontWeight.bold, color: Colors.black)),
+            );
+          }
+          // 💡 복잡했던 코드 대신 한 줄로 해결!
+          return ClassicFlipDigit(digit: char, fontSize: fontSize);
+        }).toList(),
+      );
+
+    } else if (styleMode == "segment") {
+      // 📟 [전자시계 세그먼트 스타일]
+      return Text(
+        timeString,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.w900, 
+          fontStyle: FontStyle.italic, 
+          letterSpacing: 4.0,
+          color: defaultColor,
+          fontFamily: 'Courier', 
+          shadows: [
+            Shadow(color: defaultColor.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 0)),
+          ],
+        ),
+      );
+
+    } else {
+      // ⏱️ [기본 둥근 스타일]
+      return Text(
+        timeString,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 2.0,
+          color: defaultColor, 
+        ),
+      );
+    }
+  }
+}
+
+// =========================================================
+// 아날로그 플립 카드 (위에서 아래로 반 접히는 달력 효과)
+// =========================================================
+class ClassicFlipDigit extends StatefulWidget {
+  final String digit;
+  final double fontSize;
+  const ClassicFlipDigit({super.key, required this.digit, required this.fontSize});
+
+  @override
+  State<ClassicFlipDigit> createState() => _ClassicFlipDigitState();
+}
+
+class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerProviderStateMixin {
+  late String _currentDigit;
+  late String _nextDigit;
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentDigit = widget.digit;
+    _nextDigit = widget.digit;
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _animation = Tween<double>(begin: 0, end: 1).animate(_controller)
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() => _currentDigit = _nextDigit);
+        }
+      });
+  }
+
+  @override
+  void didUpdateWidget(ClassicFlipDigit oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.digit != oldWidget.digit) {
+      _nextDigit = widget.digit;
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  // 카드를 위/아래 정확히 반으로 자르는 함수
+  Widget _buildHalf(String digit, bool isTop) {
+    return ClipRect(
+      child: Align(
+        alignment: isTop ? Alignment.topCenter : Alignment.bottomCenter,
+        heightFactor: 0.5,
+        child: Container(
+          width: widget.fontSize * 0.85, // 카드 너비 고정 (숫자 바뀔 때 안 흔들리게)
+          alignment: Alignment.center,
+          // 위아래 여백 늘리기
+          padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 4.0),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E), // 진한 흑회색
+            borderRadius: BorderRadius.vertical(
+              top: isTop ? const Radius.circular(8.0) : Radius.zero,
+              bottom: isTop ? Radius.zero : const Radius.circular(8.0),
+            ),
+          ),
+          child: Text(
+            digit,
+            style: TextStyle(
+              fontSize: widget.fontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final isFirstHalf = _animation.value < 0.5;
+        Widget topHalf;
+        Widget bottomHalf;
+
+        if (isFirstHalf) {
+          // [1단계] 윗장이 90도까지 앞으로 꺾이며 접히는 중
+          final flipValue = _animation.value * 2; 
+          topHalf = Stack(
+            children: [
+              _buildHalf(_nextDigit, true), // 뒤에 깔려있는 다음 숫자 윗장
+              Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.003)
+                  ..rotateX(-flipValue * (pi / 2)), // 💡 위에서 앞으로 넘어짐
+                alignment: Alignment.bottomCenter, // 가운데 선이 축
+                child: _buildHalf(_currentDigit, true), // 현재 숫자 윗장
+              ),
+            ],
+          );
+          bottomHalf = _buildHalf(_currentDigit, false); // 아래는 아직 그대로
+        } else {
+          // [2단계] 90도를 넘어 바닥에 찰싹 달라붙는 중
+          final flipValue = (_animation.value - 0.5) * 2; 
+          topHalf = _buildHalf(_nextDigit, true); // 윗장은 이미 다음 숫자로 변함
+          bottomHalf = Stack(
+            children: [
+              _buildHalf(_currentDigit, false), // 뒤에 깔려있는 원래 숫자 아랫장
+              Transform(
+                transform: Matrix4.identity()
+                  ..setEntry(3, 2, 0.003)
+                  ..rotateX((1.0 - flipValue) * (pi / 2)), // 💡 허공에서 바닥으로 떨어짐
+                alignment: Alignment.topCenter, // 가운데 선이 축
+                child: _buildHalf(_nextDigit, false), // 다음 숫자 아랫장
+              ),
+            ],
+          );
+        }
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 2.0),
+          decoration: BoxDecoration(
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))]
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              topHalf,
+              Container(height: 2.0, width: widget.fontSize * 0.7, color: Colors.black87), // 절취선
+              bottomHalf,
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
