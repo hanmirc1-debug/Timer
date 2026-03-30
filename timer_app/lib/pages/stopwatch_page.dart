@@ -103,69 +103,97 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
           displayDigitalSeconds = currentSeconds;
         }
 
-        return Stack(
-          children: [
-            Align(
-              alignment: const Alignment(0, -0.2), 
-              child: Column(
-                mainAxisSize: MainAxisSize.min, 
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onPanStart: (details) => setState(() {
-                      if (!isRunning && !hasStarted) {
-                        isDragging = true;
-                        controller.reset();
-                      }
-                    }),
-                    onPanUpdate: (details) {
-                      if (!isRunning && !hasStarted) {
-                        updateTargetTime(details.localPosition, Size(clockSize, clockSize));
-                      }
-                    },
-                    onPanEnd: (details) => setState(() {
-                      if (!isRunning && !hasStarted) {
-                        isDragging = false;
-                        targetMaxSeconds = _draggedSeconds;
-                      }
-                    }),
-                    child: CustomPaint(
-                      size: Size(clockSize, clockSize),
-                      // isTimer: false 를 통해 일반 시계 방향(오른쪽 15, 왼쪽 45)으로 그림
-                      painter: SharedClockPainter(displayDrawnSeconds, displayMaxScale, isTimer: false),
-                    ),
-                  ),
-                  SizedBox(height: availableHeight * 0.05),
+        // 🌟 핵심 1: 스탑워치도 설정값 감지를 위해 ValueListenableBuilder로 감쌉니다!
+        return ValueListenableBuilder<String>(
+          valueListenable: globalDisplayMode,
+          builder: (context, displayMode, child) {
+            return ValueListenableBuilder<String>(
+              valueListenable: globalIndicatorMode,
+              builder: (context, indicatorMode, child) {
+                
+                // 현재 설정된 점/숫자 모드 판별
+                bool isDot = indicatorMode == "dot";
 
-                  Text(
-                    formatDigitalTimeLong(displayDigitalSeconds),
-                    style: TextStyle(
-                      fontSize: digitalFontSize,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                return Stack(
                   children: [
-                    GlassButton(text: '시작', onPressed: start),
-                    const SizedBox(height: 15),
-                    GlassButton(text: '멈춤', onPressed: stop),
-                    const SizedBox(height: 15),
-                    GlassButton(text: '리셋', onPressed: reset),
+                    Align(
+                      alignment: const Alignment(0, -0.2), 
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min, 
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          
+                          // 🌟 핵심 2: displayMode에 따라 아날로그 시계 렌더링 분기
+                          if (displayMode == "both" || displayMode == "analog")
+                            GestureDetector(
+                              onPanStart: (details) => setState(() {
+                                if (!isRunning && !hasStarted) {
+                                  isDragging = true;
+                                  controller.reset();
+                                }
+                              }),
+                              onPanUpdate: (details) {
+                                if (!isRunning && !hasStarted) {
+                                  updateTargetTime(details.localPosition, Size(clockSize, clockSize));
+                                }
+                              },
+                              onPanEnd: (details) => setState(() {
+                                if (!isRunning && !hasStarted) {
+                                  isDragging = false;
+                                  targetMaxSeconds = _draggedSeconds;
+                                }
+                              }),
+                              child: CustomPaint(
+                                size: Size(clockSize, clockSize),
+                                painter: SharedClockPainter(
+                                  displayDrawnSeconds, 
+                                  displayMaxScale, 
+                                  isTimer: false,
+                                  isDotMode: isDot, // 👈 핵심 3: 스탑워치 시계에도 점/숫자 모드 전달!
+                                ),
+                              ),
+                            ),
+                          
+                          // 둘 다 표시할 때만 중간 여백
+                          if (displayMode == "both")
+                            SizedBox(height: availableHeight * 0.05),
+
+                          // 🌟 핵심 4: displayMode에 따라 디지털 시계 렌더링 분기
+                          if (displayMode == "both" || displayMode == "digital")
+                            Text(
+                              formatDigitalTimeLong(displayDigitalSeconds),
+                              style: TextStyle(
+                                fontSize: digitalFontSize,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    
+                    // 우측 버튼 영역 (그대로 유지)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GlassButton(text: '시작', onPressed: start),
+                            const SizedBox(height: 15),
+                            GlassButton(text: '멈춤', onPressed: stop),
+                            const SizedBox(height: 15),
+                            GlassButton(text: '리셋', onPressed: reset),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-              ),
-            ),
-          ],
+                );
+              }
+            );
+          }
         );
       }
     );

@@ -39,6 +39,7 @@ class CustomPopupMenu extends StatelessWidget {
                     _menuItem(context, "즐겨찾기"),
                     _menuItem(context, "계정연동"),
                     _menuItem(context, "추가1"),
+                    _menuItem(context, "시계 설정"),
                   ],
                 ),
               ),
@@ -75,6 +76,12 @@ class CustomPopupMenu extends StatelessWidget {
             context: context,
             barrierColor: Colors.black54,
             builder: (_) => ExtraPopup(),
+          );
+        } else if (text == "시계 설정") {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black54,
+            builder: (_) => ClockSettingPopup(),
           );
         }
       },

@@ -75,7 +75,7 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
     super.dispose();
   }
 
-  @override
+ @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -83,58 +83,86 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
         final clockSize = availableHeight * 0.7; 
         final digitalFontSize = availableHeight * 0.07; 
 
-        return Stack(
-          children: [
-            Align(
-              alignment: const Alignment(0, -0.2),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onPanUpdate: (details) {
-                      if (!isRunning) {
-                        updateStartTime(details.localPosition, Size(clockSize, clockSize));
-                      }
-                    },
-                    child: CustomPaint(
-                      size: Size(clockSize, clockSize),
-                      // 타이머 로직 적용 플래그
-                      painter: SharedClockPainter(currentRedSeconds, 60, isTimer: true),
-                    ),
-                  ),
-                  SizedBox(height: availableHeight * 0.05),
-                  
-                  Text(
-                    formatDigitalTimeLong(currentRedSeconds),
-                    style: TextStyle(
-                      fontSize: digitalFontSize,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 2.0,
-                      color: Colors.redAccent, 
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            
-            Align(
-              alignment: Alignment.centerRight,
-              child: Padding(
-                padding: const EdgeInsets.only(right: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+        // 🌟 핵심 1: 화면 전체를 ValueListenableBuilder로 감싸서 즉각 반응하게 만듭니다!
+        return ValueListenableBuilder<String>(
+          valueListenable: globalDisplayMode,
+          builder: (context, displayMode, child) {
+            return ValueListenableBuilder<String>(
+              valueListenable: globalIndicatorMode,
+              builder: (context, indicatorMode, child) {
+                
+                // 여기서 현재 설정값을 판별합니다.
+                bool isDot = indicatorMode == "dot";
+
+                return Stack(
                   children: [
-                    GlassButton(text: '시작', onPressed: start),
-                    const SizedBox(height: 15),
-                    GlassButton(text: '멈춤', onPressed: stop),
-                    const SizedBox(height: 15),
-                    GlassButton(text: '리셋', onPressed: reset),
+                    Align(
+                      alignment: const Alignment(0, -0.2),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          
+                          // 🌟 핵심 2: displayMode가 "both"이거나 "analog"일 때만 아날로그 시계 렌더링
+                          if (displayMode == "both" || displayMode == "analog")
+                            GestureDetector(
+                              onPanUpdate: (details) {
+                                if (!isRunning) {
+                                  updateStartTime(details.localPosition, Size(clockSize, clockSize));
+                                }
+                              },
+                              child: CustomPaint(
+                                size: Size(clockSize, clockSize),
+                                painter: SharedClockPainter(
+                                  currentRedSeconds, 
+                                  60, 
+                                  isTimer: true,
+                                  isDotMode: isDot, // 점/숫자 모드 즉시 적용
+                                ),
+                              ),
+                            ),
+                          
+                          // 둘 다 표시할 때만 중간 여백
+                          if (displayMode == "both")
+                            SizedBox(height: availableHeight * 0.05),
+                          
+                          // 🌟 핵심 3: displayMode가 "both"이거나 "digital"일 때만 디지털 텍스트 렌더링
+                          if (displayMode == "both" || displayMode == "digital")
+                            Text(
+                              formatDigitalTimeLong(currentRedSeconds),
+                              style: TextStyle(
+                                fontSize: digitalFontSize,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2.0,
+                                color: Colors.redAccent, 
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    
+                    // 우측 시작/멈춤/리셋 버튼 영역 (그대로 유지)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 32.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GlassButton(text: '시작', onPressed: start),
+                            const SizedBox(height: 15),
+                            GlassButton(text: '멈춤', onPressed: stop),
+                            const SizedBox(height: 15),
+                            GlassButton(text: '리셋', onPressed: reset),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
-                ),
-              ),
-            ),
-          ],
+                );
+              },
+            );
+          },
         );
       }
     );

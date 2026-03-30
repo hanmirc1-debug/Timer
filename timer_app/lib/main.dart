@@ -42,7 +42,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  bool isTimerMode = false; // false = 스탑워치, true = 타이머
+  bool isTimerMode = true; // false = 스탑워치, true = 타이머
   Color myBgColor = const Color.fromARGB(255, 255, 255, 255); // 👈 진짜 배경색 변수를 하나 만듭니다! 나중에 여기에 현재 배경 색 변수 넣어야댐!
 
   @override

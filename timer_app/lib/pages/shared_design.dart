@@ -4,6 +4,11 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart'; // 애플 스타일 스위치를 쓰기 위해 필수!
 
 import 'package:timer_app/widgets/popup_menu.dart';
+// =========================================================
+// 🌟 0. 앱 전체 공유 설정값 (여기에 두어야 모든 페이지에서 꺼내 씁니다)
+// =========================================================
+final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both"); 
+final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>("dot");
 
 // // =========================================================
 // // 🌟 1. 공통 깔끔한 껍데기 
@@ -240,15 +245,16 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
       ),
     );
   }
-}
-// 4. 시계 그리기 (숫자 반대방향 + 그리는 로직 변경)
+}// 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
-  final bool isTimer; // 타이머 여부에 따라 그리는 시작점이 다름
+  final bool isTimer; 
+  final bool isDotMode; // 💡 팝업에서 설정한 값을 받아옵니다.
 
-  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true});
-
+  // 기본값을 true(점 모드)로 설정해둡니다.
+  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.isDotMode = true});
+  
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -259,10 +265,8 @@ class SharedClockPainter extends CustomPainter {
     
     double startAngle;
     if (isTimer) {
-      // 타이머: 드래그한 끝 지점(하얀색이 끝나는 곳)부터 시계방향으로 칠해서 12시에 끝남
       startAngle = -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi;
     } else {
-      // 스탑워치: 무조건 12시에서 시작
       startAngle = -pi / 2;
     }
 
@@ -279,96 +283,31 @@ class SharedClockPainter extends CustomPainter {
         paintArc,
       );
     }
-    // =============================================================
-    // // +++ [미니멀 분 선 블록: 선을 없애려면 이 블록 전체를 주석 처리하세요] +++
-    // final tickPaint = Paint()
-    //   ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) // 미세한 느낌을 위해 투명도 적용
-    //   ..strokeWidth = 1.0; // 아주 가늘게
     
-    // // 60개의 분 선을 테두리 안쪽에 미세하게 배치
-    // for (int t = 0; t < 60; t++) {
-    //   // 12시 기준 시계방향 각도 계산
-    //   final angle = (t / 60) * 2 * pi - pi / 2;
-      
-    //   // 테두리 안쪽(radius * 0.96 ~ 1.0)에 배치하여 미니멀함 유지
-    //   canvas.drawLine(
-    //     center + Offset(cos(angle) * (radius * 0.96), sin(angle) * (radius * 0.96)),
-    //     center + Offset(cos(angle) * radius, sin(angle) * radius),
-    //     tickPaint,
-    //   );
-    // }
-
-    // // 기본 분 선(1분 단위) 스타일
-    // final tickPaint = Paint()
-    //   ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) // 미세한 느낌을 위해 투명도 적용
-    //   ..strokeWidth = 1.0; // 아주 가늘게
-
-    // // 5분 단위 강조 선 스타일
-    // final fiveTickPaint = Paint()
-    //   ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7) // 조금 더 진하게
-    //   ..strokeWidth = 1.5; // 조금 더 두껍게
-
-    // // 선의 크기 기준 (원 반지름에 비례)
-    // final double baseHalfLength = radius * 0.02; // 기본 선 길이의 절반 (테두리 안팎으로 나갈 길이)
-
-    // // 60개의 분 선을 테두리 안팎에 중앙 정렬로 배치
-    // for (int t = 0; t < 60; t++) {
-    //   // 12시 기준 시계방향 각도 계산
-    //   final angle = (t / 60) * 2 * pi - pi / 2;
-      
-    //   // 5분 단위인지 확인 (0, 5, 10, ...)
-    //   bool isFiveMinute = t % 5 == 0;
-      
-    //   // 5분 단위면 길이를 두 배로, 아니면 기본 길이로 설정
-    //   double currentHalfLength = isFiveMinute ? baseHalfLength * 2 : baseHalfLength;
-      
-    //   // 현재 선에 맞는 Paint 객체 선택
-    //   Paint currentPaint = isFiveMinute ? fiveTickPaint : tickPaint;
-
-    //   // 테두리 중앙(radius)을 기준으로 안쪽(-halfLength)과 바깥쪽(+halfLength) 좌표 계산
-    //   canvas.drawLine(
-    //     center + Offset(cos(angle) * (radius - currentHalfLength), sin(angle) * (radius - currentHalfLength)),
-    //     center + Offset(cos(angle) * (radius + currentHalfLength), sin(angle) * (radius + currentHalfLength)),
-    //     currentPaint,
-    //   );
-    // }
     // =============================================================
     // [미니멀 분 선 블록]
-    
-    // 기본 분 선(1분 단위) 스타일
     final tickPaint = Paint()
       ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) 
-      ..strokeWidth = 1.0; // 아주 가늘게
+      ..strokeWidth = 1.0; 
 
-    // 5분 단위 강조 선 스타일
     final fiveTickPaint = Paint()
       ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7) 
-      ..strokeWidth = 2.0; // 💡 기본 선(1.0)보다 딱 2배 두껍게 수정!
+      ..strokeWidth = 2.0; 
 
-    // 60개의 분 선을 테두리 안쪽에 미세하게 배치
     for (int t = 0; t < 60; t++) {
-      // 12시 기준 시계방향 각도 계산
       final angle = (t / 60) * 2 * pi - pi / 2;
-      
-      // 5분 단위인지 확인 (0, 5, 10, ...)
       bool isFiveMinute = t % 5 == 0;
-      
-      // 현재 선에 맞는 Paint 객체 선택 (두께 결정)
       Paint currentPaint = isFiveMinute ? fiveTickPaint : tickPaint;
-
-      // 💡 5분 단위면 길이를 2배로! 
-      // 기본 선은 radius의 0.96 위치에서 시작 (0.04 길이)
-      // 5분 선은 radius의 0.92 위치에서 시작 (0.08 길이, 즉 2배 길어짐)
       double innerRadiusRatio = isFiveMinute ? 0.92 : 0.96;
 
-      // 테두리 안쪽에 배치하여 미니멀함 유지
       canvas.drawLine(
         center + Offset(cos(angle) * (radius * innerRadiusRatio), sin(angle) * (radius * innerRadiusRatio)),
         center + Offset(cos(angle) * radius, sin(angle) * radius),
-        currentPaint, // 💡 무조건 tickPaint를 쓰던 것을 currentPaint로 교체!
+        currentPaint, 
       );
     }
     // =============================================================
+    
     final double relativeFontSize = radius * 0.15;
     final double relativePadding = radius * 0.8;
 
@@ -377,37 +316,45 @@ class SharedClockPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
 
+    // 👇👇👇 여기가 핵심 수정 부분입니다! (점/숫자 분기 처리) 👇👇👇
     for (int i = 0; i < maxScaleSeconds; i += 5) {
       double angle;
-      // 여기서 스탑워치와 타이머의 숫자 방향이 갈립니다!
       if (isTimer) {
-        // 타이머: 반시계 방향 (오른쪽이 45, 왼쪽이 15)
         angle = -pi / 2 - (i / maxScaleSeconds) * 2 * pi;
       } else {
-        // 스탑워치: 정방향 시계 (오른쪽이 15, 왼쪽이 45)
         angle = -pi / 2 + (i / maxScaleSeconds) * 2 * pi;
       }
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
-      textPainter.text = TextSpan(
-        text: '$i',
-        style: TextStyle(
-          fontSize: relativeFontSize,
-          color: Colors.black, 
-          fontWeight: FontWeight.bold
-        ),
-      );
-
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
+      if (isDotMode) {
+        // [점 모드] 숫자가 들어갈 자리에 동그란 점을 그립니다.
+        final dotPaint = Paint()
+          ..color = const Color.fromARGB(255, 0, 0, 0) // 짙은 회색 점
+          ..style = PaintingStyle.fill;
+        
+        // radius * 0.03 은 점의 크기입니다. 필요하면 숫자를 바꿔서 크기를 조절하세요.
+        canvas.drawCircle(Offset(x, y), radius * 0.01, dotPaint); 
+      } else {
+        // [숫자 모드] 기존 로직 그대로 숫자를 그립니다.
+        textPainter.text = TextSpan(
+          text: '$i',
+          style: TextStyle(
+            fontSize: relativeFontSize,
+            color: Colors.black, 
+            fontWeight: FontWeight.bold
+          ),
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
+      }
     }
+    // 👆👆👆 여기까지 수정 완료 👆👆👆
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
-
 // 5. 디지털 폰트 함수
 String formatDigitalTimeLong(double seconds) {
   int s = seconds.toInt();
