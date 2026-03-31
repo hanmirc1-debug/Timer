@@ -113,12 +113,10 @@ class GlassButton extends StatelessWidget {
     );
   }
 }
-
 // =========================================================
 // 3. 상단 메뉴 버튼 (점 세개) - 공통 껍데기
 // =========================================================
 class FloatingGlassMenuButton extends StatelessWidget {
-  // 💡 버튼 뒤에 깔려있는 진짜 배경색을 전달받을 변수입니다.
   final Color backgroundColor;
 
   FloatingGlassMenuButton({super.key, required this.backgroundColor});
@@ -127,35 +125,51 @@ class FloatingGlassMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // 🎨 [핵심!] 전달받은 배경색의 밝기(Luminance)를 수치로 계산합니다.
-    // 보통 0.5를 기준으로 그보다 크면 밝은 배경, 작으면 어두운 배경으로 판단합니다.
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     Color iconColor = backgroundColor.computeLuminance() > 0.5
-        ? Colors
-              .black87 // 배경이 밝음 -> 아이콘은 검은색
-        : Colors.white; // 배경이 어두움 -> 아이콘은 흰색
+        ? Colors.black87 
+        : Colors.white; 
 
-    return FloatingGlassContainer(
-      child: IconButton(
-        key: _buttonKey,
-        // 👇 계산된 똑똑한 색상(iconColor)을 적용!
-        icon: Icon(Icons.more_horiz, size: 24, color: iconColor),
-        onPressed: () {
-          final RenderBox box =
-              _buttonKey.currentContext!.findRenderObject() as RenderBox;
-          final position = box.localToGlobal(Offset.zero);
-          final size = box.size;
+    // 👇👇👇 1. Align을 써서 부모가 누구든 무조건 '왼쪽 위(topLeft)'로 강제 이동! 👇👇👇
+    return Align(
+      alignment: Alignment.topLeft, 
+      child: Padding(
+        // 💡 2. 이제 여기서 진짜 원하는 만큼만 벽에서 떨어뜨립니다. (너무 0이면 윗부분 시계/배터리에 가려지니 약간은 띄우는 게 좋습니다)
+        padding: EdgeInsets.only(
+          top: screenHeight * 0.00,  // 위에서 6% 
+          left: screenWidth * 0.00,  // 왼쪽에서 5%
+        ),
+        child: FloatingGlassContainer(
+          padding: EdgeInsets.zero, // 💡 불필요한 이중 여백 제거
+          child: IconButton(
+            key: _buttonKey,
+            padding: EdgeInsets.all(screenWidth * 0.02), // 순수 터치 영역만 남김
+            
+            // 👇👇👇 3. 플러터 기본 버튼의 '보이지 않는 투명 보호막(48px)' 제거! 👇👇👇
+            constraints: const BoxConstraints(), 
+            
+            icon: Icon(Icons.more_horiz, size: screenWidth * 0.04, color: iconColor),
+            onPressed: () {
+              final RenderBox box = _buttonKey.currentContext!.findRenderObject() as RenderBox;
+              final position = box.localToGlobal(Offset.zero);
+              final size = box.size;
 
-          showDialog(
-            context: context,
-            barrierColor: Colors.transparent,
-            builder: (_) =>
-                CustomPopupMenu(position: position, buttonSize: size),
-          );
-        },
+              showDialog(
+                context: context,
+                barrierColor: Colors.transparent,
+                builder: (_) => CustomPopupMenu(position: position, buttonSize: size),
+              );
+            },
+          ),
+        ),
       ),
     );
   }
 }
+
+
 // =========================================================
 // 4. 상단 스위치 버튼 - 공통 껍데기 적용
 // =========================================================
@@ -177,6 +191,23 @@ class FloatingGlassMenuButton extends StatelessWidget {
 //   }
 // }
 // =========================================================
+// class FloatingGlassSwitchButton extends StatefulWidget {
+//   final bool value; // 동그라미 위치 (false=왼쪽 TM, true=오른쪽 SW)
+//   final ValueChanged<bool> onChanged;
+
+//   const FloatingGlassSwitchButton({
+//     super.key,
+//     required this.value,
+//     required this.onChanged,
+//   });
+
+//   @override
+//   State<FloatingGlassSwitchButton> createState() =>
+//       _FloatingGlassSwitchButtonState();
+// }
+// =========================================================
+// 4. 상단 스위치 버튼 - 공통 껍데기 적용
+// =========================================================
 class FloatingGlassSwitchButton extends StatefulWidget {
   final bool value; // 동그라미 위치 (false=왼쪽 TM, true=오른쪽 SW)
   final ValueChanged<bool> onChanged;
@@ -195,66 +226,64 @@ class FloatingGlassSwitchButton extends StatefulWidget {
 class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
   @override
   Widget build(BuildContext context) {
-    // 1. 값에 따라 표시될 텍스트 결정
-    // 동그라미가 오른쪽에있을때는 글자가 TM, 왼쪽에 있을때는ㄴ SW
-    // widget.value가 true면 오른쪽 -> 스, false면 왼쪽 -> ㄵ
+    // 💡 1. 화면 가로 길이를 가져옵니다.
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // 💡 2. 화면 가로 길이에 맞춰서 모든 크기를 비율로 계산합니다!
+    // (숫자를 살짝씩 바꿔보며 원하는 크기를 맞춰보세요)
+    final double trackWidth = screenWidth * 0.12;  // 전체 트랙 가로 (화면의 22%)
+    final double trackHeight = screenWidth * 0.06; // 전체 트랙 세로 (화면의 10%)
+    final double handleSize = screenWidth * 0.04;  // 동그라미 크기 (화면의 8%)
+    final double fontSize = screenWidth * 0.02;   // 글자 크기 (화면의 3.5%)
+
     String displayText = widget.value ? "TM" : "SW";
 
     return GestureDetector(
-      // 2. 전체 스위치를 터치하면 값을 토글합니다.
       onTap: () {
         widget.onChanged(!widget.value);
       },
       child: Container(
         child: Container(
-          // track 모양: 넓고 동그란 track
-          width: 90, // 텍스트를 담기 위해 기존 스위치보다 넓게
-          height: 38, // 트랙 높이
+          width: trackWidth,   // 💡 비율 적용!
+          height: trackHeight, // 💡 비율 적용!
           decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 231, 231, 231), // 트랙 배경색
-            borderRadius: BorderRadius.circular(15), // 트랙 끝을 완벽하게 동그랗게
+            color: const Color.fromARGB(255, 231, 231, 231),
+            borderRadius: BorderRadius.circular(trackHeight / 2), // 트랙 높이의 절반을 주면 항상 완벽한 알약 모양이 됩니다
           ),
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // [수정] 텍스트 ("SW" 또는 "TM") 위치 변경: 동그라미 반대쪽으로
               Align(
-                // widget.value가 true (오른쪽 핸들) -> 텍스트는 Alignment.centerLeft
-                // widget.value가 false (왼쪽 핸들) -> 텍스트는 Alignment.centerRight
                 alignment: widget.value
                     ? Alignment.centerLeft
                     : Alignment.centerRight,
                 child: Padding(
-                  // 텍스트 위치 세부 조정: 반대쪽 끝에 붙게 padding 추가
+                  // 💡 글자 위치도 트랙 크기에 비례해서 밀어줍니다
                   padding: widget.value
-                      ? const EdgeInsets.only(left: 12) // SW일 때 왼쪽 여백
-                      : const EdgeInsets.only(right: 12), // TM일 때 오른쪽 여백
+                      ? EdgeInsets.only(left: trackWidth * 0.15)
+                      : EdgeInsets.only(right: trackWidth * 0.15),
                   child: Text(
                     displayText,
-                    style: const TextStyle(
-                      color: Color.fromARGB(240, 121, 121, 121),
-                      fontSize: 14,
+                    style: TextStyle(
+                      color: const Color.fromARGB(240, 121, 121, 121),
+                      fontSize: fontSize, // 💡 글자 크기 비율 적용!
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
               ),
-              // 애니메이션 동그라미 핸들 (동일하게 유지)
               AnimatedAlign(
-                duration: const Duration(milliseconds: 200), // 애니메이션 속도
-                // true면 오른쪽(centerRight), false면 왼쪽(centerLeft)으로 핸들 이동
+                duration: const Duration(milliseconds: 200),
                 alignment: widget.value
                     ? Alignment.centerRight
                     : Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                  ), // 트랙 끝과의 여백
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: Container(
-                    width: 30, // 동그라미 크기
-                    height: 30,
-                    decoration: BoxDecoration(
-                      color: Color.fromARGB(240, 121, 121, 121), // 핸들 색상
+                    width: handleSize,  // 💡 동그라미 가로 비율 적용!
+                    height: handleSize, // 💡 동그라미 세로 비율 적용!
+                    decoration: const BoxDecoration(
+                      color: Color.fromARGB(240, 121, 121, 121),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -266,8 +295,8 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
       ),
     );
   }
-} // 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
-
+}
+// 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
