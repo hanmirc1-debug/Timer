@@ -113,6 +113,7 @@ class GlassButton extends StatelessWidget {
     );
   }
 }
+
 // =========================================================
 // 3. 상단 메뉴 버튼 (점 세개) - 공통 껍데기
 // =========================================================
@@ -129,37 +130,42 @@ class FloatingGlassMenuButton extends StatelessWidget {
     final screenHeight = MediaQuery.of(context).size.height;
 
     Color iconColor = backgroundColor.computeLuminance() > 0.5
-        ? Colors.black87 
-        : Colors.white; 
+        ? Colors.black87
+        : Colors.white;
 
     // 👇👇👇 1. Align을 써서 부모가 누구든 무조건 '왼쪽 위(topLeft)'로 강제 이동! 👇👇👇
     return Align(
-      alignment: Alignment.topLeft, 
+      alignment: Alignment.topLeft,
       child: Padding(
         // 💡 2. 이제 여기서 진짜 원하는 만큼만 벽에서 떨어뜨립니다. (너무 0이면 윗부분 시계/배터리에 가려지니 약간은 띄우는 게 좋습니다)
         padding: EdgeInsets.only(
-          top: screenHeight * 0.00,  // 위에서 6% 
-          left: screenWidth * 0.00,  // 왼쪽에서 5%
+          top: screenHeight * 0.00, // 위에서 6%
+          left: screenWidth * 0.00, // 왼쪽에서 5%
         ),
         child: FloatingGlassContainer(
           padding: EdgeInsets.zero, // 💡 불필요한 이중 여백 제거
           child: IconButton(
             key: _buttonKey,
             padding: EdgeInsets.all(screenWidth * 0.02), // 순수 터치 영역만 남김
-            
             // 👇👇👇 3. 플러터 기본 버튼의 '보이지 않는 투명 보호막(48px)' 제거! 👇👇👇
-            constraints: const BoxConstraints(), 
-            
-            icon: Icon(Icons.more_horiz, size: screenWidth * 0.04, color: iconColor),
+            constraints: const BoxConstraints(),
+
+            icon: Icon(
+              Icons.more_horiz,
+              size: screenWidth * 0.04,
+              color: iconColor,
+            ),
             onPressed: () {
-              final RenderBox box = _buttonKey.currentContext!.findRenderObject() as RenderBox;
+              final RenderBox box =
+                  _buttonKey.currentContext!.findRenderObject() as RenderBox;
               final position = box.localToGlobal(Offset.zero);
               final size = box.size;
 
               showDialog(
                 context: context,
                 barrierColor: Colors.transparent,
-                builder: (_) => CustomPopupMenu(position: position, buttonSize: size),
+                builder: (_) =>
+                    CustomPopupMenu(position: position, buttonSize: size),
               );
             },
           ),
@@ -168,7 +174,6 @@ class FloatingGlassMenuButton extends StatelessWidget {
     );
   }
 }
-
 
 // =========================================================
 // 4. 상단 스위치 버튼 - 공통 껍데기 적용
@@ -226,15 +231,13 @@ class FloatingGlassSwitchButton extends StatefulWidget {
 class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
   @override
   Widget build(BuildContext context) {
-    // 💡 1. 화면 가로 길이를 가져옵니다.
-    final screenWidth = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
+    final base = size.longestSide;
 
-    // 💡 2. 화면 가로 길이에 맞춰서 모든 크기를 비율로 계산합니다!
-    // (숫자를 살짝씩 바꿔보며 원하는 크기를 맞춰보세요)
-    final double trackWidth = screenWidth * 0.12;  // 전체 트랙 가로 (화면의 22%)
-    final double trackHeight = screenWidth * 0.06; // 전체 트랙 세로 (화면의 10%)
-    final double handleSize = screenWidth * 0.04;  // 동그라미 크기 (화면의 8%)
-    final double fontSize = screenWidth * 0.02;   // 글자 크기 (화면의 3.5%)
+    final double trackWidth = base * 0.08;
+    final double trackHeight = base * 0.04;
+    final double handleSize = trackHeight * 0.4;
+    final double fontSize = base * 0.02;
 
     String displayText = widget.value ? "TM" : "SW";
 
@@ -243,60 +246,63 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
         widget.onChanged(!widget.value);
       },
       child: Container(
-        child: Container(
-          width: trackWidth,   // 💡 비율 적용!
-          height: trackHeight, // 💡 비율 적용!
-          decoration: BoxDecoration(
-            color: const Color.fromARGB(255, 231, 231, 231),
-            borderRadius: BorderRadius.circular(trackHeight / 2), // 트랙 높이의 절반을 주면 항상 완벽한 알약 모양이 됩니다
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Align(
-                alignment: widget.value
-                    ? Alignment.centerLeft
-                    : Alignment.centerRight,
-                child: Padding(
-                  // 💡 글자 위치도 트랙 크기에 비례해서 밀어줍니다
-                  padding: widget.value
-                      ? EdgeInsets.only(left: trackWidth * 0.15)
-                      : EdgeInsets.only(right: trackWidth * 0.15),
-                  child: Text(
-                    displayText,
-                    style: TextStyle(
-                      color: const Color.fromARGB(240, 121, 121, 121),
-                      fontSize: fontSize, // 💡 글자 크기 비율 적용!
-                      fontWeight: FontWeight.w600,
-                    ),
+        width: trackWidth, // 💡 비율 적용!
+        height: trackHeight, // 💡 비율 적용!
+        decoration: BoxDecoration(
+          color: const Color.fromARGB(255, 231, 231, 231),
+          borderRadius: BorderRadius.circular(
+            trackHeight / 2,
+          ), // 트랙 높이의 절반을 주면 항상 완벽한 알약 모양이 됩니다
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: widget.value
+                  ? Alignment.centerLeft
+                  : Alignment.centerRight,
+              child: Padding(
+                // 💡 글자 위치도 트랙 크기에 비례해서 밀어줍니다
+                padding: widget.value
+                    ? EdgeInsets.only(left: trackWidth * 0.15)
+                    : EdgeInsets.only(right: trackWidth * 0.15),
+                child: Text(
+                  displayText,
+                  style: TextStyle(
+                    color: const Color.fromARGB(240, 121, 121, 121),
+                    fontSize: fontSize, // 💡 글자 크기 비율 적용!
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
-              AnimatedAlign(
-                duration: const Duration(milliseconds: 200),
-                alignment: widget.value
-                    ? Alignment.centerRight
-                    : Alignment.centerLeft,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Container(
-                    width: handleSize,  // 💡 동그라미 가로 비율 적용!
-                    height: handleSize, // 💡 동그라미 세로 비율 적용!
-                    decoration: const BoxDecoration(
-                      color: Color.fromARGB(240, 121, 121, 121),
-                      shape: BoxShape.circle,
-                    ),
+            ),
+            AnimatedAlign(
+              duration: const Duration(milliseconds: 200),
+              alignment: widget.value
+                  ? Alignment.centerRight
+                  : Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Container(
+                  width: handleSize, // 💡 동그라미 가로 비율 적용!
+                  height: handleSize, // 💡 동그라미 세로 비율 적용!
+                  decoration: const BoxDecoration(
+                    color: Color.fromARGB(240, 121, 121, 121),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
-// 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
+
+// =========================================================
+// 5. 시계 디자인
+// =========================================================
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
@@ -314,7 +320,8 @@ class SharedClockPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2;
+    // final radius = size.width / 2;
+    final radius = min(size.width, size.height) * 0.5;
 
     // 빨간색 부채꼴 크기
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
@@ -329,7 +336,7 @@ class SharedClockPainter extends CustomPainter {
     }
 
     final paintArc = Paint()
-      ..color = const Color.fromARGB(255, 240, 14, 14).withOpacity(0.8)
+      ..color = const Color.fromARGB(255, 88, 48, 88)
       ..style = PaintingStyle.fill;
 
     if (drawnSeconds > 0) {

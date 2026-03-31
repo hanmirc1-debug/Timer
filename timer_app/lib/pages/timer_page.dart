@@ -81,10 +81,14 @@ class _TimerAppPageState extends State<TimerAppPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-        final clockSize = availableHeight * 0.7;
+        final clockSize =
+            min(constraints.maxWidth, constraints.maxHeight) * 0.7;
         final digitalFontSize = availableHeight * 0.07;
 
         // 🌟 핵심 1: 화면 전체를 ValueListenableBuilder로 감싸서 즉각 반응하게 만듭니다!
@@ -98,70 +102,84 @@ class _TimerAppPageState extends State<TimerAppPage>
             // 현재 설정값 3가지를 모두 가져옵니다.
             String displayMode = globalDisplayMode.value;
             String digitalStyle = globalDigitalStyle.value; // 👈 새로 추가된 폰트 스타일!
-            return Stack(
-              children: [
-                Align(
-                  alignment: const Alignment(0, -0.2),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // 🌟 핵심 2: displayMode가 "both"이거나 "analog"일 때만 아날로그 시계 렌더링
-                      if (displayMode == "both" || displayMode == "analog")
-                        GestureDetector(
-                          onPanUpdate: (details) {
-                            if (!isRunning) {
-                              updateStartTime(
-                                details.localPosition,
-                                Size(clockSize, clockSize),
-                              );
-                            }
-                          },
-                          child: CustomPaint(
-                            size: Size(clockSize, clockSize),
-                            painter: SharedClockPainter(
-                              currentRedSeconds,
-                              60,
-                              isTimer: true,
-                              indicatorMode: globalIndicatorMode.value,
-                            ),
-                          ),
-                        ),
-
-                      // 둘 다 표시할 때만 중간 여백
-                      if (displayMode == "both")
-                        SizedBox(height: availableHeight * 0.05),
-
-                      // 🌟 핵심 3: displayMode가 "both"이거나 "digital"일 때만 디지털 텍스트 렌더링
-                      if (displayMode == "both" || displayMode == "digital")
-                        CustomDigitalClock(
-                          seconds: currentRedSeconds,
-                          styleMode: digitalStyle, // 👈 팝업에서 선택한 폰트 스타일 적용
-                          fontSize: digitalFontSize,
-                          defaultColor: Colors.redAccent,
-                        ),
-                    ],
-                  ),
-                ),
-
-                // 우측 시작/멈춤/리셋 버튼 영역 (그대로 유지)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 32.0),
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                if (isRunning) {
+                  stop();
+                } else {
+                  start();
+                }
+              },
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: const Alignment(0, -0.2),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        GlassButton(text: '시작', onPressed: start),
-                        const SizedBox(height: 15),
-                        GlassButton(text: '멈춤', onPressed: stop),
-                        const SizedBox(height: 15),
-                        GlassButton(text: '리셋', onPressed: reset),
+                        // 🌟 핵심 2: displayMode가 "both"이거나 "analog"일 때만 아날로그 시계 렌더링
+                        if (displayMode == "both" || displayMode == "analog")
+                          GestureDetector(
+                            onPanUpdate: (details) {
+                              if (!isRunning) {
+                                updateStartTime(
+                                  details.localPosition,
+                                  Size(clockSize, clockSize),
+                                );
+                              }
+                            },
+                            child: CustomPaint(
+                              size: Size(clockSize, clockSize),
+                              painter: SharedClockPainter(
+                                currentRedSeconds,
+                                60,
+                                isTimer: true,
+                                indicatorMode: globalIndicatorMode.value,
+                              ),
+                            ),
+                          ),
+
+                        // 둘 다 표시할 때만 중간 여백
+                        if (displayMode == "both")
+                          SizedBox(height: availableHeight * 0.05),
+
+                        // 🌟 핵심 3: displayMode가 "both"이거나 "digital"일 때만 디지털 텍스트 렌더링
+                        if (displayMode == "both" || displayMode == "digital")
+                          CustomDigitalClock(
+                            seconds: currentRedSeconds,
+                            styleMode: digitalStyle, // 👈 팝업에서 선택한 폰트 스타일 적용
+                            fontSize: digitalFontSize,
+                            defaultColor: const Color.fromARGB(255, 138, 163, 108),
+                          ), 
                       ],
                     ),
                   ),
-                ),
-              ],
+
+                  // 우측 시작/멈춤/리셋 버튼 영역 (그대로 유지)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Padding(
+                      padding: EdgeInsets.only(
+                        top: screenHeight * 0.7,
+                        right: screenWidth * 0.02,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.refresh),
+                            iconSize: 28,
+                            color: Colors.black,
+                            onPressed: reset,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             );
           },
         );
