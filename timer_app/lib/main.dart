@@ -8,13 +8,13 @@ void main() {
   // Flutter 엔진 초기화 보장
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 가로 모드로 방향 고정
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.landscapeRight,
-    DeviceOrientation.landscapeLeft,
-  ]).then((_) {
-    runApp(const MyApp());
-  });
+  // // 가로 모드로 방향 고정
+  // SystemChrome.setPreferredOrientations([
+  //   DeviceOrientation.landscapeRight,
+  //   DeviceOrientation.landscapeLeft,
+  // ]).then((_) {
+  //   runApp(const MyApp());
+  // });
 }
 
 class MyApp extends StatelessWidget {
