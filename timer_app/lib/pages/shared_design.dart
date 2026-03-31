@@ -4,27 +4,32 @@ import 'dart:ui';
 import 'package:flutter/cupertino.dart'; // 애플 스타일 스위치를 쓰기 위해 필수!
 
 import 'package:timer_app/widgets/popup_menu.dart';
+
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값 (여기에 두어야 모든 페이지에서 꺼내 씁니다)
 // =========================================================
 // 시계 스타일
-final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both"); 
+final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both");
 // 숫자 or 점
-final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>("number");
+final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>(
+  "number",
+);
 //디지털 폰트 스타일
-final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>("default"); // "default", "segment", "flip"
+final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>(
+  "default",
+); // "default", "segment", "flip"
 
 // // =========================================================
-// // 🌟 1. 공통 깔끔한 껍데기 
+// // 🌟 1. 공통 깔끔한 껍데기
 // // =========================================================
 // class FloatingGlassContainer extends StatelessWidget {
 //   final Widget child;
 //   final EdgeInsetsGeometry padding;
 
 //   const FloatingGlassContainer({
-//     super.key, 
+//     super.key,
 //     required this.child,
-//     this.padding = const EdgeInsets.all(5), 
+//     this.padding = const EdgeInsets.all(5),
 //   });
 
 //   @override
@@ -48,7 +53,7 @@ final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>("default"
 //         clipBehavior: Clip.antiAlias, // 터치 효과(물결)가 동그란 테두리 밖으로 안 삐져나가게 방지
 //         child: Padding(
 //           padding: padding,
-//           child: child, 
+//           child: child,
 //         ),
 //       ),
 //     );
@@ -59,9 +64,9 @@ class FloatingGlassContainer extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   const FloatingGlassContainer({
-    super.key, 
+    super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(5), 
+    this.padding = const EdgeInsets.all(5),
   });
 
   @override
@@ -72,13 +77,11 @@ class FloatingGlassContainer extends StatelessWidget {
       elevation: 0, // 입체감(그림자) 제로!!
       borderRadius: BorderRadius.circular(20.0),
       clipBehavior: Clip.antiAlias, // 터치할 때만 동그랗게 물결 효과 나오게 유지
-      child: Padding(
-        padding: padding,
-        child: child, 
-      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }
+
 // =========================================================
 // 2. 텍스트 버튼 (시작, 멈춤, 리셋) - 공통 껍데기 적용
 // =========================================================
@@ -99,7 +102,11 @@ class GlassButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           child: Text(
             text,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
           ),
         ),
       ),
@@ -115,17 +122,17 @@ class FloatingGlassMenuButton extends StatelessWidget {
   final Color backgroundColor;
 
   FloatingGlassMenuButton({super.key, required this.backgroundColor});
-  
+
   final GlobalKey _buttonKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
-    
     // 🎨 [핵심!] 전달받은 배경색의 밝기(Luminance)를 수치로 계산합니다.
     // 보통 0.5를 기준으로 그보다 크면 밝은 배경, 작으면 어두운 배경으로 판단합니다.
-    Color iconColor = backgroundColor.computeLuminance() > 0.5 
-        ? Colors.black87 // 배경이 밝음 -> 아이콘은 검은색
-        : Colors.white;  // 배경이 어두움 -> 아이콘은 흰색
+    Color iconColor = backgroundColor.computeLuminance() > 0.5
+        ? Colors
+              .black87 // 배경이 밝음 -> 아이콘은 검은색
+        : Colors.white; // 배경이 어두움 -> 아이콘은 흰색
 
     return FloatingGlassContainer(
       child: IconButton(
@@ -133,17 +140,16 @@ class FloatingGlassMenuButton extends StatelessWidget {
         // 👇 계산된 똑똑한 색상(iconColor)을 적용!
         icon: Icon(Icons.more_horiz, size: 24, color: iconColor),
         onPressed: () {
-          final RenderBox box = _buttonKey.currentContext!.findRenderObject() as RenderBox;
+          final RenderBox box =
+              _buttonKey.currentContext!.findRenderObject() as RenderBox;
           final position = box.localToGlobal(Offset.zero);
           final size = box.size;
 
           showDialog(
             context: context,
             barrierColor: Colors.transparent,
-            builder: (_) => CustomPopupMenu(
-              position: position,
-              buttonSize: size,
-            ),
+            builder: (_) =>
+                CustomPopupMenu(position: position, buttonSize: size),
           );
         },
       ),
@@ -164,7 +170,7 @@ class FloatingGlassMenuButton extends StatelessWidget {
 //     return FloatingGlassContainer(
 //       child: Switch(
 //         value: value,
-//         activeColor: Colors.black, 
+//         activeColor: Colors.black,
 //         onChanged: onChanged,
 //       ),
 //     );
@@ -175,10 +181,15 @@ class FloatingGlassSwitchButton extends StatefulWidget {
   final bool value; // 동그라미 위치 (false=왼쪽 TM, true=오른쪽 SW)
   final ValueChanged<bool> onChanged;
 
-  const FloatingGlassSwitchButton({super.key, required this.value, required this.onChanged});
+  const FloatingGlassSwitchButton({
+    super.key,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
-  State<FloatingGlassSwitchButton> createState() => _FloatingGlassSwitchButtonState();
+  State<FloatingGlassSwitchButton> createState() =>
+      _FloatingGlassSwitchButtonState();
 }
 
 class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
@@ -210,10 +221,12 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
               Align(
                 // widget.value가 true (오른쪽 핸들) -> 텍스트는 Alignment.centerLeft
                 // widget.value가 false (왼쪽 핸들) -> 텍스트는 Alignment.centerRight
-                alignment: widget.value ? Alignment.centerLeft : Alignment.centerRight,
+                alignment: widget.value
+                    ? Alignment.centerLeft
+                    : Alignment.centerRight,
                 child: Padding(
                   // 텍스트 위치 세부 조정: 반대쪽 끝에 붙게 padding 추가
-                  padding: widget.value 
+                  padding: widget.value
                       ? const EdgeInsets.only(left: 12) // SW일 때 왼쪽 여백
                       : const EdgeInsets.only(right: 12), // TM일 때 오른쪽 여백
                   child: Text(
@@ -230,9 +243,13 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
               AnimatedAlign(
                 duration: const Duration(milliseconds: 200), // 애니메이션 속도
                 // true면 오른쪽(centerRight), false면 왼쪽(centerLeft)으로 핸들 이동
-                alignment: widget.value ? Alignment.centerRight : Alignment.centerLeft,
+                alignment: widget.value
+                    ? Alignment.centerRight
+                    : Alignment.centerLeft,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4), // 트랙 끝과의 여백
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                  ), // 트랙 끝과의 여백
                   child: Container(
                     width: 30, // 동그라미 크기
                     height: 30,
@@ -249,16 +266,22 @@ class _FloatingGlassSwitchButtonState extends State<FloatingGlassSwitchButton> {
       ),
     );
   }
-}// 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
+} // 4. 시계 그리기 (점/숫자 모드 분기 처리 완료)
+
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
-  final bool isTimer; 
+  final bool isTimer;
   final String indicatorMode;
 
   // 기본값을 설정해둡니다.
-  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
-  
+  SharedClockPainter(
+    this.drawnSeconds,
+    this.maxScaleSeconds, {
+    this.isTimer = true,
+    this.indicatorMode = "number",
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -266,10 +289,12 @@ class SharedClockPainter extends CustomPainter {
 
     // 빨간색 부채꼴 크기
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
-    
+
     double startAngle;
     if (isTimer) {
-      startAngle = -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi;
+      startAngle =
+          -pi / 2 +
+          ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi;
     } else {
       startAngle = -pi / 2;
     }
@@ -287,16 +312,16 @@ class SharedClockPainter extends CustomPainter {
         paintArc,
       );
     }
-    
+
     // =============================================================
     // [미니멀 분 선 블록]
     final tickPaint = Paint()
-      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5) 
-      ..strokeWidth = 1.0; 
+      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5)
+      ..strokeWidth = 1.0;
 
     final fiveTickPaint = Paint()
-      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7) 
-      ..strokeWidth = 2.0; 
+      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7)
+      ..strokeWidth = 2.0;
 
     for (int t = 0; t < 60; t++) {
       final angle = (t / 60) * 2 * pi - pi / 2;
@@ -305,13 +330,17 @@ class SharedClockPainter extends CustomPainter {
       double innerRadiusRatio = isFiveMinute ? 0.92 : 0.96;
 
       canvas.drawLine(
-        center + Offset(cos(angle) * (radius * innerRadiusRatio), sin(angle) * (radius * innerRadiusRatio)),
+        center +
+            Offset(
+              cos(angle) * (radius * innerRadiusRatio),
+              sin(angle) * (radius * innerRadiusRatio),
+            ),
         center + Offset(cos(angle) * radius, sin(angle) * radius),
-        currentPaint, 
+        currentPaint,
       );
     }
     // =============================================================
-    
+
     final double relativeFontSize = radius * 0.1;
     // 숫자 위치 0.8이면 원안쪽으로 들어옴
     final double relativePadding = radius * 1.08;
@@ -322,10 +351,9 @@ class SharedClockPainter extends CustomPainter {
     );
 
     // 👇👇👇 여기가 핵심 수정 부분입니다! (점/숫자 분기 처리) 👇👇👇
-for (int i = 0; i < maxScaleSeconds; i += 5) {
-      
+    for (int i = 0; i < maxScaleSeconds; i += 5) {
       // 만약 설정이 "none"(표시 안 함)이면, 이 밑에 코드는 싹 무시하고 다음 칸으로 넘어감!
-      if (indicatorMode == "none") continue; 
+      if (indicatorMode == "none") continue;
 
       double angle;
       if (isTimer) {
@@ -338,16 +366,25 @@ for (int i = 0; i < maxScaleSeconds; i += 5) {
 
       if (indicatorMode == "dot") {
         // [점 모드]
-        final dotPaint = Paint()..color = const Color.fromARGB(255, 121, 121, 121)..style = PaintingStyle.fill;
-        canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint); 
+        final dotPaint = Paint()
+          ..color = const Color.fromARGB(255, 121, 121, 121)
+          ..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
       } else if (indicatorMode == "number") {
-        // [숫자 모드] 
+        // [숫자 모드]
         textPainter.text = TextSpan(
           text: '$i',
-          style: TextStyle(fontSize: relativeFontSize, color: Colors.black, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: relativeFontSize,
+            color: Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
         );
         textPainter.layout();
-        textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
+        textPainter.paint(
+          canvas,
+          Offset(x - textPainter.width / 2, y - textPainter.height / 2),
+        );
       }
     }
   }
@@ -355,6 +392,7 @@ for (int i = 0; i < maxScaleSeconds; i += 5) {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
+
 // 5. 디지털 폰트 함수
 String formatDigitalTimeLong(double seconds) {
   int s = seconds.toInt();
@@ -392,35 +430,59 @@ class CustomDigitalClock extends StatelessWidget {
       // 🕰️ [찐 플립 시계 스타일] - 새로 만든 클래스를 갖다 쓰기만 하면 끝!
       return Row(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center, // 네모 점들이 수직 중앙에 잘 오도록 정렬
         children: timeString.split('').map((char) {
+          // 👇👇👇 콜론(:)을 텍스트 대신 완벽한 네모 점으로 교체! 👇👇👇
           if (char == ':') {
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: Text(':', style: TextStyle(fontSize: fontSize * 0.8, fontWeight: FontWeight.bold, color: Colors.black)),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 6.0,
+              ), // 숫자와 점 사이 여백
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: fontSize * 0.12, // 점의 너비
+                    height: fontSize * 0.12, // 점의 높이 (너비와 같게 해서 정사각형)
+                    decoration: BoxDecoration(
+                      color: Colors.black, // 점 색상
+                      borderRadius: BorderRadius.circular(
+                        1.0,
+                      ), // 너무 날카롭지 않게 모서리만 살짝 깎음
+                    ),
+                  ),
+                  SizedBox(height: fontSize * 0.25), // 위 점과 아래 점 사이의 간격
+                  Container(
+                    width: fontSize * 0.12,
+                    height: fontSize * 0.12,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(1.0),
+                    ),
+                  ),
+                ],
+              ),
             );
           }
           // 💡 복잡했던 코드 대신 한 줄로 해결!
           return ClassicFlipDigit(digit: char, fontSize: fontSize);
         }).toList(),
       );
-
     } else if (styleMode == "segment") {
       // 📟 [전자시계 세그먼트 스타일]
-      return Text(
-        timeString,
-        style: TextStyle(
-          fontSize: fontSize,
-          fontWeight: FontWeight.w900, 
-          fontStyle: FontStyle.italic, 
-          letterSpacing: 4.0,
-          color: defaultColor,
-          fontFamily: 'Courier', 
-          shadows: [
-            Shadow(color: defaultColor.withOpacity(0.5), blurRadius: 10, offset: const Offset(0, 0)),
-          ],
-        ),
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: timeString.split('').map((char) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 3.0), // 숫자 사이 간격
+            child: SevenSegmentDigit(
+              digit: char,
+              height: fontSize * 0.9, // 폰트 크기를 높이로 변환
+              color: defaultColor, // 빨간색, 검은색 등 현재 테마 색상 자동 적용
+            ),
+          );
+        }).toList(),
       );
-
     } else {
       // ⏱️ [기본 둥근 스타일]
       return Text(
@@ -429,7 +491,7 @@ class CustomDigitalClock extends StatelessWidget {
           fontSize: fontSize,
           fontWeight: FontWeight.bold,
           letterSpacing: 2.0,
-          color: defaultColor, 
+          color: defaultColor,
         ),
       );
     }
@@ -442,13 +504,18 @@ class CustomDigitalClock extends StatelessWidget {
 class ClassicFlipDigit extends StatefulWidget {
   final String digit;
   final double fontSize;
-  const ClassicFlipDigit({super.key, required this.digit, required this.fontSize});
+  const ClassicFlipDigit({
+    super.key,
+    required this.digit,
+    required this.fontSize,
+  });
 
   @override
   State<ClassicFlipDigit> createState() => _ClassicFlipDigitState();
 }
 
-class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerProviderStateMixin {
+class _ClassicFlipDigitState extends State<ClassicFlipDigit>
+    with SingleTickerProviderStateMixin {
   late String _currentDigit;
   late String _nextDigit;
   late AnimationController _controller;
@@ -459,7 +526,10 @@ class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerPr
     super.initState();
     _currentDigit = widget.digit;
     _nextDigit = widget.digit;
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
     _animation = Tween<double>(begin: 0, end: 1).animate(_controller)
       ..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
@@ -520,7 +590,7 @@ class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerPr
 
         if (isFirstHalf) {
           // [1단계] 윗장이 90도까지 앞으로 꺾이며 접히는 중
-          final flipValue = _animation.value * 2; 
+          final flipValue = _animation.value * 2;
           topHalf = Stack(
             children: [
               _buildHalf(_nextDigit, true), // 뒤에 깔려있는 다음 숫자 윗장
@@ -536,7 +606,7 @@ class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerPr
           bottomHalf = _buildHalf(_currentDigit, false); // 아래는 아직 그대로
         } else {
           // [2단계] 90도를 넘어 바닥에 찰싹 달라붙는 중
-          final flipValue = (_animation.value - 0.5) * 2; 
+          final flipValue = (_animation.value - 0.5) * 2;
           topHalf = _buildHalf(_nextDigit, true); // 윗장은 이미 다음 숫자로 변함
           bottomHalf = Stack(
             children: [
@@ -555,18 +625,198 @@ class _ClassicFlipDigitState extends State<ClassicFlipDigit> with SingleTickerPr
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 2.0),
           decoration: BoxDecoration(
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 4, offset: const Offset(0, 2))]
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               topHalf,
-              Container(height: 2.0, width: widget.fontSize * 0.7, color: Colors.black87), // 절취선
+              Container(
+                height: 2.0,
+                width: widget.fontSize * 0.7,
+                color: Colors.black87,
+              ), // 절취선
               bottomHalf,
             ],
           ),
         );
       },
+    );
+  }
+}
+
+// =========================================================
+// 🌟 찐 7-세그먼트 LED 디스플레이 위젯 (사진과 똑같은 스타일!)
+// =========================================================
+class SevenSegmentDigit extends StatelessWidget {
+  final String digit;
+  final double height;
+  final Color color;
+
+  const SevenSegmentDigit({
+    super.key,
+    required this.digit,
+    required this.height,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // 콜론(:) 처리
+    if (digit == ':') {
+      return Transform(
+        transform: Matrix4.skewX(-0.15), // 💡 1. 숫자와 똑같이 기울어지게 만듭니다!
+        child: SizedBox(
+          width: height * 0.25,
+          height: height,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              // 💡 2. 동그라미(BoxShape.circle)를 지우고 네모 모양으로 바꿨습니다.
+              Container(
+                width: height * 0.1,
+                height: height * 0.1,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(
+                    1.5,
+                  ), // 모서리가 너무 날카롭지 않게 살짝만 둥글림
+                ),
+              ),
+              Container(
+                width: height * 0.1,
+                height: height * 0.1,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 각 숫자별로 어떤 막대기가 켜져야 하는지 정의 (A~G 7개 막대기)
+    final bool a = [
+      '0',
+      '2',
+      '3',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+    ].contains(digit); // 맨 위
+    final bool b = [
+      '0',
+      '1',
+      '2',
+      '3',
+      '4',
+      '7',
+      '8',
+      '9',
+    ].contains(digit); // 우측 상단
+    final bool c = [
+      '0',
+      '1',
+      '3',
+      '4',
+      '5',
+      '6',
+      '7',
+      '8',
+      '9',
+    ].contains(digit); // 우측 하단
+    final bool d = ['0', '2', '3', '5', '6', '8', '9'].contains(digit); // 맨 아래
+    final bool e = ['0', '2', '6', '8'].contains(digit); // 좌측 하단
+    final bool f = ['0', '4', '5', '6', '8', '9'].contains(digit); // 좌측 상단
+    final bool g = ['2', '3', '4', '5', '6', '8', '9'].contains(digit); // 가운데
+
+    double w = height * 0.55; // 숫자 하나의 너비 비율
+    double t = height * 0.18; // LED 막대기의 두께
+    double gap = height * 0.05; // 막대 사이 틈
+
+    // 막대기 1개를 그리는 함수
+    Widget segment(bool active) {
+      return Container(
+        // 막대 사이틈
+        margin: EdgeInsets.all(gap),
+        decoration: BoxDecoration(
+          color: active
+              ? color
+              : color.withOpacity(0.08), // 💡 꺼진 막대기도 희미하게 보여서 진짜 LCD 느낌 냄!
+          borderRadius: BorderRadius.circular(t / 2),
+        ),
+      );
+    }
+
+    return Transform(
+      transform: Matrix4.skewX(-0.15), // 💡 전자시계 특유의 살짝 기울어진(Italic) 감성 추가!
+      child: SizedBox(
+        width: w,
+        height: height,
+        child: Stack(
+          children: [
+            Positioned(
+              top: 0,
+              left: t * 0.4,
+              right: t * 0.4,
+              height: t,
+              child: segment(a),
+            ), // A
+            Positioned(
+              top: t * 0.5,
+              right: 0,
+              width: t,
+              height: height / 2 - t * 0.5,
+              child: segment(b),
+            ), // B
+            Positioned(
+              bottom: t * 0.5,
+              right: 0,
+              width: t,
+              height: height / 2 - t * 0.5,
+              child: segment(c),
+            ), // C
+            Positioned(
+              bottom: 0,
+              left: t * 0.4,
+              right: t * 0.4,
+              height: t,
+              child: segment(d),
+            ), // D
+            Positioned(
+              bottom: t * 0.5,
+              left: 0,
+              width: t,
+              height: height / 2 - t * 0.5,
+              child: segment(e),
+            ), // E
+            Positioned(
+              top: t * 0.5,
+              left: 0,
+              width: t,
+              height: height / 2 - t * 0.5,
+              child: segment(f),
+            ), // F
+            Positioned(
+              top: height / 2 - t / 2,
+              left: t * 0.4,
+              right: t * 0.4,
+              height: t,
+              child: segment(g),
+            ), // G
+          ],
+        ),
+      ),
     );
   }
 }
