@@ -65,7 +65,7 @@ class _ClockSettingPopupState extends State<ClockSettingPopup> {
                             ),
                           ),
                           RadioListTile<String>(
-                            title: const Text("둘 다 표시 (기본)"),
+                            title: const Text("둘 다 표시"),
                             value: "both",
                             groupValue: globalDisplayMode.value,
                             onChanged: (val) => globalDisplayMode.value = val!,

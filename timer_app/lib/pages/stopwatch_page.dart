@@ -103,13 +103,14 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
           displayDigitalSeconds = currentSeconds;
         }
 
-        // 🌟 핵심 1: 스탑워치도 설정값 감지를 위해 ValueListenableBuilder로 감쌉니다!
-        return ValueListenableBuilder<String>(
-          valueListenable: globalDisplayMode,
-          builder: (context, displayMode, child) {
-            return ValueListenableBuilder<String>(
-              valueListenable: globalIndicatorMode,
-              builder: (context, indicatorMode, child) {
+return AnimatedBuilder(
+          animation: Listenable.merge([globalDisplayMode, globalIndicatorMode, globalDigitalStyle]),
+          builder: (context, child) {
+            
+            // 현재 설정값 3가지를 모두 가져옵니다.
+            String displayMode = globalDisplayMode.value;
+            String indicatorMode = globalIndicatorMode.value;
+            String digitalStyle = globalDigitalStyle.value; // 👈 폰트 스타일 추가!
                 return Stack(
                   children: [
                     Align(
@@ -145,7 +146,7 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                                   displayDrawnSeconds, 
                                   displayMaxScale, 
                                   isTimer: false,
-                                  indicatorMode: globalIndicatorMode.value,
+                                  indicatorMode: indicatorMode,
                                 ),
                               ),
                             ),
@@ -156,14 +157,12 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
 
                           // 🌟 핵심 4: displayMode에 따라 디지털 시계 렌더링 분기
                           if (displayMode == "both" || displayMode == "digital")
-                            Text(
-                              formatDigitalTimeLong(displayDigitalSeconds),
-                              style: TextStyle(
-                                fontSize: digitalFontSize,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 2.0,
-                              ),
-                            ),
+CustomDigitalClock(
+                          seconds: displayDigitalSeconds,
+                          styleMode: digitalStyle,    // 👈 팝업에서 선택한 폰트 스타일 적용
+                          fontSize: digitalFontSize,
+                          defaultColor: Colors.black, // 스탑워치는 검은색으로 표시
+                          ),
                         ],
                       ),
                     ),
@@ -192,6 +191,4 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
           }
         );
       }
-    );
-  }
 }
