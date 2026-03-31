@@ -149,7 +149,7 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
                                   displayDrawnSeconds, 
                                   displayMaxScale, 
                                   isTimer: false,
-                                  isDotMode: isDot, // 👈 핵심 3: 스탑워치 시계에도 점/숫자 모드 전달!
+                                  indicatorMode: globalIndicatorMode.value,
                                 ),
                               ),
                             ),

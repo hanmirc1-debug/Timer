@@ -10,7 +10,7 @@ import 'package:timer_app/widgets/popup_menu.dart';
 // 시계 스타일
 final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both"); 
 // 숫자 or 점
-final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>("dot");
+final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>("number");
 //디지털 폰트 스타일
 final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>("default"); // "default", "segment", "flip"
 
@@ -254,10 +254,10 @@ class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
   final bool isTimer; 
-  final bool isDotMode; // 💡 팝업에서 설정한 값을 받아옵니다.
+  final String indicatorMode;
 
-  // 기본값을 true(점 모드)로 설정해둡니다.
-  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.isDotMode = true});
+  // 기본값을 설정해둡니다.
+  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
   
   @override
   void paint(Canvas canvas, Size size) {
@@ -322,7 +322,11 @@ class SharedClockPainter extends CustomPainter {
     );
 
     // 👇👇👇 여기가 핵심 수정 부분입니다! (점/숫자 분기 처리) 👇👇👇
-    for (int i = 0; i < maxScaleSeconds; i += 5) {
+for (int i = 0; i < maxScaleSeconds; i += 5) {
+      
+      // 만약 설정이 "none"(표시 안 함)이면, 이 밑에 코드는 싹 무시하고 다음 칸으로 넘어감!
+      if (indicatorMode == "none") continue; 
+
       double angle;
       if (isTimer) {
         angle = -pi / 2 - (i / maxScaleSeconds) * 2 * pi;
@@ -332,29 +336,20 @@ class SharedClockPainter extends CustomPainter {
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
-      if (isDotMode) {
-        // [점 모드] 숫자가 들어갈 자리에 동그란 점을 그립니다.
-        final dotPaint = Paint()
-          ..color = const Color.fromARGB(255, 0, 0, 0) // 짙은 회색 점
-          ..style = PaintingStyle.fill;
-        
-        // radius * 0.03 은 점의 크기입니다. 필요하면 숫자를 바꿔서 크기를 조절하세요.
-        canvas.drawCircle(Offset(x, y), radius * 0.01, dotPaint); 
-      } else {
-        // [숫자 모드] 기존 로직 그대로 숫자를 그립니다.
+      if (indicatorMode == "dot") {
+        // [점 모드]
+        final dotPaint = Paint()..color = const Color.fromARGB(255, 121, 121, 121)..style = PaintingStyle.fill;
+        canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint); 
+      } else if (indicatorMode == "number") {
+        // [숫자 모드] 
         textPainter.text = TextSpan(
           text: '$i',
-          style: TextStyle(
-            fontSize: relativeFontSize,
-            color: Colors.black, 
-            fontWeight: FontWeight.bold
-          ),
+          style: TextStyle(fontSize: relativeFontSize, color: Colors.black, fontWeight: FontWeight.bold),
         );
         textPainter.layout();
         textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
       }
     }
-    // 👆👆👆 여기까지 수정 완료 👆👆👆
   }
 
   @override

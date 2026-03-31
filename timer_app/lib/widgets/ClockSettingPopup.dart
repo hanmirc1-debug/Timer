@@ -92,21 +92,26 @@ class _ClockSettingPopupState extends State<ClockSettingPopup> {
                             ),
                           ),
                           RadioListTile<String>(
-                            title: const Text("점으로 표시 (기본)"),
-                            value: "dot",
-                            groupValue: globalIndicatorMode.value,
-                            onChanged: (val) =>
-                                globalIndicatorMode.value = val!,
-                          ),
-                          RadioListTile<String>(
                             title: const Text("숫자로 표시"),
                             value: "number",
                             groupValue: globalIndicatorMode.value,
                             onChanged: (val) =>
                                 globalIndicatorMode.value = val!,
                           ),
+                          RadioListTile<String>(
+                            title: const Text("점으로 표시"),
+                            value: "dot",
+                            groupValue: globalIndicatorMode.value,
+                            onChanged: (val) =>
+                                globalIndicatorMode.value = val!,
+                          ),
+                          RadioListTile<String>(
+                            title: const Text("표시 안 함"),
+                            value: "none",
+                            groupValue: globalIndicatorMode.value,
+                            onChanged: (val) => globalIndicatorMode.value = val!,
+                          ),                          
                           const Divider(height: 30),
-
                           // 👇 2. 새로 추가되는 디지털 폰트 스타일 영역!
                           const Text(
                             "디지털 폰트 스타일",

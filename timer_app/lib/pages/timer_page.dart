@@ -124,7 +124,7 @@ class _TimerAppPageState extends State<TimerAppPage>
                               currentRedSeconds,
                               60,
                               isTimer: true,
-                              isDotMode: isDot, // 점/숫자 모드 즉시 적용
+                              indicatorMode: globalIndicatorMode.value,
                             ),
                           ),
                         ),
