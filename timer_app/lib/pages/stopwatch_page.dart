@@ -110,10 +110,6 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
             return ValueListenableBuilder<String>(
               valueListenable: globalIndicatorMode,
               builder: (context, indicatorMode, child) {
-                
-                // 현재 설정된 점/숫자 모드 판별
-                bool isDot = indicatorMode == "dot";
-
                 return Stack(
                   children: [
                     Align(

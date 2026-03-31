@@ -97,7 +97,6 @@ class _TimerAppPageState extends State<TimerAppPage>
           builder: (context, child) {
             // 현재 설정값 3가지를 모두 가져옵니다.
             String displayMode = globalDisplayMode.value;
-            bool isDot = globalIndicatorMode.value == "dot";
             String digitalStyle = globalDigitalStyle.value; // 👈 새로 추가된 폰트 스타일!
             return Stack(
               children: [
