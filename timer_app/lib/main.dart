@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 가로 모드 고정을 위해 필요
+//import 'package:flutter/services.dart'; // 가로 모드 고정을 위해 필요
 import 'pages/stopwatch_page.dart';
 import 'pages/timer_page.dart';
 import 'pages/shared_design.dart'; // 수정된 디자인 코드를 불러옴

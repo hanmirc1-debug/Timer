@@ -368,11 +368,13 @@ class SharedClockPainter extends CustomPainter {
     // [미니멀 분 선 블록]
     final tickPaint = Paint()
       ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5)
-      ..strokeWidth = 1.0;
+      ..strokeWidth = 2.0 // 두꺼움 
+      ..strokeCap = StrokeCap.round; // 선 끝 동그랗게
 
     final fiveTickPaint = Paint()
       ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7)
-      ..strokeWidth = 2.0;
+      ..strokeWidth = 3.0
+      ..strokeCap = StrokeCap.round; // 선 끝 동그랗게
 
     for (int t = 0; t < 60; t++) {
       final angle = (t / 60) * 2 * pi - pi / 2;
@@ -453,9 +455,6 @@ String formatDigitalTimeLong(double seconds) {
   return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
-// =========================================================
-// 6. 다기능 디지털 시계 위젯 (기본 / 세그먼트 / 플립)
-// =========================================================
 // =========================================================
 // 🌟 다기능 디지털 시계 위젯 (기본 / 세그먼트 / 플립 애니메이션 추가!)
 // =========================================================
