@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:ui';
-import 'package:flutter/cupertino.dart'; // 애플 스타일 스위치를 쓰기 위해 필수!
-
-import 'package:timer_app/widgets/popup_menu.dart';
+//import 'package:flutter/cupertino.dart'; // 애플 스타일 스위치를 쓰기 위해 필수!
+//import 'package:timer_app/widgets/popup_menu.dart';
+import 'settings_page.dart';
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값 (여기에 두어야 모든 페이지에서 꺼내 씁니다)
@@ -155,19 +155,34 @@ class FloatingGlassMenuButton extends StatelessWidget {
               size: screenWidth * 0.04,
               color: iconColor,
             ),
-            onPressed: () {
-              final RenderBox box =
-                  _buttonKey.currentContext!.findRenderObject() as RenderBox;
-              final position = box.localToGlobal(Offset.zero);
-              final size = box.size;
-
-              showDialog(
-                context: context,
-                barrierColor: Colors.transparent,
-                builder: (_) =>
-                    CustomPopupMenu(position: position, buttonSize: size),
+onPressed: () {
+              // 💡 화려한 애니메이션 제거! 가장 기본적이고 깔끔한 페이지 이동
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsPage()),
               );
             },
+// onPressed: () {
+//               // 💡 렉/검은화면 완벽 해결! 
+//               // 투박한 안드로이드 기본 전환 대신, 아이폰(Cupertino) 스타일의 부드러운 슬라이드 애니메이션 적용
+//               Navigator.push(
+//                 context,
+//                 PageRouteBuilder(
+//                   transitionDuration: const Duration(milliseconds: 300), // 애니메이션 속도
+//                   pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(),
+//                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
+//                     const begin = Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로 등장
+//                     const end = Offset.zero;
+//                     const curve = Curves.easeInOutQuart; // 아주 부드러운 가감속 곡선
+                    
+//                     var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+//                     var offsetAnimation = animation.drive(tween);
+
+//                     return SlideTransition(position: offsetAnimation, child: child);
+//                   },
+//                 ),
+//               );
+//             },
           ),
         ),
       ),
