@@ -155,34 +155,34 @@ class FloatingGlassMenuButton extends StatelessWidget {
               size: screenWidth * 0.04,
               color: iconColor,
             ),
-onPressed: () {
+            onPressed: () {
               // 💡 화려한 애니메이션 제거! 가장 기본적이고 깔끔한 페이지 이동
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const SettingsPage()),
               );
             },
-// onPressed: () {
-//               // 💡 렉/검은화면 완벽 해결! 
-//               // 투박한 안드로이드 기본 전환 대신, 아이폰(Cupertino) 스타일의 부드러운 슬라이드 애니메이션 적용
-//               Navigator.push(
-//                 context,
-//                 PageRouteBuilder(
-//                   transitionDuration: const Duration(milliseconds: 300), // 애니메이션 속도
-//                   pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(),
-//                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
-//                     const begin = Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로 등장
-//                     const end = Offset.zero;
-//                     const curve = Curves.easeInOutQuart; // 아주 부드러운 가감속 곡선
-                    
-//                     var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-//                     var offsetAnimation = animation.drive(tween);
+            // onPressed: () {
+            //               // 💡 렉/검은화면 완벽 해결!
+            //               // 투박한 안드로이드 기본 전환 대신, 아이폰(Cupertino) 스타일의 부드러운 슬라이드 애니메이션 적용
+            //               Navigator.push(
+            //                 context,
+            //                 PageRouteBuilder(
+            //                   transitionDuration: const Duration(milliseconds: 300), // 애니메이션 속도
+            //                   pageBuilder: (context, animation, secondaryAnimation) => const SettingsPage(),
+            //                   transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            //                     const begin = Offset(1.0, 0.0); // 오른쪽에서 왼쪽으로 등장
+            //                     const end = Offset.zero;
+            //                     const curve = Curves.easeInOutQuart; // 아주 부드러운 가감속 곡선
 
-//                     return SlideTransition(position: offsetAnimation, child: child);
-//                   },
-//                 ),
-//               );
-//             },
+            //                     var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+            //                     var offsetAnimation = animation.drive(tween);
+
+            //                     return SlideTransition(position: offsetAnimation, child: child);
+            //                   },
+            //                 ),
+            //               );
+            //             },
           ),
         ),
       ),
@@ -351,7 +351,7 @@ class SharedClockPainter extends CustomPainter {
     }
 
     final paintArc = Paint()
-      ..color = const Color.fromARGB(255, 88, 48, 88)
+      ..color = const Color.fromARGB(255, 192, 89, 89)
       ..style = PaintingStyle.fill;
 
     if (drawnSeconds > 0) {
@@ -368,7 +368,8 @@ class SharedClockPainter extends CustomPainter {
     // [미니멀 분 선 블록]
     final tickPaint = Paint()
       ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5)
-      ..strokeWidth = 2.0 // 두꺼움 
+      ..strokeWidth =
+          2.0 // 두꺼움
       ..strokeCap = StrokeCap.round; // 선 끝 동그랗게
 
     final fiveTickPaint = Paint()

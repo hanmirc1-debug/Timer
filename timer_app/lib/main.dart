@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 //import 'package:flutter/services.dart'; // 가로 모드 고정을 위해 필요
 import 'pages/stopwatch_page.dart';
 import 'pages/timer_page.dart';
+// import 'pages/settings_page.dart';
 import 'pages/shared_design.dart'; // 수정된 디자인 코드를 불러옴
 
 void main() {
@@ -43,8 +44,10 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   bool isTimerMode = true; // false = 스탑워치, true = 타이머
-  Color myBgColor = const Color.fromARGB(255, 77, 77, 116);
+  Color myBgColor = const Color.fromARGB(255, 196, 159, 159);
   // 👈 진짜 배경색 변수를 하나 만듭니다! 나중에 여기에 현재 배경 색 변수 넣어야댐!
+
+  bool isRunning = false;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +60,17 @@ class _MainScreenState extends State<MainScreen> {
           children: [
             // 1. 메인 화면 (이제 남은 공간이 아니라 화면 전체를 도화지로 씁니다)
             Positioned.fill(
-              child: isTimerMode ? const TimerAppPage() : const StopwatchPage(),
+              child: isTimerMode
+                  ? TimerAppPage(
+                      onRunningChanged: (running) {
+                        setState(() => isRunning = running);
+                      },
+                    )
+                  : StopwatchPage(
+                      onRunningChanged: (running) {
+                        setState(() => isRunning = running);
+                      },
+                    ),
             ),
 
             // 2. 상단 바 영역 (버튼들이 공간을 차지하지 않고 화면 맨 위에 떠 있음)
@@ -68,8 +81,12 @@ class _MainScreenState extends State<MainScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  FloatingGlassMenuButton(
-                    backgroundColor: myBgColor, // 지금 배경색을 버튼한테 알려줌!
+                  Visibility(
+                    visible: !isRunning,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: FloatingGlassMenuButton(backgroundColor: myBgColor),
                   ),
                   // 2. 오른쪽 위 플로팅 모드 변경 스위치
                   FloatingGlassSwitchButton(
