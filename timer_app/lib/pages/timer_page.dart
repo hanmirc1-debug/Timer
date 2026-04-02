@@ -3,7 +3,11 @@ import 'dart:math';
 import 'shared_design.dart';
 
 class TimerAppPage extends StatefulWidget {
-  const TimerAppPage({super.key});
+  final ValueChanged<bool> onRunningChanged;
+  const TimerAppPage({
+    super.key,
+    required this.onRunningChanged,
+  });
 
   @override
   State<TimerAppPage> createState() => _TimerAppPageState();
@@ -32,21 +36,25 @@ class _TimerAppPageState extends State<TimerAppPage>
     controller.duration = Duration(seconds: targetRedSeconds.toInt());
     controller.reverse(from: controller.value == 0.0 ? 1.0 : controller.value);
     setState(() => isRunning = true);
+
+  widget.onRunningChanged(true);
   }
 
   void stop() {
     controller.stop();
     setState(() => isRunning = false);
+
+  widget.onRunningChanged(false);
   }
 
-  void reset() {
-    controller.reset();
-    controller.value = 1.0;
-    setState(() {
-      currentRedSeconds = targetRedSeconds;
-      isRunning = false;
-    });
-  }
+  // void reset() {
+  //   controller.reset();
+  //   controller.value = 1.0;
+  //   setState(() {
+  //     currentRedSeconds = targetRedSeconds;
+  //     isRunning = false;
+  //   });
+  // }
 
   void updateStartTime(Offset localPosition, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
@@ -114,7 +122,7 @@ class _TimerAppPageState extends State<TimerAppPage>
               child: Stack(
                 children: [
                   Align(
-                    alignment: const Alignment(0, -0.2),
+                    alignment: const Alignment(0, 0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -141,9 +149,9 @@ class _TimerAppPageState extends State<TimerAppPage>
                             ),
                           ),
 
-                        // 둘 다 표시할 때만 중간 여백
+                        // 둘 다 표시할 때만 중간 여백S
                         if (displayMode == "both")
-                          SizedBox(height: availableHeight * 0.05),
+                          SizedBox(height: availableHeight * 0.08),
 
                         // 🌟 핵심 3: displayMode가 "both"이거나 "digital"일 때만 디지털 텍스트 렌더링
                         if (displayMode == "both" || displayMode == "digital")
@@ -151,33 +159,18 @@ class _TimerAppPageState extends State<TimerAppPage>
                             seconds: currentRedSeconds,
                             styleMode: digitalStyle, // 👈 팝업에서 선택한 폰트 스타일 적용
                             fontSize: digitalFontSize,
-                            defaultColor: const Color.fromARGB(255, 138, 163, 108),
-                          ), 
+                            defaultColor: const Color.fromARGB(
+                              255,
+                              138,
+                              163,
+                              108,
+                            ),
+                          ),
                       ],
                     ),
                   ),
 
                   // 우측 시작/멈춤/리셋 버튼 영역 (그대로 유지)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: screenHeight * 0.7,
-                        right: screenWidth * 0.02,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            iconSize: 28,
-                            color: Colors.black,
-                            onPressed: reset,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             );

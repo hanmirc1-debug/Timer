@@ -3,7 +3,9 @@ import 'dart:math';
 import 'shared_design.dart';
 
 class StopwatchPage extends StatefulWidget {
-  const StopwatchPage({super.key});
+  final ValueChanged<bool> onRunningChanged;
+
+  const StopwatchPage({super.key, required this.onRunningChanged});
 
   @override
   State<StopwatchPage> createState() => _StopwatchPageState();
@@ -43,23 +45,27 @@ class _StopwatchPageState extends State<StopwatchPage>
       isRunning = true;
       hasStarted = true;
     });
+
+    widget.onRunningChanged(true);
   }
 
   void stop() {
     controller.stop();
     setState(() => isRunning = false);
+
+    widget.onRunningChanged(true);
   }
 
-  void reset() {
-    controller.reset();
-    setState(() {
-      currentSeconds = 0;
-      targetMaxSeconds = 60;
-      _draggedSeconds = 0;
-      isRunning = false;
-      hasStarted = false;
-    });
-  }
+  // void reset() {
+  //   controller.reset();
+  //   setState(() {
+  //     currentSeconds = 0;
+  //     targetMaxSeconds = 60;
+  //     _draggedSeconds = 0;
+  //     isRunning = false;
+  //     hasStarted = false;
+  //   });
+  // }
 
   // [수정된 핵심] 스탑워치 전용(일반 시계방향) 드래그 계산식으로 복구!
   void updateTargetTime(Offset localPosition, Size size) {
@@ -86,9 +92,6 @@ class _StopwatchPageState extends State<StopwatchPage>
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
@@ -134,7 +137,7 @@ class _StopwatchPageState extends State<StopwatchPage>
               child: Stack(
                 children: [
                   Align(
-                    alignment: const Alignment(0, -0.2),
+                    alignment: const Alignment(0, 0),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -175,7 +178,7 @@ class _StopwatchPageState extends State<StopwatchPage>
 
                         // 둘 다 표시할 때만 중간 여백
                         if (displayMode == "both")
-                          SizedBox(height: availableHeight * 0.05),
+                          SizedBox(height: availableHeight * 0.08),
 
                         // 🌟 핵심 4: displayMode에 따라 디지털 시계 렌더링 분기
                         if (displayMode == "both" || displayMode == "digital")
@@ -183,33 +186,18 @@ class _StopwatchPageState extends State<StopwatchPage>
                             seconds: displayDigitalSeconds,
                             styleMode: digitalStyle, // 👈 팝업에서 선택한 폰트 스타일 적용
                             fontSize: digitalFontSize,
-                            defaultColor: const Color.fromARGB(255, 138, 163, 108),
+                            defaultColor: const Color.fromARGB(
+                              255,
+                              138,
+                              163,
+                              108,
+                            ),
                           ),
                       ],
                     ),
                   ),
 
                   // 우측 버튼 영역 (그대로 유지)
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.only(
-                        top: screenHeight * 0.7,
-                        right: screenWidth * 0.02,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.refresh),
-                            iconSize: 28,
-                            color: Colors.black,
-                            onPressed: reset,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ],
               ),
             );
