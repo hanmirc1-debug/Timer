@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'pages/stopwatch_page.dart';
 import 'pages/timer_page.dart';
 import 'pages/shared_design.dart'; // 수정된 디자인 코드를 불러옴
+import 'dart:async'; // 잠금기능
 
 void main() {
   // Flutter 엔진 초기화 보장
@@ -40,47 +41,136 @@ class MainScreen extends StatefulWidget {
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
-
 class _MainScreenState extends State<MainScreen> {
   bool isTimerMode = true; // false = 스탑워치, true = 타이머
   Color myBgColor = const Color.fromARGB(255, 77, 77, 116);
-  // 👈 진짜 배경색 변수를 하나 만듭니다! 나중에 여기에 현재 배경 색 변수 넣어야댐!
+
+  // =========================================================
+  // 🌟 1. 잠금 기능용 상태 변수들 추가
+  // =========================================================
+  bool isLocked = false;
+  bool showLockIcon = false;
+  Timer? _lockTimer;
+  Timer? _iconHideTimer;
+
+  // 원하는 시간으로 수정 가능! (1000 = 1초)
+  final int lockDelayMs = 1000;   // 배경을 꾹 누르는 시간
+  final int iconVisibleMs = 2000; // 잠금 아이콘이 떠 있는 시간
+
+  // =========================================================
+  // 🌟 2. 터치 감지 로직 추가
+  // =========================================================
+  void _startLockTimer() {
+    _lockTimer?.cancel();
+    // 손을 대고 1초(lockDelayMs)가 지나면 실행됨
+    _lockTimer = Timer(Duration(milliseconds: lockDelayMs), () {
+      setState(() {
+        isLocked = !isLocked; // 잠금 <-> 해제 상태 반전!
+        if (isLocked) {
+          _showLockIcon(); // 잠기면 바로 자물쇠 보여주기
+        } else {
+          // 풀릴 때는 열린 자물쇠를 잠깐 보여주고 싶다면 showLockIcon = true 후 타이머 돌려도 됩니다!
+          // 지금은 깔끔하게 바로 숨기기
+          showLockIcon = true; 
+          _showLockIcon(); 
+        }
+      });
+    });
+  }
+
+  void _cancelLockTimer() {
+    _lockTimer?.cancel(); // 1초가 되기 전에 손을 떼면 잠금 취소
+    
+    // 이미 잠긴 상태에서 짧게 터치만 했을 때 아이콘 띄우기
+    if (isLocked) {
+      _showLockIcon();
+    }
+  }
+
+  void _showLockIcon() {
+    setState(() => showLockIcon = true);
+    _iconHideTimer?.cancel();
+    _iconHideTimer = Timer(Duration(milliseconds: iconVisibleMs), () {
+      if (mounted) setState(() => showLockIcon = false); // 2초 뒤 스르륵 사라짐
+    });
+  }
 
   @override
+  void dispose() {
+    // 페이지가 꺼질 때 메모리 누수 방지용
+    _lockTimer?.cancel();
+    _iconHideTimer?.cancel();
+    super.dispose();
+  }
+@override
   Widget build(BuildContext context) {
-    // 7. 배경화면
     return Scaffold(
-      //backgroundColor: const Color.fromARGB(255, 0, 0, 0),
       backgroundColor: myBgColor,
       body: SafeArea(
         child: Stack(
           children: [
-            // 1. 메인 화면 (이제 남은 공간이 아니라 화면 전체를 도화지로 씁니다)
-            Positioned.fill(
-              child: isTimerMode ? const TimerAppPage() : const StopwatchPage(),
-            ),
-
-            // 2. 상단 바 영역 (버튼들이 공간을 차지하지 않고 화면 맨 위에 떠 있음)
-            Positioned(
-              top: 15.0,
-              left: 20.0,
-              right: 20.0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            // ==========================================
+            // [1층] 기존 화면들 (가장 밑으로 내립니다)
+            // ==========================================
+            IgnorePointer(
+              ignoring: isLocked, // 잠기면 이 안의 터치가 전부 무시됨
+              child: Stack(
                 children: [
-                  FloatingGlassMenuButton(
-                    backgroundColor: myBgColor, // 지금 배경색을 버튼한테 알려줌!
+                  Positioned.fill(
+                    child: isTimerMode ? const TimerAppPage() : const StopwatchPage(),
                   ),
-                  // 2. 오른쪽 위 플로팅 모드 변경 스위치
-                  FloatingGlassSwitchButton(
-                    value: isTimerMode,
-                    onChanged: (value) {
-                      setState(() {
-                        isTimerMode = value;
-                      });
-                    },
+                  Positioned(
+                    top: 15.0,
+                    left: 20.0,
+                    right: 20.0,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        FloatingGlassMenuButton(backgroundColor: myBgColor),
+                        FloatingGlassSwitchButton(
+                          value: isTimerMode,
+                          onChanged: (value) => setState(() => isTimerMode = value),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
+              ),
+            ),
+
+            // ==========================================
+            // [2층] 터치 감지용 투명 유리판 (화면 전체를 덮음!)
+            // ==========================================
+            Listener(
+              // 💡 핵심: translucent를 쓰면 터치를 감지하면서도 밑에 있는 버튼이 눌리게 통과시켜 줍니다!
+              behavior: HitTestBehavior.translucent, 
+              onPointerDown: (_) => _startLockTimer(), // 마우스/손가락 누를 때
+              onPointerUp: (_) => _cancelLockTimer(),  // 뗄 때
+              onPointerCancel: (_) => _cancelLockTimer(),
+              child: const SizedBox.expand(),
+            ),
+
+            // ==========================================
+            // [3층] 자물쇠 아이콘 (맨 위)
+            // ==========================================
+            Positioned(
+              top: 70.0, 
+              right: 20.0, 
+              child: AnimatedOpacity(
+                opacity: showLockIcon ? 1.0 : 0.0, 
+                duration: const Duration(milliseconds: 300),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isLocked ? Icons.lock : Icons.lock_open, 
+                    color: Colors.white, 
+                    size: 20
+                  ),
+                ),
               ),
             ),
           ],
