@@ -871,3 +871,112 @@ class SevenSegmentDigit extends StatelessWidget {
     );
   }
 }
+
+// =========================================================
+// 🌟 [공통 시계 레이아웃] 타이머와 스탑워치의 겹치는 디자인을 하나로 합침!
+// =========================================================
+typedef ClockPanCallback = void Function(Offset localPosition, Size size);
+
+class BaseClockLayout extends StatelessWidget {
+  final bool isRunning;
+  final VoidCallback onTapToggle; // 화면 터치 시 시작/멈춤
+  
+  // 드래그 조작 관련 콜백
+  final VoidCallback? onPanStart;
+  final ClockPanCallback? onPanUpdate;
+  final VoidCallback? onPanEnd;
+
+  // 시계 렌더링 값
+  final double drawnSeconds;
+  final double maxScaleSeconds;
+  final bool isTimer;
+  final double digitalSeconds;
+
+  const BaseClockLayout({
+    super.key,
+    required this.isRunning,
+    required this.onTapToggle,
+    this.onPanStart,
+    this.onPanUpdate,
+    this.onPanEnd,
+    required this.drawnSeconds,
+    required this.maxScaleSeconds,
+    required this.isTimer,
+    required this.digitalSeconds,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableHeight = constraints.maxHeight;
+        final clockSize = min(constraints.maxWidth, constraints.maxHeight) * 0.7;
+        final digitalFontSize = availableHeight * 0.07;
+
+        return AnimatedBuilder(
+          animation: Listenable.merge([
+            globalDisplayMode,
+            globalIndicatorMode,
+            globalDigitalStyle,
+          ]),
+          builder: (context, child) {
+            String displayMode = globalDisplayMode.value;
+            String indicatorMode = globalIndicatorMode.value;
+            String digitalStyle = globalDigitalStyle.value;
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onTapToggle,
+              child: Stack(
+                children: [
+                  Align(
+                    alignment: const Alignment(0, 0),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // 1. 아날로그 시계 영역
+                        if (displayMode == "both" || displayMode == "analog")
+                          GestureDetector(
+                            // 받아온 함수가 있으면 실행하고, 없으면 무시(null)
+                            onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
+                            onPanUpdate: onPanUpdate != null 
+                                ? (details) => onPanUpdate!(details.localPosition, Size(clockSize, clockSize)) 
+                                : null,
+                            onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
+                            
+                            child: CustomPaint(
+                              size: Size(clockSize, clockSize),
+                              painter: SharedClockPainter(
+                                drawnSeconds,
+                                maxScaleSeconds,
+                                isTimer: isTimer,
+                                indicatorMode: indicatorMode,
+                              ),
+                            ),
+                          ),
+
+                        // 2. 중간 여백
+                        if (displayMode == "both")
+                          SizedBox(height: availableHeight * 0.08),
+
+                        // 3. 디지털 텍스트 영역
+                        if (displayMode == "both" || displayMode == "digital")
+                          CustomDigitalClock(
+                            seconds: digitalSeconds,
+                            styleMode: digitalStyle,
+                            fontSize: digitalFontSize,
+                            defaultColor: const Color.fromARGB(255, 138, 163, 108),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
