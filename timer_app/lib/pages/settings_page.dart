@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:timer_app/pages/shared_design.dart'; // 글로벌 색상 변수들 가져오기
+import 'package:flutter_colorpicker/flutter_colorpicker.dart'; // 색상 선택기 패키지
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -10,18 +12,18 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   // 🌟 옵션 제목들 (나중에 여기에 글자만 추가하면 자동으로 기능이 전부 연동됩니다!)
   final List<String> _tabTitles = [
-    "계정 설정", 
-    "즐겨 찾기", 
-    "테마", 
-    "시계 설정", 
-    "알림 설정", 
-    "BGM", 
-    "고객 센터"
+    "계정 설정",
+    "즐겨 찾기",
+    "테마",
+    "시계 설정",
+    "알림 설정",
+    "BGM",
+    "고객 센터",
   ];
 
   late List<GlobalKey> _sectionKeys;
   int _selectedIndex = 0;
-  
+
   // 💡 스크롤 위치를 감지할 똑똑한 센서 추가!
   final ScrollController _scrollController = ScrollController();
   bool _isTappingTab = false; // 탭을 눌러서 이동 중인지 확인하는 스위치
@@ -30,7 +32,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
-    
+
     // 센서 가동! 스크롤할 때마다 _onScroll 함수를 실행합니다.
     _scrollController.addListener(_onScroll);
   }
@@ -47,7 +49,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     int newIndex = _selectedIndex;
     // 화면 위에서부터 약 200px 지점을 '감지 기준선'으로 잡습니다.
-    double triggerLine = 200.0; 
+    double triggerLine = 200.0;
 
     for (int i = 0; i < _sectionKeys.length; i++) {
       final context = _sectionKeys[i].currentContext;
@@ -76,38 +78,85 @@ class _SettingsPageState extends State<SettingsPage> {
       _selectedIndex = index;
       _isTappingTab = true; // 이동하는 동안 자동 감지 끄기
     });
-    
+
     final context = _sectionKeys[index].currentContext;
     if (context != null) {
       await Scrollable.ensureVisible(
         context,
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
-        alignment: 0.0, 
+        alignment: 0.0,
       );
     }
-    
+
     // 이동 완료 후 자동 감지 다시 켜기
     await Future.delayed(const Duration(milliseconds: 50));
-    _isTappingTab = false; 
+    _isTappingTab = false;
+  }
+
+  Widget colorPicker(String title, ValueNotifier<Color> notifier) {
+    return ValueListenableBuilder<Color>(
+      valueListenable: notifier,
+      builder: (context, color, _) {
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title),
+            GestureDetector(
+              onTap: () {
+                showDialog(
+                  context: context,
+                  builder: (_) {
+                    Color tempColor = notifier.value;
+
+                    return StatefulBuilder(
+                      builder: (context, setStateDialog) {
+                        return AlertDialog(
+                          content: BlockPicker(
+                            pickerColor: tempColor,
+                            onColorChanged: (color) {
+                              setStateDialog(() {
+                                tempColor = color;
+                              });
+                              notifier.value = color; // 🔥 실시간 반영
+                            },
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
+              child: Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: color, // 🔥 여기 핵심
+                  borderRadius: BorderRadius.circular(6),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9), 
+      backgroundColor: const Color(0xFFF9F9F9),
       body: SafeArea(
         child: Column(
           children: [
             // =========================================================
-            // [상단바 영역] 
+            // [상단바 영역]
             // =========================================================
             Container(
               color: const Color(0xFFF9F9F9),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  
                   // 👇👇👇 요청 4. 한가운데 Settings 제목 추가 👇👇👇
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
@@ -117,7 +166,10 @@ class _SettingsPageState extends State<SettingsPage> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: IconButton(
-                            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.black87,
+                            ),
                             onPressed: () => Navigator.pop(context),
                           ),
                         ),
@@ -132,7 +184,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
-                  
+
                   // 고정된 상단 탭 (가로 스크롤)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
@@ -150,8 +202,12 @@ class _SettingsPageState extends State<SettingsPage> {
                               _tabTitles[index],
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                                color: isActive ? const Color(0xFFD32F2F) : Colors.grey.shade400,
+                                fontWeight: isActive
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                color: isActive
+                                    ? const Color(0xFFD32F2F)
+                                    : Colors.grey.shade400,
                               ),
                             ),
                           ),
@@ -159,7 +215,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       }),
                     ),
                   ),
-                  const Divider(height: 1, color: Color(0xFFE0E0E0)), 
+                  const Divider(height: 1, color: Color(0xFFE0E0E0)),
                 ],
               ),
             ),
@@ -170,7 +226,10 @@ class _SettingsPageState extends State<SettingsPage> {
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController, // 💡 여기에 센서를 달아줍니다!
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   children: List.generate(_tabTitles.length, (index) {
                     return _buildSectionBox(index);
@@ -189,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
     bool isLastItem = index == _tabTitles.length - 1; // 마지막 항목인지 확인
 
     return Column(
-      key: _sectionKeys[index], 
+      key: _sectionKeys[index],
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 섹션 제목 (빨간색)
@@ -200,24 +259,37 @@ class _SettingsPageState extends State<SettingsPage> {
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFFD32F2F), 
+              color: Color(0xFFD32F2F),
             ),
           ),
         ),
-        
+
         // 빨간 테두리 둥근 박스
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white, 
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFD32F2F), width: 1.2), 
+            border: Border.all(color: const Color(0xFFD32F2F), width: 1.2),
           ),
-          child: Text(
-            "${_tabTitles[index]} 설정 내용을 여기에 넣으세요!",
-            style: const TextStyle(fontSize: 16, color: Colors.black87),
-          ),
+          child: index == 2
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    colorPicker("배경색", globalBgColor),
+                    const SizedBox(height: 12),
+                    colorPicker("시계색", globalClockColor),
+                    const SizedBox(height: 12),
+                    colorPicker("디지털 시계", globalDigitalColor),
+                    const SizedBox(height: 12),
+                    colorPicker("테두리/시간", globalIndicatorColor),
+                  ],
+                )
+              : Text(
+                  "${_tabTitles[index]} 설정 내용을 여기에 넣으세요!",
+                  style: const TextStyle(fontSize: 16, color: Colors.black87),
+                ),
         ),
 
         // 👇👇👇 요청 1. 양쪽 끝 여백이 있는 적당한 길이의 구분선 추가 👇👇👇
@@ -227,7 +299,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Divider(
               color: Color(0xFFE0E0E0),
               thickness: 1.0,
-              indent: 30.0,    // 💡 왼쪽 여백을 주어 길이가 꽉 차지 않게 만듦
+              indent: 30.0, // 💡 왼쪽 여백을 주어 길이가 꽉 차지 않게 만듦
               endIndent: 30.0, // 💡 오른쪽 여백을 주어 길이가 꽉 차지 않게 만듦
             ),
           ),

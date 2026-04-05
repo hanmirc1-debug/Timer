@@ -10,6 +10,21 @@ import 'settings_page.dart';
 // =========================================================
 // 시계 스타일
 final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both");
+final ValueNotifier<Color> globalBgColor = ValueNotifier(
+  const Color(0xFF000000),
+); // 검정
+
+final ValueNotifier<Color> globalClockColor = ValueNotifier(
+  const Color(0xFFFF0000),
+); // 빨강
+
+final ValueNotifier<Color> globalDigitalColor = ValueNotifier(
+  const Color(0xFF00FF00),
+); // 초록
+
+final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(
+  const Color(0xFFFFFFFF),
+); // 흰색
 // 숫자 or 점
 final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>(
   "number",
@@ -351,7 +366,7 @@ class SharedClockPainter extends CustomPainter {
     }
 
     final paintArc = Paint()
-      ..color = const Color.fromARGB(255, 192, 89, 89)
+      ..color = globalClockColor.value
       ..style = PaintingStyle.fill;
 
     if (drawnSeconds > 0) {
@@ -367,13 +382,13 @@ class SharedClockPainter extends CustomPainter {
     // =============================================================
     // [미니멀 분 선 블록]
     final tickPaint = Paint()
-      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.5)
+      ..color = globalIndicatorColor.value.withOpacity(0.5)
       ..strokeWidth =
           2.0 // 두꺼움
       ..strokeCap = StrokeCap.round; // 선 끝 동그랗게
 
     final fiveTickPaint = Paint()
-      ..color = const Color.fromARGB(255, 0, 0, 0).withOpacity(0.7)
+      ..color = globalIndicatorColor.value.withOpacity(0.5)
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round; // 선 끝 동그랗게
 
@@ -430,7 +445,7 @@ class SharedClockPainter extends CustomPainter {
           text: '$i',
           style: TextStyle(
             fontSize: relativeFontSize,
-            color: Colors.black,
+            color: globalIndicatorColor.value,
             fontWeight: FontWeight.bold,
           ),
         );
@@ -880,7 +895,7 @@ typedef ClockPanCallback = void Function(Offset localPosition, Size size);
 class BaseClockLayout extends StatelessWidget {
   final bool isRunning;
   final VoidCallback onTapToggle; // 화면 터치 시 시작/멈춤
-  
+
   // 드래그 조작 관련 콜백
   final VoidCallback? onPanStart;
   final ClockPanCallback? onPanUpdate;
@@ -910,7 +925,8 @@ class BaseClockLayout extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
-        final clockSize = min(constraints.maxWidth, constraints.maxHeight) * 0.7;
+        final clockSize =
+            min(constraints.maxWidth, constraints.maxHeight) * 0.7;
         final digitalFontSize = availableHeight * 0.07;
 
         return AnimatedBuilder(
@@ -918,6 +934,9 @@ class BaseClockLayout extends StatelessWidget {
             globalDisplayMode,
             globalIndicatorMode,
             globalDigitalStyle,
+            globalClockColor,
+            globalDigitalColor,
+            globalIndicatorColor,
           ]),
           builder: (context, child) {
             String displayMode = globalDisplayMode.value;
@@ -939,12 +958,19 @@ class BaseClockLayout extends StatelessWidget {
                         if (displayMode == "both" || displayMode == "analog")
                           GestureDetector(
                             // 받아온 함수가 있으면 실행하고, 없으면 무시(null)
-                            onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
-                            onPanUpdate: onPanUpdate != null 
-                                ? (details) => onPanUpdate!(details.localPosition, Size(clockSize, clockSize)) 
+                            onPanStart: onPanStart != null
+                                ? (_) => onPanStart!()
                                 : null,
-                            onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
-                            
+                            onPanUpdate: onPanUpdate != null
+                                ? (details) => onPanUpdate!(
+                                    details.localPosition,
+                                    Size(clockSize, clockSize),
+                                  )
+                                : null,
+                            onPanEnd: onPanEnd != null
+                                ? (_) => onPanEnd!()
+                                : null,
+
                             child: CustomPaint(
                               size: Size(clockSize, clockSize),
                               painter: SharedClockPainter(
@@ -966,7 +992,7 @@ class BaseClockLayout extends StatelessWidget {
                             seconds: digitalSeconds,
                             styleMode: digitalStyle,
                             fontSize: digitalFontSize,
-                            defaultColor: const Color.fromARGB(255, 138, 163, 108),
+                            defaultColor: globalDigitalColor.value,
                           ),
                       ],
                     ),
