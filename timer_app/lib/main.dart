@@ -92,7 +92,7 @@ class _MainScreenState extends State<MainScreen> {
     _iconHideTimer?.cancel();
     super.dispose();
   }
-
+  
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Color>(
@@ -110,52 +110,38 @@ class _MainScreenState extends State<MainScreen> {
                   ignoring: isLocked, // 💡 잠기면 터치 무시!
                   child: Stack(
                     children: [
-                      // 1. 메인 화면 (isRunning 상태 업데이트 받기)
+                      // 👇👇👇 수정 1. 설정창의 모드 선택과 실시간 연동되도록 수정! 👇👇👇
                       Positioned.fill(
-                        child: isTimerMode
-                            ? TimerAppPage(
-                                onRunningChanged: (running) {
-                                  setState(() => isRunning = running);
-                                },
-                              )
-                            : StopwatchPage(
-                                onRunningChanged: (running) {
-                                  setState(() => isRunning = running);
-                                },
-                              ),
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: globalIsTimerMode,
+                          builder: (context, isTimer, child) {
+                            return isTimer
+                                ? TimerAppPage(
+                                    onRunningChanged: (running) {
+                                      setState(() => isRunning = running);
+                                    },
+                                  )
+                                : StopwatchPage(
+                                    onRunningChanged: (running) {
+                                      setState(() => isRunning = running);
+                                    },
+                                  );
+                          },
+                        ),
                       ),
 
-                      // 2. 상단 바 영역 (isRunning이 true면 투명하게 숨김!)
+                      // 👇👇👇 수정 2. 불필요한 우측 스위치 제거, 좌측 메뉴 버튼만 남김 👇👇👇
                       Positioned(
                         top: 15.0,
                         left: 20.0,
-                        right: 20.0,
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            // 좌측 메뉴 버튼
-                            Visibility(
-                              visible: !isRunning,
-                              maintainSize: true,
-                              maintainAnimation: true,
-                              maintainState: true,
-                              child: FloatingGlassMenuButton(
-                                backgroundColor: globalBgColor.value,
-                              ),
-                            ),
-                            // 우측 스위치 버튼
-                            Visibility(
-                              visible: !isRunning,
-                              maintainSize: true,
-                              maintainAnimation: true,
-                              maintainState: true,
-                              child: FloatingGlassSwitchButton(
-                                value: isTimerMode,
-                                onChanged: (value) =>
-                                    setState(() => isTimerMode = value),
-                              ),
-                            ),
-                          ],
+                        child: Visibility(
+                          visible: !isRunning,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: FloatingGlassMenuButton(
+                            backgroundColor: globalBgColor.value,
+                          ),
                         ),
                       ),
                     ],
