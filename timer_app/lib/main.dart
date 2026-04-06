@@ -3,6 +3,7 @@ import 'pages/stopwatch_page.dart';
 import 'pages/timer_page.dart';
 import 'pages/shared_design.dart';
 import 'dart:async'; // 잠금 기능용
+import 'dart:math';
 
 void main() {
   // Flutter 엔진 초기화 보장
@@ -50,6 +51,14 @@ class _MainScreenState extends State<MainScreen> {
   Timer? _lockTimer;
   Timer? _iconHideTimer;
 
+  DateTime? _touchStartTime;
+
+  final GlobalKey stopwatchKey = GlobalKey();
+  final GlobalKey timerKey = GlobalKey();
+
+  final GlobalKey clockKey = GlobalKey(); // 🔥 추가
+  final int shortTapMs = 500;
+
   final int lockDelayMs = 1000; // 배경을 꾹 누르는 시간 (1000 = 1초)
   final int iconVisibleMs = 2000; // 잠금 아이콘이 떠 있는 시간
 
@@ -92,7 +101,18 @@ class _MainScreenState extends State<MainScreen> {
     _iconHideTimer?.cancel();
     super.dispose();
   }
-  
+
+  void _handleShortTap() {
+    if (isLocked) return;
+
+    if (globalIsTimerMode.value) {
+      (timerKey.currentState as dynamic).toggle();
+    } else {
+      (stopwatchKey.currentState as dynamic).toggle();
+    }
+  }
+
+  bool isBackgroundTouched = false;
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Color>(
@@ -117,11 +137,15 @@ class _MainScreenState extends State<MainScreen> {
                           builder: (context, isTimer, child) {
                             return isTimer
                                 ? TimerAppPage(
+                                    key: timerKey,
+                                    clockKey: clockKey, // 🔥 추가
                                     onRunningChanged: (running) {
                                       setState(() => isRunning = running);
                                     },
                                   )
                                 : StopwatchPage(
+                                    key: stopwatchKey,
+                                    clockKey: clockKey, // 🔥 추가
                                     onRunningChanged: (running) {
                                       setState(() => isRunning = running);
                                     },
@@ -153,10 +177,50 @@ class _MainScreenState extends State<MainScreen> {
                 // ==========================================
                 Listener(
                   behavior: HitTestBehavior.translucent,
-                  onPointerDown: (_) => _startLockTimer(),
-                  onPointerUp: (_) => _cancelLockTimer(),
-                  onPointerCancel: (_) => _cancelLockTimer(),
-                  child: const SizedBox.expand(),
+                  onPointerDown: (event) {
+                    final RenderBox box =
+                        clockKey.currentContext!.findRenderObject()
+                            as RenderBox;
+
+                    final position = box.localToGlobal(Offset.zero);
+                    final size = box.size;
+
+                    final center = Offset(
+                      position.dx + size.width / 2,
+                      position.dy + size.height / 2,
+                    );
+
+                    final radius = size.width / 2;
+
+                    final dx = event.position.dx - center.dx;
+                    final dy = event.position.dy - center.dy;
+                    final distance = sqrt(dx * dx + dy * dy);
+
+                    if (distance <= radius) return;
+
+                    // 👉 시계 영역 "밖"만 허용
+                    if (distance > radius) {
+                      isBackgroundTouched = true;
+
+                      _touchStartTime = DateTime.now();
+                      _startLockTimer();
+                    }
+                  },
+                  onPointerUp: (_) {
+                    if (!isBackgroundTouched) return;
+
+                    final duration = DateTime.now().difference(
+                      _touchStartTime!,
+                    );
+
+                    // 🔥 핵심: lock 안된 경우만 shortTap
+                    if (!isLocked && duration.inMilliseconds < shortTapMs) {
+                      _handleShortTap();
+                    }
+
+                    _cancelLockTimer();
+                    isBackgroundTouched = false;
+                  },
                 ),
 
                 // ==========================================

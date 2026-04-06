@@ -4,13 +4,19 @@ import 'shared_design.dart';
 
 class StopwatchPage extends StatefulWidget {
   final ValueChanged<bool> onRunningChanged;
-  const StopwatchPage({super.key, required this.onRunningChanged});
+  final GlobalKey clockKey; // 🔥 추가
+  const StopwatchPage({
+    super.key,
+    required this.onRunningChanged,
+    required this.clockKey,
+  });
 
   @override
   State<StopwatchPage> createState() => _StopwatchPageState();
 }
 
-class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProviderStateMixin {
+class _StopwatchPageState extends State<StopwatchPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController controller;
   double targetMaxSeconds = 60;
   double _draggedSeconds = 0;
@@ -23,15 +29,18 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    controller = AnimationController(vsync: this, duration: Duration(seconds: targetMaxSeconds.toInt()))
-      ..addListener(() {
-        setState(() => currentSeconds = controller.value * targetMaxSeconds);
-      });
+    controller =
+        AnimationController(
+          vsync: this,
+          duration: Duration(seconds: targetMaxSeconds.toInt()),
+        )..addListener(() {
+          setState(() => currentSeconds = controller.value * targetMaxSeconds);
+        });
   }
 
   void start() {
     controller.duration = Duration(seconds: targetMaxSeconds.toInt());
-    if (currentSeconds == 0) controller.reset();
+    controller.reset();
     controller.forward();
     setState(() {
       isRunning = true;
@@ -66,6 +75,10 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
     super.dispose();
   }
 
+  void toggle() {
+    isRunning ? stop() : start();
+  }
+
   @override
   Widget build(BuildContext context) {
     double displayMaxScale = hasStarted ? targetMaxSeconds : 60.0;
@@ -85,24 +98,39 @@ class _StopwatchPageState extends State<StopwatchPage> with SingleTickerProvider
 
     // 🌟 여기도 수십 줄의 코드를 BaseClockLayout으로 깔끔하게 교체!
     return BaseClockLayout(
+      key: widget.clockKey, // 🔥 추가
       isRunning: isRunning,
-      onTapToggle: () => isRunning ? stop() : start(),
-      
+      onTapToggle: () {},
       // 드래그 설정 (동작 안하고, 시작 안했을 때만 활성화)
-      onPanStart: (!isRunning && !hasStarted) ? () {
-        setState(() {
-          isDragging = true;
-          controller.reset();
-        });
-      } : null,
-      onPanUpdate: (!isRunning && !hasStarted) ? updateTargetTime : null,
-      onPanEnd: (!isRunning && !hasStarted) ? () {
-        setState(() {
-          isDragging = false;
-          targetMaxSeconds = _draggedSeconds;
-        });
-      } : null,
-      
+      onPanStart: (!isRunning)
+          ? () {
+              setState(() {
+                isDragging = true;
+                controller.stop(); // 🔥 혹시 남아있는거 제거
+                controller.reset(); // 🔥 완전 초기화
+
+                currentSeconds = 0; // 🔥 기존 시간 제거
+              });
+            }
+          : null,
+
+      onPanUpdate: (!isRunning) ? updateTargetTime : null,
+
+      onPanEnd: (!isRunning)
+          ? () {
+              setState(() {
+                isDragging = false;
+
+                targetMaxSeconds = _draggedSeconds;
+                currentSeconds = 0; // 🔥 다시 0부터 시작하도록
+
+                controller.duration = Duration(
+                  seconds: targetMaxSeconds.toInt(),
+                );
+              });
+            }
+          : null,
+
       drawnSeconds: displayDrawnSeconds,
       maxScaleSeconds: displayMaxScale,
       isTimer: false,

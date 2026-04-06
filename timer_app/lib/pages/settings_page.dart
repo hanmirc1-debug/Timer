@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart'; // iOS 스타일 휠 피커용
-import 'package:timer_app/pages/shared_design.dart'; 
+import 'package:timer_app/pages/shared_design.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter/gestures.dart'; // 💡 마우스 드래그를 허용하기 위해 꼭 추가!
 
@@ -13,7 +13,13 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   final List<String> _tabTitles = [
-    "계정 설정", "즐겨 찾기", "테마", "시계 설정", "알림 설정", "BGM", "고객 센터",
+    "계정 설정",
+    "즐겨 찾기",
+    "테마",
+    "시계 설정",
+    "알림 설정",
+    "BGM",
+    "고객 센터",
   ];
 
   late List<GlobalKey> _sectionKeys;
@@ -78,7 +84,14 @@ class _SettingsPageState extends State<SettingsPage> {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontSize: 16, color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                color: Color(0xFFD32F2F),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             GestureDetector(
               onTap: () {
                 showDialog(
@@ -92,7 +105,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             pickerColor: tempColor,
                             onColorChanged: (c) {
                               setStateDialog(() => tempColor = c);
-                              notifier.value = c; 
+                              notifier.value = c;
                             },
                           ),
                         );
@@ -102,8 +115,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 );
               },
               child: Container(
-                width: 30, height: 30,
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(6)),
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                ),
               ),
             ),
           ],
@@ -113,32 +130,65 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // 모드 선택 토글 (간격 확 줄임)
-  Widget buildTwoOptionToggle(String title, String opt1, String opt2, ValueNotifier<bool> notifier) {
+  Widget buildTwoOptionToggle(
+    String title,
+    String opt1,
+    String opt2,
+    ValueNotifier<bool> notifier,
+  ) {
     return ValueListenableBuilder<bool>(
       valueListenable: notifier,
       builder: (context, isTrue, child) {
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 0.0), // 패딩 제거
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: const TextStyle(fontSize: 16, color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
-              CupertinoSlidingSegmentedControl<bool>(
-                groupValue: isTrue,
-                thumbColor: Colors.white,
-                backgroundColor: Colors.grey.shade200,
-                children: {
-                  true: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text(opt1, style: TextStyle(color: isTrue ? const Color(0xFFD32F2F) : Colors.grey, fontWeight: FontWeight.bold))),
-                  false: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4), child: Text(opt2, style: TextStyle(color: !isTrue ? const Color(0xFFD32F2F) : Colors.grey, fontWeight: FontWeight.bold))),
-                },
-                onValueChanged: (val) {
-                  if (val != null) notifier.value = val;
-                }
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFFD32F2F),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: CupertinoSlidingSegmentedControl<bool>(
+                    groupValue: isTrue,
+                    thumbColor: Colors.white,
+                    backgroundColor: Colors.grey.shade200,
+                    children: {
+                      true: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: Text(opt1),
+                      ),
+                      false: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        child: Text(opt2),
+                      ),
+                    },
+                    onValueChanged: (val) {
+                      if (val != null) notifier.value = val;
+                    },
+                  ),
+                ),
               ),
             ],
           ),
         );
-      }
+      },
     );
   }
 
@@ -162,9 +212,22 @@ class _SettingsPageState extends State<SettingsPage> {
                       children: [
                         Align(
                           alignment: Alignment.centerLeft,
-                          child: IconButton(icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87), onPressed: () => Navigator.pop(context)),
+                          child: IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.black87,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         ),
-                        const Text("Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+                        const Text(
+                          "Settings",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -181,7 +244,15 @@ class _SettingsPageState extends State<SettingsPage> {
                             padding: const EdgeInsets.only(bottom: 8.0),
                             child: Text(
                               _tabTitles[index],
-                              style: TextStyle(fontSize: 16, fontWeight: isActive ? FontWeight.bold : FontWeight.w600, color: isActive ? const Color(0xFFD32F2F) : Colors.grey.shade400),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isActive
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                color: isActive
+                                    ? const Color(0xFFD32F2F)
+                                    : Colors.grey.shade400,
+                              ),
                             ),
                           ),
                         );
@@ -197,7 +268,10 @@ class _SettingsPageState extends State<SettingsPage> {
             Expanded(
               child: SingleChildScrollView(
                 controller: _scrollController,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                  vertical: 8.0,
+                ),
                 child: Column(
                   children: List.generate(_tabTitles.length, (index) {
                     return _buildSectionBox(index);
@@ -235,22 +309,47 @@ class _SettingsPageState extends State<SettingsPage> {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildTwoOptionToggle("모드 선택", "Timer", "Stopwatch", globalIsTimerMode),
-          Divider(color: Colors.grey.shade200, height: 10, thickness: 1), // 간격 최소화
-          
-          CustomWheelPicker(title: "시계 표시", options: const ["both", "analog", "digital"], notifier: globalDisplayMode),
+          buildTwoOptionToggle("모드 선택", "TMR", "SW", globalIsTimerMode),
+          Divider(
+            color: Colors.grey.shade200,
+            height: 10,
+            thickness: 1,
+          ), // 간격 최소화
+
+          CustomWheelPicker(
+            title: "시계 표시",
+            options: const ["both", "analog", "digital"],
+            notifier: globalDisplayMode,
+          ),
           Divider(color: Colors.grey.shade200, height: 10, thickness: 1),
-          
-          CustomWheelPicker(title: "숫자 표시", options: const ["number", "dot", "none"], notifier: globalIndicatorMode),
+
+          CustomWheelPicker(
+            title: "숫자 표시",
+            options: const ["number", "dot", "none"],
+            notifier: globalIndicatorMode,
+          ),
           Divider(color: Colors.grey.shade200, height: 10, thickness: 1),
-          
-          CustomWheelPicker(title: "디지털 스타일", options: const ["default", "segment", "flip"], notifier: globalDigitalStyle),
+
+          CustomWheelPicker(
+            title: "디지털 스타일",
+            options: const ["default", "segment", "flip"],
+            notifier: globalDigitalStyle,
+          ),
           Divider(color: Colors.grey.shade200, height: 10, thickness: 1),
-          
-          CustomWheelPicker(title: "폰트 크기", options: const ["Small", "Medium", "Large"], notifier: globalDigitalFontSize),
+
+          CustomWheelPicker(
+            title: "폰트 크기",
+            options: const ["Small", "Medium", "Large"],
+            notifier: globalDigitalFontSize,
+          ),
           Divider(color: Colors.grey.shade200, height: 10, thickness: 1),
-          
-          CustomWheelPicker(title: "햅틱 진동", options: const ["None", "Soft", "Medium", "Strong"], notifier: globalHapticIntensity),        ],
+
+          CustomWheelPicker(
+            title: "햅틱 진동",
+            options: const ["None", "Soft", "Medium", "Strong"],
+            notifier: globalHapticIntensity,
+          ),
+        ],
       );
     } else {
       sectionContent = Text(
@@ -267,12 +366,19 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
           child: Text(
             _tabTitles[index],
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFD32F2F)),
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFFD32F2F),
+            ),
           ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12), // 박스 여백 최소화
+          padding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ), // 박스 여백 최소화
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -283,12 +389,18 @@ class _SettingsPageState extends State<SettingsPage> {
         if (!isLastItem)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 16.0),
-            child: Divider(color: Color(0xFFE0E0E0), thickness: 1.0, indent: 30.0, endIndent: 30.0),
+            child: Divider(
+              color: Color(0xFFE0E0E0),
+              thickness: 1.0,
+              indent: 30.0,
+              endIndent: 30.0,
+            ),
           ),
       ],
     );
   }
 }
+
 // =========================================================
 // 🌟 마우스 드래그 스크롤까지 완벽하게 먹히는 휠 피커!
 // =========================================================
@@ -297,7 +409,12 @@ class CustomWheelPicker extends StatefulWidget {
   final List<String> options;
   final ValueNotifier<String> notifier;
 
-  const CustomWheelPicker({super.key, required this.title, required this.options, required this.notifier});
+  const CustomWheelPicker({
+    super.key,
+    required this.title,
+    required this.options,
+    required this.notifier,
+  });
 
   @override
   State<CustomWheelPicker> createState() => _CustomWheelPickerState();
@@ -327,7 +444,14 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(widget.title, style: const TextStyle(fontSize: 16, color: Color(0xFFD32F2F), fontWeight: FontWeight.bold)),
+          Text(
+            widget.title,
+            style: const TextStyle(
+              fontSize: 16,
+              color: Color(0xFFD32F2F),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           SizedBox(
             width: 140,
             height: 90,
@@ -343,7 +467,7 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                
+
                 // 👇👇👇 핵심 해결: 마우스 드래그를 강제로 허용하는 설정 덮어씌우기! 👇👇👇
                 ScrollConfiguration(
                   behavior: ScrollConfiguration.of(context).copyWith(
@@ -357,22 +481,29 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
                     scrollController: _controller,
                     itemExtent: 32.0,
                     diameterRatio: 1.5,
-                    selectionOverlay: const SizedBox(), 
+                    selectionOverlay: const SizedBox(),
                     onSelectedItemChanged: (index) {
-                      widget.notifier.value = widget.options[index]; 
+                      widget.notifier.value = widget.options[index];
                     },
-                    children: List<Widget>.generate(widget.options.length, (index) {
+                    children: List<Widget>.generate(widget.options.length, (
+                      index,
+                    ) {
                       return Center(
                         child: ValueListenableBuilder<String>(
                           valueListenable: widget.notifier,
                           builder: (context, currentValue, child) {
-                            bool isSelected = widget.options[index] == currentValue;
+                            bool isSelected =
+                                widget.options[index] == currentValue;
                             return Text(
                               widget.options[index],
                               style: TextStyle(
-                                fontSize: isSelected ? 16 : 14, 
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                color: isSelected ? const Color(0xFFD32F2F) : Colors.red.shade200,
+                                fontSize: isSelected ? 16 : 14,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w600,
+                                color: isSelected
+                                    ? const Color(0xFFD32F2F)
+                                    : Colors.red.shade200,
                               ),
                             );
                           },

@@ -4,25 +4,34 @@ import 'shared_design.dart';
 
 class TimerAppPage extends StatefulWidget {
   final ValueChanged<bool> onRunningChanged;
-  const TimerAppPage({super.key, required this.onRunningChanged});
+  final GlobalKey clockKey; // 🔥 추가
+  const TimerAppPage({
+    super.key,
+    required this.onRunningChanged,
+    required this.clockKey,
+  });
 
   @override
   State<TimerAppPage> createState() => _TimerAppPageState();
 }
 
-class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderStateMixin {
+class _TimerAppPageState extends State<TimerAppPage>
+    with SingleTickerProviderStateMixin {
   late AnimationController controller;
-  double targetRedSeconds = 60; 
+  double targetRedSeconds = 60;
   double currentRedSeconds = 60;
   bool isRunning = false;
 
   @override
   void initState() {
     super.initState();
-    controller = AnimationController(vsync: this, duration: const Duration(seconds: 60))
-      ..addListener(() {
-        setState(() => currentRedSeconds = controller.value * targetRedSeconds);
-      });
+    controller =
+        AnimationController(vsync: this, duration: const Duration(seconds: 60))
+          ..addListener(() {
+            setState(
+              () => currentRedSeconds = controller.value * targetRedSeconds,
+            );
+          });
   }
 
   void start() {
@@ -51,7 +60,8 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
 
     setState(() {
       targetRedSeconds = 60 - whiteAmount;
-      if (targetRedSeconds <= 0 || targetRedSeconds >= 60) targetRedSeconds = 60;
+      if (targetRedSeconds <= 0 || targetRedSeconds >= 60)
+        targetRedSeconds = 60;
       currentRedSeconds = targetRedSeconds;
       controller.duration = Duration(seconds: targetRedSeconds.toInt());
       controller.value = 1.0;
@@ -64,12 +74,17 @@ class _TimerAppPageState extends State<TimerAppPage> with SingleTickerProviderSt
     super.dispose();
   }
 
+  void toggle() {
+    isRunning ? stop() : start();
+  }
+
   @override
   Widget build(BuildContext context) {
     // 🌟 핵심! 수십 줄의 껍데기 코드를 한 줄의 BaseClockLayout으로 압축했습니다.
     return BaseClockLayout(
+      key: widget.clockKey, // 🔥 추가
       isRunning: isRunning,
-      onTapToggle: () => isRunning ? stop() : start(), // 누르면 시작/정지
+      onTapToggle: () {},
       onPanUpdate: !isRunning ? updateStartTime : null, // 안 돌아갈 때만 드래그 허용
       drawnSeconds: currentRedSeconds,
       maxScaleSeconds: 60.0,
