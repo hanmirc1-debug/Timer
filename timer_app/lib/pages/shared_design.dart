@@ -34,18 +34,22 @@ final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
 );
 
 // 테마 색상들
-final ValueNotifier<Color> globalBgColor = ValueNotifier(
-  const Color(0xFF000000),
-);
-final ValueNotifier<Color> globalClockColor = ValueNotifier(
-  const Color(0xFFFF0000),
-);
-final ValueNotifier<Color> globalDigitalColor = ValueNotifier(
-  const Color(0xFF00FF00),
-);
-final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(
-  const Color(0xFFFFFFFF),
-);
+// 1. 배경색 (고급스러운 다크 그레이)
+final ValueNotifier<Color> globalBgColor = ValueNotifier(const Color(0xFF252528)); 
+
+// 2. 아날로그 시계 채워지는 색 (배경보다 살짝 밝은 중간 회색)
+//final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color(0xFF4A4A4D)); 
+final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color.fromARGB(255, 185, 70, 70)); 
+
+// 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
+final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFF8E8E93)); 
+// 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
+//final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFFE5E5EA)); 
+
+
+// 4. 시계 테두리 눈금 및 숫자 색 (차분한 시스템 그레이)
+final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(const Color(0xFF8E8E93)); 
+
 
 // =========================================================
 // 🌟 햅틱 엔진 (1눈금마다 톡톡 치는 진동 울리기)
@@ -176,34 +180,54 @@ class FloatingGlassMenuButton extends StatelessWidget {
   }
 }
 
-// 5. 시계 디자인 페인터
+// =========================================================
+// 5. 시계 디자인 페인터 (고급스러운 3D 질감 추가!)
+// =========================================================
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
   final bool isTimer;
   final String indicatorMode;
 
-  SharedClockPainter(
-    this.drawnSeconds,
-    this.maxScaleSeconds, {
-    this.isTimer = true,
-    this.indicatorMode = "number",
-  });
+  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
-    final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
 
-    double startAngle;
-    if (isTimer) {
-      startAngle =
-          -pi / 2 +
-          ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi;
-    } else {
-      startAngle = -pi / 2;
-    }
+    // =============================================================
+    // 🌟 [감성 디테일 1] 시계판 바닥에 입체적인 질감 그리기
+    // =============================================================
+    
+    // 1. 바깥쪽 부드러운 그림자 (시계판이 화면에서 살짝 떠 보이게 만듦)
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.5)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0); // 뽀얗게 퍼지는 그림자
+    canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
+
+    // 2. 시계판 진짜 바탕색 (배경색과 동일하게 칠함)
+    final facePaint = Paint()..color = globalBgColor.value;
+    canvas.drawCircle(center, radius, facePaint);
+
+    // 3. 유리막 같은 광택/질감 레이어 (배경보다 아주아주 살짝 밝게 덮어줌)
+    final highlightPaint = Paint()
+      ..color = Colors.white.withOpacity(0.04) 
+      ..style = PaintingStyle.fill;
+    canvas.drawCircle(center, radius, highlightPaint);
+
+    // 4. 시계판 맨 바깥쪽 은은한 테두리 림 (고급 시계 마감 느낌)
+    final rimPaint = Paint()
+      ..color = Colors.white.withOpacity(0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawCircle(center, radius, rimPaint);
+
+    // =============================================================
+
+    // 채워지는 부채꼴 크기 계산
+    final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
+    double startAngle = isTimer ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi : -pi / 2;
 
     final paintArc = Paint()
       ..color = globalClockColor.value
@@ -211,20 +235,23 @@ class SharedClockPainter extends CustomPainter {
 
     if (drawnSeconds > 0) {
       canvas.drawArc(
-        Rect.fromCircle(center: center, radius: radius),
-        startAngle,
-        sweepAngle,
-        true,
-        paintArc,
+        // 💡 팁: 테두리(림)를 덮어버리지 않도록 반지름을 0.98을 곱해 살짝 작게 그립니다!
+        Rect.fromCircle(center: center, radius: radius * 0.98), 
+        startAngle, 
+        sweepAngle, 
+        true, 
+        paintArc
       );
     }
 
+    // 눈금선 그리기 (사진처럼 약간 더 차분하게 조정)
     final tickPaint = Paint()
-      ..color = globalIndicatorColor.value.withOpacity(0.5)
-      ..strokeWidth = 2.0
+      ..color = globalIndicatorColor.value.withOpacity(0.4)
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
+      
     final fiveTickPaint = Paint()
-      ..color = globalIndicatorColor.value.withOpacity(0.5)
+      ..color = globalIndicatorColor.value.withOpacity(0.8)
       ..strokeWidth = 3.0
       ..strokeCap = StrokeCap.round;
 
@@ -235,11 +262,7 @@ class SharedClockPainter extends CustomPainter {
       double innerRadiusRatio = isFiveMinute ? 0.92 : 0.96;
 
       canvas.drawLine(
-        center +
-            Offset(
-              cos(angle) * (radius * innerRadiusRatio),
-              sin(angle) * (radius * innerRadiusRatio),
-            ),
+        center + Offset(cos(angle) * (radius * innerRadiusRatio), sin(angle) * (radius * innerRadiusRatio)),
         center + Offset(cos(angle) * radius, sin(angle) * radius),
         currentPaint,
       );
@@ -247,39 +270,25 @@ class SharedClockPainter extends CustomPainter {
 
     final double relativeFontSize = radius * 0.1;
     final double relativePadding = radius * 1.08;
-    final textPainter = TextPainter(
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.ltr,
-    );
+    final textPainter = TextPainter(textAlign: TextAlign.center, textDirection: TextDirection.ltr);
 
     for (int i = 0; i < maxScaleSeconds; i += 5) {
       if (indicatorMode == "none") continue;
 
-      double angle = isTimer
-          ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi)
-          : (-pi / 2 + (i / maxScaleSeconds) * 2 * pi);
+      double angle = isTimer ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi) : (-pi / 2 + (i / maxScaleSeconds) * 2 * pi);
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
       if (indicatorMode == "dot") {
-        final dotPaint = Paint()
-          ..color = const Color.fromARGB(255, 121, 121, 121)
-          ..style = PaintingStyle.fill;
+        final dotPaint = Paint()..color = globalIndicatorColor.value..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
       } else if (indicatorMode == "number") {
         textPainter.text = TextSpan(
           text: '$i',
-          style: TextStyle(
-            fontSize: relativeFontSize,
-            color: globalIndicatorColor.value,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(fontSize: relativeFontSize, color: globalIndicatorColor.value, fontWeight: FontWeight.bold),
         );
         textPainter.layout();
-        textPainter.paint(
-          canvas,
-          Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-        );
+        textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
       }
     }
   }
