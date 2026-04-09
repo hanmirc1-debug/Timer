@@ -3,6 +3,7 @@ import 'package:flutter/services.dart'; // 💡 햅틱(진동)을 쓰기 위해 
 import 'dart:math';
 import 'dart:ui';
 import 'settings_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
@@ -35,21 +36,81 @@ final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
 
 // 테마 색상들
 // 1. 배경색 (고급스러운 다크 그레이)
-final ValueNotifier<Color> globalBgColor = ValueNotifier(const Color(0xFF252528)); 
+final ValueNotifier<Color> globalBgColor = ValueNotifier(
+  const Color(0xFF252528),
+);
 
 // 2. 아날로그 시계 채워지는 색 (배경보다 살짝 밝은 중간 회색)
-//final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color(0xFF4A4A4D)); 
-final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color.fromARGB(255, 185, 70, 70)); 
+//final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color(0xFF4A4A4D));
+final ValueNotifier<Color> globalClockColor = ValueNotifier(
+  const Color.fromARGB(255, 185, 70, 70),
+);
 
 // 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
-final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFF8E8E93)); 
+final ValueNotifier<Color> globalDigitalColor = ValueNotifier(
+  const Color(0xFF8E8E93),
+);
 // 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
-//final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFFE5E5EA)); 
-
+//final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFFE5E5EA));
 
 // 4. 시계 테두리 눈금 및 숫자 색 (차분한 시스템 그레이)
-final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(const Color(0xFF8E8E93)); 
+final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(
+  const Color(0xFF8E8E93),
+);
 
+// =========================================================
+// 🌟 0-2. 설정 저장/불러오기 함수 (SharedPreferences 사용
+// =========================================================
+Future<void> saveSettings() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setBool("isTimerMode", globalIsTimerMode.value);
+  await prefs.setString("displayMode", globalDisplayMode.value);
+  await prefs.setString("indicatorMode", globalIndicatorMode.value);
+  await prefs.setString("digitalStyle", globalDigitalStyle.value);
+  await prefs.setString("fontSize", globalDigitalFontSize.value);
+  await prefs.setString("haptic", globalHapticIntensity.value);
+
+  await prefs.setInt("bgColor", globalBgColor.value.value);
+  await prefs.setInt("clockColor", globalClockColor.value.value);
+  await prefs.setInt("digitalColor", globalDigitalColor.value.value);
+  await prefs.setInt("indicatorColor", globalIndicatorColor.value.value);
+}
+
+// =========================================================
+// 앱 시작 시 설정 불러오기
+// =========================================================
+Future<void> loadSettings() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  globalIsTimerMode.value = prefs.getBool("isTimerMode") ?? true;
+  globalDisplayMode.value = prefs.getString("displayMode") ?? "both";
+  globalIndicatorMode.value = prefs.getString("indicatorMode") ?? "number";
+  globalDigitalStyle.value = prefs.getString("digitalStyle") ?? "default";
+  globalDigitalFontSize.value = prefs.getString("fontSize") ?? "Medium";
+  globalHapticIntensity.value = prefs.getString("haptic") ?? "Medium";
+
+  globalBgColor.value = Color(prefs.getInt("bgColor") ?? 0xFF252528);
+  globalClockColor.value = Color(prefs.getInt("clockColor") ?? 0xFFB94646);
+  globalDigitalColor.value = Color(prefs.getInt("digitalColor") ?? 0xFF8E8E93);
+  globalIndicatorColor.value = Color(
+    prefs.getInt("indicatorColor") ?? 0xFF8E8E93,
+  );
+}
+
+void initSettingsListener() {
+  globalBgColor.addListener(saveSettings);
+  globalClockColor.addListener(saveSettings);
+  globalDigitalColor.addListener(saveSettings);
+  globalIndicatorColor.addListener(saveSettings);
+
+  globalIsTimerMode.addListener(saveSettings);
+  globalDisplayMode.addListener(saveSettings);
+  globalIndicatorMode.addListener(saveSettings);
+  globalDigitalStyle.addListener(saveSettings);
+  globalDigitalFontSize.addListener(saveSettings);
+  globalHapticIntensity.addListener(saveSettings);
+}
 
 // =========================================================
 // 🌟 햅틱 엔진 (1눈금마다 톡톡 치는 진동 울리기)
@@ -189,7 +250,12 @@ class SharedClockPainter extends CustomPainter {
   final bool isTimer;
   final String indicatorMode;
 
-  SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
+  SharedClockPainter(
+    this.drawnSeconds,
+    this.maxScaleSeconds, {
+    this.isTimer = true,
+    this.indicatorMode = "number",
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -199,11 +265,14 @@ class SharedClockPainter extends CustomPainter {
     // =============================================================
     // 🌟 [감성 디테일 1] 시계판 바닥에 입체적인 질감 그리기
     // =============================================================
-    
+
     // 1. 바깥쪽 부드러운 그림자 (시계판이 화면에서 살짝 떠 보이게 만듦)
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.5)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0); // 뽀얗게 퍼지는 그림자
+      ..maskFilter = const MaskFilter.blur(
+        BlurStyle.normal,
+        15.0,
+      ); // 뽀얗게 퍼지는 그림자
     canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
 
     // 2. 시계판 진짜 바탕색 (배경색과 동일하게 칠함)
@@ -212,7 +281,7 @@ class SharedClockPainter extends CustomPainter {
 
     // 3. 유리막 같은 광택/질감 레이어 (배경보다 아주아주 살짝 밝게 덮어줌)
     final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.04) 
+      ..color = Colors.white.withOpacity(0.04)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, highlightPaint);
 
@@ -227,7 +296,10 @@ class SharedClockPainter extends CustomPainter {
 
     // 채워지는 부채꼴 크기 계산
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
-    double startAngle = isTimer ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi : -pi / 2;
+    double startAngle = isTimer
+        ? -pi / 2 +
+              ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
+        : -pi / 2;
 
     final paintArc = Paint()
       ..color = globalClockColor.value
@@ -236,11 +308,11 @@ class SharedClockPainter extends CustomPainter {
     if (drawnSeconds > 0) {
       canvas.drawArc(
         // 💡 팁: 테두리(림)를 덮어버리지 않도록 반지름을 0.98을 곱해 살짝 작게 그립니다!
-        Rect.fromCircle(center: center, radius: radius * 0.98), 
-        startAngle, 
-        sweepAngle, 
-        true, 
-        paintArc
+        Rect.fromCircle(center: center, radius: radius * 0.98),
+        startAngle,
+        sweepAngle,
+        true,
+        paintArc,
       );
     }
 
@@ -249,7 +321,7 @@ class SharedClockPainter extends CustomPainter {
       ..color = globalIndicatorColor.value.withOpacity(0.4)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
-      
+
     final fiveTickPaint = Paint()
       ..color = globalIndicatorColor.value.withOpacity(0.8)
       ..strokeWidth = 3.0
@@ -262,7 +334,11 @@ class SharedClockPainter extends CustomPainter {
       double innerRadiusRatio = isFiveMinute ? 0.92 : 0.96;
 
       canvas.drawLine(
-        center + Offset(cos(angle) * (radius * innerRadiusRatio), sin(angle) * (radius * innerRadiusRatio)),
+        center +
+            Offset(
+              cos(angle) * (radius * innerRadiusRatio),
+              sin(angle) * (radius * innerRadiusRatio),
+            ),
         center + Offset(cos(angle) * radius, sin(angle) * radius),
         currentPaint,
       );
@@ -270,25 +346,39 @@ class SharedClockPainter extends CustomPainter {
 
     final double relativeFontSize = radius * 0.1;
     final double relativePadding = radius * 1.08;
-    final textPainter = TextPainter(textAlign: TextAlign.center, textDirection: TextDirection.ltr);
+    final textPainter = TextPainter(
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
 
     for (int i = 0; i < maxScaleSeconds; i += 5) {
       if (indicatorMode == "none") continue;
 
-      double angle = isTimer ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi) : (-pi / 2 + (i / maxScaleSeconds) * 2 * pi);
+      double angle = isTimer
+          ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi)
+          : (-pi / 2 + (i / maxScaleSeconds) * 2 * pi);
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
       if (indicatorMode == "dot") {
-        final dotPaint = Paint()..color = globalIndicatorColor.value..style = PaintingStyle.fill;
+        final dotPaint = Paint()
+          ..color = globalIndicatorColor.value
+          ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
       } else if (indicatorMode == "number") {
         textPainter.text = TextSpan(
           text: '$i',
-          style: TextStyle(fontSize: relativeFontSize, color: globalIndicatorColor.value, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: relativeFontSize,
+            color: globalIndicatorColor.value,
+            fontWeight: FontWeight.bold,
+          ),
         );
         textPainter.layout();
-        textPainter.paint(canvas, Offset(x - textPainter.width / 2, y - textPainter.height / 2));
+        textPainter.paint(
+          canvas,
+          Offset(x - textPainter.width / 2, y - textPainter.height / 2),
+        );
       }
     }
   }
@@ -790,11 +880,15 @@ class BaseClockLayout extends StatelessWidget {
 
                         // 3. 디지털 텍스트 영역
                         if (displayMode == "both" || displayMode == "digital")
-                          CustomDigitalClock(
-                            seconds: digitalSeconds,
-                            styleMode: digitalStyle,
-                            fontSize: digitalFontSize,
-                            defaultColor: globalDigitalColor.value,
+                          FittedBox(
+                            // 🔥 추가
+                            fit: BoxFit.scaleDown,
+                            child: CustomDigitalClock(
+                              seconds: digitalSeconds,
+                              styleMode: digitalStyle,
+                              fontSize: digitalFontSize,
+                              defaultColor: globalDigitalColor.value,
+                            ),
                           ),
                       ],
                     ),

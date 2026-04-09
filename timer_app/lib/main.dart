@@ -5,9 +5,11 @@ import 'pages/shared_design.dart';
 import 'dart:async'; // 잠금 기능용
 import 'dart:math';
 
-void main() {
+void main() async {
   // Flutter 엔진 초기화 보장
   WidgetsFlutterBinding.ensureInitialized();
+  await loadSettings(); // 🔥 추가
+  initSettingsListener(); // 🔥 추가
   runApp(const MyApp());
 }
 
@@ -55,8 +57,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final GlobalKey stopwatchKey = GlobalKey();
   final GlobalKey timerKey = GlobalKey();
-
   final GlobalKey clockKey = GlobalKey(); // 🔥 추가
+  final GlobalKey menuKey = GlobalKey(); // 🔥 추가
+
   final int shortTapMs = 500;
 
   final int lockDelayMs = 1000; // 배경을 꾹 누르는 시간 (1000 = 1초)
@@ -153,21 +156,6 @@ class _MainScreenState extends State<MainScreen> {
                           },
                         ),
                       ),
-
-                      // 👇👇👇 수정 2. 불필요한 우측 스위치 제거, 좌측 메뉴 버튼만 남김 👇👇👇
-                      Positioned(
-                        top: 15.0,
-                        left: 20.0,
-                        child: Visibility(
-                          visible: !isRunning,
-                          maintainSize: true,
-                          maintainAnimation: true,
-                          maintainState: true,
-                          child: FloatingGlassMenuButton(
-                            backgroundColor: globalBgColor.value,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -178,6 +166,32 @@ class _MainScreenState extends State<MainScreen> {
                 Listener(
                   behavior: HitTestBehavior.translucent,
                   onPointerDown: (event) {
+                    // 🔥 0. menuKey null 방어
+                    if (menuKey.currentContext != null) {
+                      final RenderBox menuBox =
+                          menuKey.currentContext!.findRenderObject()
+                              as RenderBox;
+
+                      final Offset menuPosition = menuBox.localToGlobal(
+                        Offset.zero,
+                      );
+                      final Size menuSize = menuBox.size;
+
+                      final bool isInsideMenu =
+                          event.position.dx >= menuPosition.dx &&
+                          event.position.dx <=
+                              menuPosition.dx + menuSize.width &&
+                          event.position.dy >= menuPosition.dy &&
+                          event.position.dy <=
+                              menuPosition.dy + menuSize.height;
+
+                      // 👉 🔥 메뉴면 아무것도 하지 말고 끝
+                      if (isInsideMenu) {
+                        isBackgroundTouched = false; // 🔥 중요
+                        return;
+                      }
+                    }
+
                     final RenderBox box =
                         clockKey.currentContext!.findRenderObject()
                             as RenderBox;
@@ -223,6 +237,20 @@ class _MainScreenState extends State<MainScreen> {
                   },
                 ),
 
+                // 메뉴 버튼 리스너 영역 위로오게 변경
+                Positioned(
+                  top: 15.0,
+                  left: 20.0,
+                  child: Visibility(
+                    visible: !isRunning,
+                    maintainSize: true,
+                    maintainAnimation: true,
+                    maintainState: true,
+                    child: FloatingGlassMenuButton(
+                      backgroundColor: globalBgColor.value,
+                    ),
+                  ),
+                ),
                 // ==========================================
                 // [3층] 자물쇠 아이콘 (맨 위)
                 // ==========================================
