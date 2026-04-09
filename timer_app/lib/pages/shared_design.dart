@@ -34,6 +34,13 @@ final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
   "Medium",
 );
 
+// 7. 알림
+final ValueNotifier<bool> globalAlarmEnabled = ValueNotifier<bool>(true);
+final ValueNotifier<String> globalAlarmSound = ValueNotifier<String>("기본음 (Bell)");
+// 8. BGM 설정
+final ValueNotifier<bool> globalBgmEnabled = ValueNotifier<bool>(false);
+final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>("백색소음 (White Noise)");
+
 // 테마 색상들
 // 1. 배경색 (고급스러운 다크 그레이)
 final ValueNotifier<Color> globalBgColor = ValueNotifier(
