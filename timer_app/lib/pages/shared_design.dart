@@ -36,10 +36,14 @@ final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
 
 // 7. 알림
 final ValueNotifier<bool> globalAlarmEnabled = ValueNotifier<bool>(true);
-final ValueNotifier<String> globalAlarmSound = ValueNotifier<String>("기본음 (Bell)");
+final ValueNotifier<String> globalAlarmSound = ValueNotifier<String>(
+  "기본음 (Bell)",
+);
 // 8. BGM 설정
 final ValueNotifier<bool> globalBgmEnabled = ValueNotifier<bool>(false);
-final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>("백색소음 (White Noise)");
+final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>(
+  "백색소음 (White Noise)",
+);
 
 // 테마 색상들
 // 1. 배경색 (고급스러운 다크 그레이)
@@ -780,6 +784,8 @@ class BaseClockLayout extends StatelessWidget {
   final bool isTimer;
   final double digitalSeconds;
 
+  final String? indicatorModeOverride;
+
   const BaseClockLayout({
     super.key,
     required this.isRunning,
@@ -791,6 +797,7 @@ class BaseClockLayout extends StatelessWidget {
     required this.maxScaleSeconds,
     required this.isTimer,
     required this.digitalSeconds,
+    this.indicatorModeOverride, // 🔥 여기 추가
   });
 
   @override
@@ -809,7 +816,8 @@ class BaseClockLayout extends StatelessWidget {
           ]),
           builder: (context, child) {
             String displayMode = globalDisplayMode.value;
-            String indicatorMode = globalIndicatorMode.value;
+            String indicatorMode =
+                indicatorModeOverride ?? globalIndicatorMode.value;
             String digitalStyle = globalDigitalStyle.value;
 
             // 💡 설정한 폰트 사이즈(Small, Medium, Large)에 따라 텍스트 크기 비율 조절

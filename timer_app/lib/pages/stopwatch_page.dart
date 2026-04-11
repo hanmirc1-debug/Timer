@@ -40,12 +40,19 @@ class _StopwatchPageState extends State<StopwatchPage>
 
   void start() {
     controller.duration = Duration(seconds: targetMaxSeconds.toInt());
-    controller.reset();
+
+    // 🔥 controller 상태 기준이 더 정확함
+    if (controller.value == 0.0) {
+      controller.reset();
+    }
+
     controller.forward();
+
     setState(() {
       isRunning = true;
       hasStarted = true;
     });
+
     widget.onRunningChanged(true);
   }
 
@@ -81,9 +88,16 @@ class _StopwatchPageState extends State<StopwatchPage>
 
   @override
   Widget build(BuildContext context) {
-    double displayMaxScale = hasStarted ? targetMaxSeconds : 60.0;
+    double displayMaxScale;
     double displayDrawnSeconds = 0;
     double displayDigitalSeconds = 0;
+    if (isDragging) {
+      displayMaxScale = 60.0; // 🔥 드래그 시작하면 항상 원형 복구
+    } else if (!hasStarted) {
+      displayMaxScale = 60.0;
+    } else {
+      displayMaxScale = targetMaxSeconds;
+    }
 
     if (isDragging) {
       displayDrawnSeconds = _draggedSeconds;
@@ -106,10 +120,16 @@ class _StopwatchPageState extends State<StopwatchPage>
           ? () {
               setState(() {
                 isDragging = true;
-                controller.stop(); // 🔥 혹시 남아있는거 제거
-                controller.reset(); // 🔥 완전 초기화
 
-                currentSeconds = 0; // 🔥 기존 시간 제거
+                // 🔥 완전 초기화
+                controller.stop();
+                controller.reset();
+
+                currentSeconds = 0;
+
+                // 🔥 핵심: 시계 스케일 원복
+                targetMaxSeconds = 60;
+                _draggedSeconds = 0;
               });
             }
           : null,
@@ -135,6 +155,11 @@ class _StopwatchPageState extends State<StopwatchPage>
       maxScaleSeconds: displayMaxScale,
       isTimer: false,
       digitalSeconds: displayDigitalSeconds,
+
+      // 🔥 핵심
+      indicatorModeOverride: (!hasStarted || isDragging)
+          ? null // 원래 설정 유지 (숫자 보임)
+          : "none", // 실행/멈춤 상태는 숨김
     );
   }
 }
