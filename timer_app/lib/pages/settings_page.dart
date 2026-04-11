@@ -46,6 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   late List<GlobalKey> _sectionKeys;
+  late List<GlobalKey> _tabKeys; // 💡 탭 가운데 자동 스크롤을 위한 센서(키) 추가!
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   bool _isTappingTab = false;
@@ -102,6 +103,7 @@ class _SettingsPageState extends State<SettingsPage> {
   void initState() {
     super.initState();
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
+    _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey()); // 💡 탭 키 초기화
     _scrollController.addListener(_onScroll);
   }
 
@@ -125,8 +127,10 @@ class _SettingsPageState extends State<SettingsPage> {
         if (position.dy <= triggerLine) newIndex = i;
       }
     }
+    
     if (newIndex != _selectedIndex) {
       setState(() => _selectedIndex = newIndex);
+      _scrollToTabCenter(newIndex); // 💡 본문을 스크롤해서 섹션이 바뀔 때 상단 탭도 가운데로 쫓아가게 만듦!
     }
   }
 
@@ -135,6 +139,9 @@ class _SettingsPageState extends State<SettingsPage> {
       _selectedIndex = index;
       _isTappingTab = true;
     });
+    
+    _scrollToTabCenter(index); // 💡 상단 탭을 터치했을 때도 해당 탭이 가운데로 오게 만듦!
+
     final context = _sectionKeys[index].currentContext;
     if (context != null) {
       await Scrollable.ensureVisible(
@@ -146,6 +153,19 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     await Future.delayed(const Duration(milliseconds: 50));
     _isTappingTab = false;
+  }
+
+  // 🌟 [추가됨] 선택된 탭을 화면 정중앙으로 스르륵 밀어주는 핵심 함수!
+  void _scrollToTabCenter(int index) {
+    final context = _tabKeys[index].currentContext;
+    if (context != null) {
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.5, // 💡 0.5가 바로 '화면 정중앙'을 의미합니다!
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
+    }
   }
 
   // 💡 accentColor를 파라미터로 받아서 색상 적용!
@@ -204,17 +224,37 @@ class _SettingsPageState extends State<SettingsPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween, 
             children: [
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
-              CupertinoSlidingSegmentedControl<bool>(
-                groupValue: isTrue,
-                thumbColor: Colors.white,
-                backgroundColor: Colors.grey.shade200,
-                children: {
-                  true: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), child: Text(opt1, style: TextStyle(color: isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold))),
-                  false: Padding(padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6), child: Text(opt2, style: TextStyle(color: !isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold))),
-                },
-                onValueChanged: (val) {
-                  if (val != null) notifier.value = val;
-                },
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 140, maxWidth: 220), 
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: CupertinoSlidingSegmentedControl<bool>(
+                        groupValue: isTrue,
+                        thumbColor: Colors.white,
+                        backgroundColor: Colors.grey.shade200,
+                        children: {
+                          true: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 6), 
+                            child: Text(opt1, style: TextStyle(color: isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14))
+                          ),
+                          false: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 6), 
+                            child: Text(opt2, style: TextStyle(color: !isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14))
+                          ),
+                        },
+                        onValueChanged: (val) {
+                          if (val != null) notifier.value = val;
+                        },
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -268,6 +308,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               return GestureDetector(
                                 onTap: () => _scrollToSection(index),
                                 child: Container(
+                                  key: _tabKeys[index], // 💡 각 탭에 센서(위치 추적용 키)를 달아줍니다!
                                   margin: const EdgeInsets.only(right: 20.0),
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Text(
@@ -347,7 +388,6 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               Text("세부 색상 커스텀", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),  
-              // 💡 colorPicker에 accentColor 전달!
               colorPicker("배경색", globalBgColor, accentColor),
               colorPicker("시계색", globalClockColor, accentColor),
               colorPicker("디지털 시계", globalDigitalColor, accentColor),
@@ -371,8 +411,6 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
           CustomWheelPicker(title: "폰트 크기", options: const ["SMALL", "MEDIUM", "LARGE"], notifier: globalDigitalFontSize, accentColor: accentColor),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          
-          // 💡 햅틱 진동 선택 시 실시간으로 진동이 울려볼 수 있게 onSelected 연결
           CustomWheelPicker(
             title: "햅틱 진동", 
             options: const ["NONE", "SOFT", "MEDIUM", "STRONG"], 
@@ -393,8 +431,6 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           buildTwoOptionToggle("타이머 종료 알림", "ON", "OFF", globalAlarmEnabled, accentColor),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          
-          // 💡 알림음 선택 시 미리듣기 재생!
           CustomWheelPicker(
             title: "알림 방식", 
             options: const ["기본음 (Bell)", "경고음 (Beep)", "부드러운 (Soft)", "진동만 (Vibrate)"], 
@@ -411,8 +447,6 @@ class _SettingsPageState extends State<SettingsPage> {
         children: [
           buildTwoOptionToggle("배경 음악 재생", "ON", "OFF", globalBgmEnabled, accentColor),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          
-          // 💡 BGM 선택 시 미리듣기 재생!
           CustomWheelPicker(
             title: "트랙 선택", 
             options: const [
@@ -424,11 +458,6 @@ class _SettingsPageState extends State<SettingsPage> {
             notifier: globalBgmTrack, 
             accentColor: accentColor,
             onSelected: (val) => _previewBgm(val),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            "💡 휠을 멈추면 미리듣기가 재생됩니다.\n💡 화면 아무 곳이나 터치하면 재생이 멈춥니다.", 
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)
           ),
         ],
       );
@@ -465,14 +494,14 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 // =========================================================
-// 🌟 CustomWheelPicker (onSelected 파라미터 추가)
+// 🌟 CustomWheelPicker (오버플로우 방지 & 드래그 최적화 적용)
 // =========================================================
 class CustomWheelPicker extends StatefulWidget {
   final String title;
   final List<String> options;
   final ValueNotifier<String> notifier;
   final Color accentColor; 
-  final Function(String)? onSelected; // 💡 선택 시 실행할 함수 추가!
+  final Function(String)? onSelected; 
 
   const CustomWheelPicker({
     super.key, 
@@ -512,59 +541,71 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(widget.title, style: TextStyle(fontSize: 16, color: widget.accentColor, fontWeight: FontWeight.bold)), 
-          SizedBox(
-            width: 140,
-            height: 90,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Container(
-                  width: 120,
-                  height: 32,
-                  decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)),
-                ),
-                ScrollConfiguration(
-                  behavior: ScrollConfiguration.of(context).copyWith(
-                    dragDevices: {
-                      PointerDeviceKind.touch, 
-                      PointerDeviceKind.mouse, 
-                      PointerDeviceKind.trackpad, 
-                    },
-                  ),
-                  child: CupertinoPicker(
-                    scrollController: _controller,
-                    itemExtent: 32.0,
-                    diameterRatio: 1.5,
-                    selectionOverlay: const SizedBox(),
-                    onSelectedItemChanged: (index) {
-                      widget.notifier.value = widget.options[index];
+          const SizedBox(width: 8), 
+
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 140, maxWidth: 220), 
+                child: SizedBox(
+                  height: 90,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        height: 32,
+                        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)),
+                      ),
                       
-                      // 💡 휠이 특정 항목에 멈추면 미리듣기/진동 함수를 실행합니다!
-                      if (widget.onSelected != null) {
-                        widget.onSelected!(widget.options[index]);
-                      }
-                    },
-                    children: List<Widget>.generate(widget.options.length, (index) {
-                      return Center(
-                        child: ValueListenableBuilder<String>(
-                          valueListenable: widget.notifier,
-                          builder: (context, currentValue, child) {
-                            bool isSelected = widget.options[index] == currentValue;
-                            return Text(
-                              widget.options[index],
-                              style: TextStyle(
-                                fontSize: isSelected ? 15 : 13,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                color: isSelected ? widget.accentColor : widget.accentColor.withOpacity(0.4), 
-                              ),
-                            );
+                      ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(
+                          dragDevices: {
+                            PointerDeviceKind.touch, 
+                            PointerDeviceKind.mouse, 
+                            PointerDeviceKind.trackpad, 
                           },
                         ),
-                      );
-                    }),
+                        child: CupertinoPicker(
+                          scrollController: _controller,
+                          itemExtent: 32.0,
+                          diameterRatio: 1.5,
+                          selectionOverlay: const SizedBox(),
+                          onSelectedItemChanged: (index) {
+                            widget.notifier.value = widget.options[index];
+                            
+                            if (widget.onSelected != null) {
+                              widget.onSelected!(widget.options[index]);
+                            }
+                          },
+                          children: List<Widget>.generate(widget.options.length, (index) {
+                            return Center(
+                              child: ValueListenableBuilder<String>(
+                                valueListenable: widget.notifier,
+                                builder: (context, currentValue, child) {
+                                  bool isSelected = widget.options[index] == currentValue;
+                                  return Text(
+                                    widget.options[index],
+                                    textAlign: TextAlign.center,
+                                    maxLines: 1, 
+                                    overflow: TextOverflow.ellipsis, 
+                                    style: TextStyle(
+                                      fontSize: isSelected ? 15 : 13,
+                                      fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                      color: isSelected ? widget.accentColor : widget.accentColor.withOpacity(0.4), 
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
           ),
         ],
