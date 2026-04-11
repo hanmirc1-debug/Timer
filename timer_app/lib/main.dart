@@ -38,7 +38,7 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  bool isTimerMode = true; // false = 스탑워치, true = 타이머💡 배경색 원하시면 여기서 변경!
+  bool isTimerMode = true; // false = 스탑워치, true = 타이머
 
   // =========================================================
   // 🌟 [기능 1] 타이머 작동 감지용 (버튼 숨기기)
@@ -116,6 +116,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   bool isBackgroundTouched = false;
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Color>(
@@ -237,7 +238,7 @@ class _MainScreenState extends State<MainScreen> {
                   },
                 ),
 
-                // 메뉴 버튼 리스너 영역 위로오게 변경
+                // 메뉴 버튼
                 Positioned(
                   top: 15.0,
                   left: 20.0,
@@ -251,17 +252,18 @@ class _MainScreenState extends State<MainScreen> {
                     ),
                   ),
                 ),
+                
                 // ==========================================
                 // [3층] 자물쇠 아이콘 (맨 위)
                 // ==========================================
                 Positioned(
-                  top: 70.0,
+                  top: 15.0, // 💡 메뉴 버튼과 완벽하게 동일한 높이로 수정 완료 (70 -> 15)
                   right: 20.0,
                   child: AnimatedOpacity(
                     opacity: showLockIcon ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(10), // 💡 아이콘 여백을 키워서 버튼 크기 확대 (8 -> 10)
                       decoration: BoxDecoration(
                         color: Colors.black.withOpacity(0.6),
                         shape: BoxShape.circle,
@@ -269,7 +271,7 @@ class _MainScreenState extends State<MainScreen> {
                       child: Icon(
                         isLocked ? Icons.lock : Icons.lock_open,
                         color: Colors.white,
-                        size: 20,
+                        size: 24, // 💡 아이콘 자체 크기도 확대 (20 -> 24)
                       ),
                     ),
                   ),
