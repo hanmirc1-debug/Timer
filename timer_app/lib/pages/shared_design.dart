@@ -1,76 +1,54 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // 💡 햅틱(진동)을 쓰기 위해 필수!
+import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:ui';
 import 'settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
 // =========================================================
-// 1. 타이머/스탑워치 모드 선택 (추가됨)
 final ValueNotifier<bool> globalIsTimerMode = ValueNotifier<bool>(true);
-
-// 2. 시계 표시 (both, analog, digital)
-final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("both");
-
-// 3. 숫자 표시 (number, dot, none)
+final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("BOTH");
 final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>(
-  "number",
+  "NUMBER",
 );
-
-// 4. 디지털 폰트 스타일 (default, segment, flip)
 final ValueNotifier<String> globalDigitalStyle = ValueNotifier<String>(
-  "default",
+  "DEFAULT",
 );
-
-// 5. 폰트 사이즈 (Small, Medium, Large) (추가됨)
 final ValueNotifier<String> globalDigitalFontSize = ValueNotifier<String>(
-  "Medium",
+  "MEDIUM",
 );
-
-// 6. 햅틱 진동 세기 (Soft, Medium, Strong) (추가됨)
 final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
-  "Medium",
+  "MEDIUM",
 );
 
-// 7. 알림
 final ValueNotifier<bool> globalAlarmEnabled = ValueNotifier<bool>(true);
 final ValueNotifier<String> globalAlarmSound = ValueNotifier<String>(
   "기본음 (Bell)",
 );
-// 8. BGM 설정
 final ValueNotifier<bool> globalBgmEnabled = ValueNotifier<bool>(false);
 final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>(
   "백색소음 (White Noise)",
 );
 
 // 테마 색상들
-// 1. 배경색 (고급스러운 다크 그레이)
 final ValueNotifier<Color> globalBgColor = ValueNotifier(
   const Color(0xFF252528),
 );
-
-// 2. 아날로그 시계 채워지는 색 (배경보다 살짝 밝은 중간 회색)
-//final ValueNotifier<Color> globalClockColor = ValueNotifier(const Color(0xFF4A4A4D));
 final ValueNotifier<Color> globalClockColor = ValueNotifier(
   const Color.fromARGB(255, 185, 70, 70),
 );
-
-// 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
 final ValueNotifier<Color> globalDigitalColor = ValueNotifier(
   const Color(0xFF8E8E93),
 );
-// 3. 디지털 시계 숫자 색 (완전 흰색이 아닌 약간 따뜻한 오프-화이트)
-//final ValueNotifier<Color> globalDigitalColor = ValueNotifier(const Color(0xFFE5E5EA));
-
-// 4. 시계 테두리 눈금 및 숫자 색 (차분한 시스템 그레이)
 final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(
   const Color(0xFF8E8E93),
 );
 
 // =========================================================
-// 🌟 0-2. 설정 저장/불러오기 함수 (SharedPreferences 사용
+// 🌟 0-2. 설정 저장/불러오기 함수 (중복 제거 완료!)
 // =========================================================
 Future<void> saveSettings() async {
   final prefs = await SharedPreferences.getInstance();
@@ -86,20 +64,22 @@ Future<void> saveSettings() async {
   await prefs.setInt("clockColor", globalClockColor.value.value);
   await prefs.setInt("digitalColor", globalDigitalColor.value.value);
   await prefs.setInt("indicatorColor", globalIndicatorColor.value.value);
+
+  await prefs.setBool("alarmEnabled", globalAlarmEnabled.value);
+  await prefs.setString("alarmSound", globalAlarmSound.value);
+  await prefs.setBool("bgmEnabled", globalBgmEnabled.value);
+  await prefs.setString("bgmTrack", globalBgmTrack.value);
 }
 
-// =========================================================
-// 앱 시작 시 설정 불러오기
-// =========================================================
 Future<void> loadSettings() async {
   final prefs = await SharedPreferences.getInstance();
 
   globalIsTimerMode.value = prefs.getBool("isTimerMode") ?? true;
-  globalDisplayMode.value = prefs.getString("displayMode") ?? "both";
-  globalIndicatorMode.value = prefs.getString("indicatorMode") ?? "number";
-  globalDigitalStyle.value = prefs.getString("digitalStyle") ?? "default";
-  globalDigitalFontSize.value = prefs.getString("fontSize") ?? "Medium";
-  globalHapticIntensity.value = prefs.getString("haptic") ?? "Medium";
+  globalDisplayMode.value = prefs.getString("displayMode") ?? "BOTH";
+  globalIndicatorMode.value = prefs.getString("indicatorMode") ?? "NUMBER";
+  globalDigitalStyle.value = prefs.getString("digitalStyle") ?? "DEFAULT";
+  globalDigitalFontSize.value = prefs.getString("fontSize") ?? "MEDIUM";
+  globalHapticIntensity.value = prefs.getString("haptic") ?? "MEDIUM";
 
   globalBgColor.value = Color(prefs.getInt("bgColor") ?? 0xFF252528);
   globalClockColor.value = Color(prefs.getInt("clockColor") ?? 0xFFB94646);
@@ -107,6 +87,11 @@ Future<void> loadSettings() async {
   globalIndicatorColor.value = Color(
     prefs.getInt("indicatorColor") ?? 0xFF8E8E93,
   );
+
+  globalAlarmEnabled.value = prefs.getBool("alarmEnabled") ?? true;
+  globalAlarmSound.value = prefs.getString("alarmSound") ?? "기본음 (Bell)";
+  globalBgmEnabled.value = prefs.getBool("bgmEnabled") ?? false;
+  globalBgmTrack.value = prefs.getString("bgmTrack") ?? "백색소음 (White Noise)";
 }
 
 void initSettingsListener() {
@@ -121,10 +106,58 @@ void initSettingsListener() {
   globalDigitalStyle.addListener(saveSettings);
   globalDigitalFontSize.addListener(saveSettings);
   globalHapticIntensity.addListener(saveSettings);
+
+  globalAlarmEnabled.addListener(saveSettings);
+  globalAlarmSound.addListener(saveSettings);
+  globalBgmEnabled.addListener(saveSettings);
+  globalBgmTrack.addListener(saveSettings);
 }
 
 // =========================================================
-// 🌟 햅틱 엔진 (1눈금마다 톡톡 치는 진동 울리기)
+// 🌟 글로벌 BGM 매니저
+// =========================================================
+class GlobalBgmManager {
+  static final AudioPlayer _bgmPlayer = AudioPlayer();
+  static bool _isInitialized = false;
+
+  static void init() {
+    if (_isInitialized) return;
+    _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+    globalBgmEnabled.addListener(_updateBgm);
+    globalBgmTrack.addListener(_updateBgm);
+    _isInitialized = true;
+    _updateBgm();
+  }
+
+  static Future<void> _updateBgm() async {
+    if (globalBgmEnabled.value) {
+      String option = globalBgmTrack.value;
+      String fileName = "";
+
+      if (option == "백색소음 (White Noise)")
+        fileName = "white_noise.mp3";
+      else if (option == "잔잔한 비 (Rain)")
+        fileName = "rain.mp3";
+      else if (option == "모닥불 (Fireplace)")
+        fileName = "fireplace.mp3";
+      else if (option == "카페 소음 (Cafe)")
+        fileName = "cafe.mp3";
+
+      if (fileName.isNotEmpty) {
+        try {
+          await _bgmPlayer.play(AssetSource('audio/$fileName'));
+        } catch (e) {
+          debugPrint("BGM 재생 실패: $e");
+        }
+      }
+    } else {
+      await _bgmPlayer.stop();
+    }
+  }
+}
+
+// =========================================================
+// 🌟 햅틱 엔진
 // =========================================================
 class DragHapticManager {
   static int _lastTick = -1;
@@ -133,16 +166,14 @@ class DragHapticManager {
     if (_lastTick != currentTick) {
       _lastTick = currentTick;
 
-      String intensity = globalHapticIntensity.value;
+      String intensity = globalHapticIntensity.value.toUpperCase();
 
-      // 💡 "None" 이면 아무 진동도 울리지 않고 종료!
-      if (intensity == "None") return;
-
-      if (intensity == "Soft") {
+      if (intensity == "NONE") return;
+      if (intensity == "SOFT") {
         HapticFeedback.lightImpact();
-      } else if (intensity == "Medium") {
+      } else if (intensity == "MEDIUM") {
         HapticFeedback.mediumImpact();
-      } else if (intensity == "Strong") {
+      } else if (intensity == "STRONG") {
         HapticFeedback.heavyImpact();
       }
     }
@@ -150,7 +181,7 @@ class DragHapticManager {
 }
 
 // =========================================================
-// 1. 공통 깔끔한 껍데기
+// 1. 공통 껍데기
 // =========================================================
 class FloatingGlassContainer extends StatelessWidget {
   final Widget child;
@@ -174,7 +205,6 @@ class FloatingGlassContainer extends StatelessWidget {
   }
 }
 
-// 2. 텍스트 버튼 (시작, 멈춤, 리셋)
 class GlassButton extends StatelessWidget {
   final String text;
   final VoidCallback onPressed;
@@ -204,19 +234,16 @@ class GlassButton extends StatelessWidget {
   }
 }
 
-// 3. 상단 메뉴 버튼 (점 세개)
 class FloatingGlassMenuButton extends StatelessWidget {
   final Color backgroundColor;
 
   FloatingGlassMenuButton({super.key, required this.backgroundColor});
-
   final GlobalKey _buttonKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
-
     Color iconColor = backgroundColor.computeLuminance() > 0.5
         ? Colors.black87
         : Colors.white;
@@ -253,7 +280,7 @@ class FloatingGlassMenuButton extends StatelessWidget {
 }
 
 // =========================================================
-// 5. 시계 디자인 페인터 (고급스러운 3D 질감 추가!)
+// 5. 시계 디자인 페인터
 // =========================================================
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds;
@@ -273,39 +300,25 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
 
-    // =============================================================
-    // 🌟 [감성 디테일 1] 시계판 바닥에 입체적인 질감 그리기
-    // =============================================================
-
-    // 1. 바깥쪽 부드러운 그림자 (시계판이 화면에서 살짝 떠 보이게 만듦)
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.5)
-      ..maskFilter = const MaskFilter.blur(
-        BlurStyle.normal,
-        15.0,
-      ); // 뽀얗게 퍼지는 그림자
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
     canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
 
-    // 2. 시계판 진짜 바탕색 (배경색과 동일하게 칠함)
     final facePaint = Paint()..color = globalBgColor.value;
     canvas.drawCircle(center, radius, facePaint);
 
-    // 3. 유리막 같은 광택/질감 레이어 (배경보다 아주아주 살짝 밝게 덮어줌)
     final highlightPaint = Paint()
       ..color = Colors.white.withOpacity(0.04)
       ..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, highlightPaint);
 
-    // 4. 시계판 맨 바깥쪽 은은한 테두리 림 (고급 시계 마감 느낌)
     final rimPaint = Paint()
       ..color = Colors.white.withOpacity(0.08)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0;
     canvas.drawCircle(center, radius, rimPaint);
 
-    // =============================================================
-
-    // 채워지는 부채꼴 크기 계산
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     double startAngle = isTimer
         ? -pi / 2 +
@@ -318,7 +331,6 @@ class SharedClockPainter extends CustomPainter {
 
     if (drawnSeconds > 0) {
       canvas.drawArc(
-        // 💡 팁: 테두리(림)를 덮어버리지 않도록 반지름을 0.98을 곱해 살짝 작게 그립니다!
         Rect.fromCircle(center: center, radius: radius * 0.98),
         startAngle,
         sweepAngle,
@@ -327,12 +339,10 @@ class SharedClockPainter extends CustomPainter {
       );
     }
 
-    // 눈금선 그리기 (사진처럼 약간 더 차분하게 조정)
     final tickPaint = Paint()
       ..color = globalIndicatorColor.value.withOpacity(0.4)
       ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
-
     final fiveTickPaint = Paint()
       ..color = globalIndicatorColor.value.withOpacity(0.8)
       ..strokeWidth = 3.0
@@ -362,8 +372,11 @@ class SharedClockPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
 
+    // 💡 에러 해결: 대문자로 저장된 설정을 무조건 소문자로 변환해서 비교!
+    String indMode = indicatorMode.toLowerCase();
+
     for (int i = 0; i < maxScaleSeconds; i += 5) {
-      if (indicatorMode == "none") continue;
+      if (indMode == "none") continue;
 
       double angle = isTimer
           ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi)
@@ -371,12 +384,12 @@ class SharedClockPainter extends CustomPainter {
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
-      if (indicatorMode == "dot") {
+      if (indMode == "dot") {
         final dotPaint = Paint()
           ..color = globalIndicatorColor.value
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
-      } else if (indicatorMode == "number") {
+      } else if (indMode == "number") {
         textPainter.text = TextSpan(
           text: '$i',
           style: TextStyle(
@@ -424,8 +437,10 @@ class CustomDigitalClock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String timeString = formatDigitalTimeLong(seconds);
+    // 💡 에러 해결: 무조건 소문자로 변환해서 비교!
+    String style = styleMode.toLowerCase();
 
-    if (styleMode == "flip") {
+    if (style == "flip") {
       return Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -460,7 +475,7 @@ class CustomDigitalClock extends StatelessWidget {
           return ClassicFlipDigit(digit: char, fontSize: fontSize);
         }).toList(),
       );
-    } else if (styleMode == "segment") {
+    } else if (style == "segment") {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: timeString.split('').map((char) {
@@ -695,16 +710,13 @@ class SevenSegmentDigit extends StatelessWidget {
     double w = height * 0.55;
     double t = height * 0.18;
     double gap = height * 0.05;
-
-    Widget segment(bool active) {
-      return Container(
-        margin: EdgeInsets.all(gap),
-        decoration: BoxDecoration(
-          color: active ? color : color.withOpacity(0.08),
-          borderRadius: BorderRadius.circular(t / 2),
-        ),
-      );
-    }
+    Widget segment(bool active) => Container(
+      margin: EdgeInsets.all(gap),
+      decoration: BoxDecoration(
+        color: active ? color : color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(t / 2),
+      ),
+    );
 
     return Transform(
       transform: Matrix4.skewX(-0.15),
@@ -774,11 +786,9 @@ typedef ClockPanCallback = void Function(Offset localPosition, Size size);
 class BaseClockLayout extends StatelessWidget {
   final bool isRunning;
   final VoidCallback onTapToggle;
-
   final VoidCallback? onPanStart;
   final ClockPanCallback? onPanUpdate;
   final VoidCallback? onPanEnd;
-
   final double drawnSeconds;
   final double maxScaleSeconds;
   final bool isTimer;
@@ -810,20 +820,27 @@ class BaseClockLayout extends StatelessWidget {
 
         return AnimatedBuilder(
           animation: Listenable.merge([
-            globalDisplayMode, globalIndicatorMode, globalDigitalStyle,
-            globalClockColor, globalDigitalColor, globalIndicatorColor,
-            globalDigitalFontSize, // 👈 폰트 사이즈 실시간 연동
+            globalDisplayMode,
+            globalIndicatorMode,
+            globalDigitalStyle,
+            globalClockColor,
+            globalDigitalColor,
+            globalIndicatorColor,
+            globalDigitalFontSize,
           ]),
           builder: (context, child) {
-            String displayMode = globalDisplayMode.value;
-            String indicatorMode =
-                indicatorModeOverride ?? globalIndicatorMode.value;
-            String digitalStyle = globalDigitalStyle.value;
-
             // 💡 설정한 폰트 사이즈(Small, Medium, Large)에 따라 텍스트 크기 비율 조절
+            // 💡 에러 해결: 대문자로 설정된 값들을 무조건 소문자로 변환해서 에러 방지!
+            String displayMode = globalDisplayMode.value.toLowerCase();
+            String indicatorMode =
+                indicatorModeOverride ??
+                globalIndicatorMode.value.toLowerCase();
+            String digitalStyle = globalDigitalStyle.value.toLowerCase();
+            String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
+
             double fontMultiplier = 1.0;
-            if (globalDigitalFontSize.value == "Small") fontMultiplier = 0.7;
-            if (globalDigitalFontSize.value == "Large") fontMultiplier = 1.3;
+            if (fontSizeStr == "small") fontMultiplier = 0.7;
+            if (fontSizeStr == "large") fontMultiplier = 1.3;
             final digitalFontSize = availableHeight * 0.07 * fontMultiplier;
 
             return GestureDetector(
@@ -837,17 +854,13 @@ class BaseClockLayout extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        // 1. 아날로그 시계 영역
                         if (displayMode == "both" || displayMode == "analog")
                           GestureDetector(
                             onPanStart: onPanStart != null
                                 ? (_) => onPanStart!()
                                 : null,
-
-                            // 👇👇👇 수정 6. 드래그할 때 햅틱 진동을 발생시킵니다! 👇👇👇
                             onPanUpdate: onPanUpdate != null
                                 ? (details) {
-                                    // 1눈금 단위 계산 로직
                                     final center = Offset(
                                       clockSize / 2,
                                       clockSize / 2,
@@ -861,13 +874,10 @@ class BaseClockLayout extends StatelessWidget {
 
                                     int currentTick =
                                         ((clockwise / (2 * pi)) * 60).toInt();
-
-                                    // 햅틱 엔진 호출! (눈금이 변할 때만 드르륵 울림)
                                     DragHapticManager.checkAndTrigger(
                                       currentTick,
                                     );
 
-                                    // 원래 시계의 드래그 함수 실행
                                     onPanUpdate!(
                                       details.localPosition,
                                       Size(clockSize, clockSize),
@@ -889,14 +899,11 @@ class BaseClockLayout extends StatelessWidget {
                             ),
                           ),
 
-                        // 2. 중간 여백
                         if (displayMode == "both")
                           SizedBox(height: availableHeight * 0.08),
 
-                        // 3. 디지털 텍스트 영역
                         if (displayMode == "both" || displayMode == "digital")
                           FittedBox(
-                            // 🔥 추가
                             fit: BoxFit.scaleDown,
                             child: CustomDigitalClock(
                               seconds: digitalSeconds,

@@ -255,7 +255,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   onPressed: () => Navigator.pop(context)
                                 ),
                               ),
-                              Text("Settings", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)), 
+                              Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)), 
                             ],
                           ),
                         ),
