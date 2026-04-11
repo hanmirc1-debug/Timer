@@ -3,8 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart'; 
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter/gestures.dart'; 
-import 'package:flutter/services.dart'; // 💡 진동(Haptic) 기능용
-import 'package:audioplayers/audioplayers.dart'; // 💡 오디오 재생 기능용
+import 'package:flutter/services.dart'; 
+import 'package:audioplayers/audioplayers.dart'; 
 
 class AppThemePreset {
   final Color bg;         
@@ -27,90 +27,83 @@ class _SettingsPageState extends State<SettingsPage> {
     "계정 설정", "즐겨 찾기", "테마", "시계 설정", "알림 설정", "BGM", "고객 센터",
   ];
 
-  // =========================================================
-  // 🎨 [정식 테마 프리셋 리스트]
-  // =========================================================
   final List<AppThemePreset> _themePresets = [
-    // 정현표 디폴트
     const AppThemePreset(Color(0xFF252528), Color.fromARGB(255, 185, 70, 70), Color(0xFFE5E5EA), Color(0xFF8E8E93)),
-    // 1. 다크 모드 매트
     const AppThemePreset(Color(0xFF252528), Color(0xFF4A4A4D), Color(0xFFE5E5EA), Color(0xFF8E8E93)),
-    // 2. 애플 레드 
     const AppThemePreset(Color(0xFFF9F9F9), Color(0xFFD32F2F), Color(0xFF1C1C1E), Color(0xFFD32F2F)),
-    // 3. 네이비 블루 
     const AppThemePreset(Color(0xFF1C2536), Color(0xFF2D3C5A), Color(0xFFFFFFFF), Color(0xFF8B9BB4)),
-    // 4. 포레스트 그린
     const AppThemePreset(Color(0xFF1E2E26), Color(0xFF334A3E), Color(0xFFE2E8E4), Color(0xFF88A094)),
-    // 5. 따뜻한 베이지
     const AppThemePreset(Color(0xFFF4EFE6), Color(0xFFD1C2A5), Color(0xFF5C4E3A), Color(0xFF9E8E76)),
   ];
 
   late List<GlobalKey> _sectionKeys;
-  late List<GlobalKey> _tabKeys; // 💡 탭 가운데 자동 스크롤을 위한 센서(키) 추가!
+  late List<GlobalKey> _tabKeys; 
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   bool _isTappingTab = false;
 
-  // =========================================================
-  // 🌟 오디오 플레이어 및 미리듣기 제어 로직
-  // =========================================================
   final AudioPlayer _previewPlayer = AudioPlayer();
 
   void _stopPreview() {
-    // 화면을 터치하면 즉시 재생 중인 소리를 끕니다.
     _previewPlayer.stop();
   }
 
   Future<void> _playAudio(String fileName) async {
     try {
-      // 💡 나중에 'assets/audio/' 폴더를 만들고 여기에 매칭되는 mp3를 넣으시면 됩니다!
-      // 파일이 없으면 catch로 빠져서 앱이 죽지 않습니다.
       await _previewPlayer.play(AssetSource('audio/$fileName'));
     } catch (e) {
-      debugPrint("오디오 미리듣기 실패 (아직 mp3 파일을 넣지 않았습니다): $e");
+      debugPrint("오디오 에러: $e");
     }
   }
 
+  // 💡 영어 괄호 싹 지움!
   void _previewAlarm(String option) {
-    _stopPreview(); // 다른 소리가 나고 있으면 끄기
-    if (option == "진동만 (Vibrate)") {
+    _stopPreview(); 
+    if (option == "진동만") {
       HapticFeedback.vibrate();
       return;
     }
     
-    // 선택된 이름에 맞춰 파일명 지정 (나중에 이 이름으로 mp3를 넣으세요!)
-    String fileName = "";
-    if (option == "기본음 (Bell)") fileName = "bell.mp3";
-    else if (option == "경고음 (Beep)") fileName = "beep.mp3";
-    else if (option == "부드러운 (Soft)") fileName = "soft.mp3";
+    String fileName = '';
+    if (option == '기본음') fileName = 'default.mp3';
+    else if (option == '자전거 벨') fileName = 'bike.mp3';
+    else if (option == '빠른 알림 1') fileName = 'fast1.mp3';
+    else if (option == '빠른 알림 2') fileName = 'fast2.mp3';
+    else if (option == '신비로운 1') fileName = 'mystical1.mp3';
+    else if (option == '신비로운 2') fileName = 'mystical2.mp3';
+    else if (option == '신비로운 3') fileName = 'mystical3.mp3';
+    else if (option == '심플한 알림 1') fileName = 'simple1.mp3';
+    else if (option == '심플한 알림 2') fileName = 'simple2.mp3';
+    else if (option == '심플한 알림 3') fileName = 'simple3.mp3';
+    else if (option == '심플한 알림 4') fileName = 'simple4.mp3';
     
     if (fileName.isNotEmpty) _playAudio(fileName);
   }
 
+  // 💡 영어 괄호 싹 지움!
   void _previewBgm(String option) {
     _stopPreview(); 
     String fileName = "";
-    if (option == "백색소음 (White Noise)") fileName = "white_noise.mp3";
-    else if (option == "잔잔한 비 (Rain)") fileName = "rain.mp3";
-    else if (option == "모닥불 (Fireplace)") fileName = "fireplace.mp3";
-    else if (option == "카페 소음 (Cafe)") fileName = "cafe.mp3";
+    if (option == "백색소음") fileName = "white_noise.mp3";
+    else if (option == "잔잔한 비") fileName = "rain.mp3";
+    else if (option == "모닥불") fileName = "fireplace.mp3";
+    else if (option == "카페 소음") fileName = "cafe.mp3";
     
     if (fileName.isNotEmpty) _playAudio(fileName);
   }
-  // =========================================================
 
   @override
   void initState() {
     super.initState();
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
-    _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey()); // 💡 탭 키 초기화
+    _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey()); 
     _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _scrollController.dispose();
-    _previewPlayer.dispose(); // 💡 페이지 나갈 때 플레이어 메모리 해제
+    _previewPlayer.dispose(); 
     super.dispose();
   }
 
@@ -130,7 +123,7 @@ class _SettingsPageState extends State<SettingsPage> {
     
     if (newIndex != _selectedIndex) {
       setState(() => _selectedIndex = newIndex);
-      _scrollToTabCenter(newIndex); // 💡 본문을 스크롤해서 섹션이 바뀔 때 상단 탭도 가운데로 쫓아가게 만듦!
+      _scrollToTabCenter(newIndex); 
     }
   }
 
@@ -140,7 +133,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _isTappingTab = true;
     });
     
-    _scrollToTabCenter(index); // 💡 상단 탭을 터치했을 때도 해당 탭이 가운데로 오게 만듦!
+    _scrollToTabCenter(index); 
 
     final context = _sectionKeys[index].currentContext;
     if (context != null) {
@@ -155,20 +148,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _isTappingTab = false;
   }
 
-  // 🌟 [추가됨] 선택된 탭을 화면 정중앙으로 스르륵 밀어주는 핵심 함수!
   void _scrollToTabCenter(int index) {
     final context = _tabKeys[index].currentContext;
     if (context != null) {
       Scrollable.ensureVisible(
         context,
-        alignment: 0.5, // 💡 0.5가 바로 '화면 정중앙'을 의미합니다!
+        alignment: 0.5, 
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOutCubic,
       );
     }
   }
 
-  // 💡 accentColor를 파라미터로 받아서 색상 적용!
   Widget colorPicker(String title, ValueNotifier<Color> notifier, Color accentColor) {
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
@@ -178,7 +169,6 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 💡 여기 글자색을 accentColor로 연동했습니다!
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
               GestureDetector(
                 onTap: () {
@@ -229,7 +219,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 140, maxWidth: 220), 
+                    // 💡 [수정됨] 최대 너비를 220 -> 150으로 줄여서 아담하게 만들었습니다.
+                    constraints: const BoxConstraints(minWidth: 100, maxWidth: 150), 
                     child: SizedBox(
                       width: double.infinity,
                       child: CupertinoSlidingSegmentedControl<bool>(
@@ -265,7 +256,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    // 🌟 핵심! 가장 바깥쪽을 Listener로 감싸서, 화면 어디든 터치하면 노래가 멈추게 합니다.
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _stopPreview(), 
@@ -277,7 +267,6 @@ class _SettingsPageState extends State<SettingsPage> {
             body: SafeArea(
               child: Column(
                 children: [
-                  // 상단바 영역
                   Container(
                     color: const Color(0xFFF9F9F9),
                     child: Column(
@@ -308,7 +297,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               return GestureDetector(
                                 onTap: () => _scrollToSection(index),
                                 child: Container(
-                                  key: _tabKeys[index], // 💡 각 탭에 센서(위치 추적용 키)를 달아줍니다!
+                                  key: _tabKeys[index], 
                                   margin: const EdgeInsets.only(right: 20.0),
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Text(
@@ -328,8 +317,6 @@ class _SettingsPageState extends State<SettingsPage> {
                       ],
                     ),
                   ),
-
-                  // 본문 영역
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _scrollController,
@@ -355,7 +342,6 @@ class _SettingsPageState extends State<SettingsPage> {
     Widget sectionContent;
 
     if (index == 2) {
-      // 🎨 테마 설정
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([globalBgColor, globalClockColor, globalDigitalColor, globalIndicatorColor]),
         builder: (context, child) {
@@ -397,7 +383,6 @@ class _SettingsPageState extends State<SettingsPage> {
         }
       );
     } else if (index == 3) {
-      // ⌚ 시계 설정
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -425,15 +410,29 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       );
     } else if (index == 4) {
-      // 🔔 알림 설정
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           buildTwoOptionToggle("타이머 종료 알림", "ON", "OFF", globalAlarmEnabled, accentColor),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
+          
+          // 💡 한글만 깔끔하게 남긴 알림 목록!
           CustomWheelPicker(
             title: "알림 방식", 
-            options: const ["기본음 (Bell)", "경고음 (Beep)", "부드러운 (Soft)", "진동만 (Vibrate)"], 
+            options: const [
+              "기본음",
+              "자전거 벨",
+              "빠른 알림 1",
+              "빠른 알림 2",
+              "신비로운 1",
+              "신비로운 2",
+              "신비로운 3",
+              "심플한 알림 1",
+              "심플한 알림 2",
+              "심플한 알림 3",
+              "심플한 알림 4",
+              "진동만"
+            ], 
             notifier: globalAlarmSound, 
             accentColor: accentColor,
             onSelected: (val) => _previewAlarm(val),
@@ -441,19 +440,20 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       );
     } else if (index == 5) {
-      // 🎵 BGM 설정
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           buildTwoOptionToggle("배경 음악 재생", "ON", "OFF", globalBgmEnabled, accentColor),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
+          
+          // 💡 한글만 깔끔하게 남긴 BGM 목록!
           CustomWheelPicker(
             title: "트랙 선택", 
             options: const [
-              "백색소음 (White Noise)", 
-              "잔잔한 비 (Rain)", 
-              "모닥불 (Fireplace)", 
-              "카페 소음 (Cafe)"
+              "백색소음", 
+              "잔잔한 비", 
+              "모닥불", 
+              "카페 소음"
             ], 
             notifier: globalBgmTrack, 
             accentColor: accentColor,
@@ -494,7 +494,7 @@ class _SettingsPageState extends State<SettingsPage> {
 }
 
 // =========================================================
-// 🌟 CustomWheelPicker (오버플로우 방지 & 드래그 최적화 적용)
+// 🌟 CustomWheelPicker (길이 축소 적용)
 // =========================================================
 class CustomWheelPicker extends StatefulWidget {
   final String title;
@@ -547,7 +547,8 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
             child: Align(
               alignment: Alignment.centerRight,
               child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 140, maxWidth: 220), 
+                // 💡 [수정됨] 최대 너비를 220 -> 150으로 줄여서 아담하게 만들었습니다.
+                constraints: const BoxConstraints(minWidth: 100, maxWidth: 150), 
                 child: SizedBox(
                   height: 90,
                   child: Stack(

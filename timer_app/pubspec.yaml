@@ -59,6 +59,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  # 👇 이 두 줄을 띄어쓰기(들여쓰기)에 주의해서 정확히 추가해 주세요!
+  assets:
+    - assets/audio/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
