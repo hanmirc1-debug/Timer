@@ -169,12 +169,14 @@ class DragHapticManager {
       String intensity = globalHapticIntensity.value.toUpperCase();
 
       if (intensity == "NONE") return;
+
+      // 🔥 인간 체감 기준으로 재배치
       if (intensity == "SOFT") {
-        HapticFeedback.lightImpact();
+        HapticFeedback.heavyImpact(); // 중간 (의외로 medium보다 덜 또렷함)
       } else if (intensity == "MEDIUM") {
-        HapticFeedback.mediumImpact();
+        HapticFeedback.mediumImpact(); // 🔥 실제로 제일 강하게 느껴짐
       } else if (intensity == "STRONG") {
-        HapticFeedback.heavyImpact();
+        HapticFeedback.lightImpact(); // 가장 약함
       }
     }
   }
