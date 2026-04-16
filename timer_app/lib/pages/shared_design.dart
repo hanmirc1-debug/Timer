@@ -33,6 +33,10 @@ final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>(
   "백색소음 (White Noise)",
 );
 
+// 💡 [추가됨] 타이머 최대 눈금 (기본 60초)
+final ValueNotifier<String> globalTimerMaxString = ValueNotifier<String>("60초 (1분)");
+final ValueNotifier<double> globalTimerMaxSeconds = ValueNotifier<double>(60.0);
+
 // 테마 색상들
 final ValueNotifier<Color> globalBgColor = ValueNotifier(
   const Color(0xFF252528),
@@ -60,6 +64,10 @@ Future<void> saveSettings() async {
   await prefs.setString("fontSize", globalDigitalFontSize.value);
   await prefs.setString("haptic", globalHapticIntensity.value);
 
+  // 💡 [추가됨] 타이머 최대 눈금 저장
+  await prefs.setString("timerMaxString", globalTimerMaxString.value);
+  await prefs.setDouble("timerMaxSeconds", globalTimerMaxSeconds.value);
+
   await prefs.setInt("bgColor", globalBgColor.value.value);
   await prefs.setInt("clockColor", globalClockColor.value.value);
   await prefs.setInt("digitalColor", globalDigitalColor.value.value);
@@ -80,6 +88,10 @@ Future<void> loadSettings() async {
   globalDigitalStyle.value = prefs.getString("digitalStyle") ?? "DEFAULT";
   globalDigitalFontSize.value = prefs.getString("fontSize") ?? "MEDIUM";
   globalHapticIntensity.value = prefs.getString("haptic") ?? "MEDIUM";
+
+  // 💡 [추가됨] 타이머 최대 눈금 불러오기
+  globalTimerMaxString.value = prefs.getString("timerMaxString") ?? "60초 (1분)";
+  globalTimerMaxSeconds.value = prefs.getDouble("timerMaxSeconds") ?? 60.0;
 
   globalBgColor.value = Color(prefs.getInt("bgColor") ?? 0xFF252528);
   globalClockColor.value = Color(prefs.getInt("clockColor") ?? 0xFFB94646);
@@ -106,6 +118,17 @@ void initSettingsListener() {
   globalDigitalStyle.addListener(saveSettings);
   globalDigitalFontSize.addListener(saveSettings);
   globalHapticIntensity.addListener(saveSettings);
+
+  // 💡 [추가됨] 눈금 변경 감지
+  // 💡 [수정됨] 눈금 변경 감지 로직 (새로운 단위 인식)
+  globalTimerMaxString.addListener(() {
+    saveSettings();
+    String val = globalTimerMaxString.value;
+    if (val.contains("60초")) globalTimerMaxSeconds.value = 60.0;
+    else if (val.contains("120초")) globalTimerMaxSeconds.value = 120.0;
+    else if (val.contains("60분")) globalTimerMaxSeconds.value = 3600.0;
+    else if (val.contains("120분")) globalTimerMaxSeconds.value = 7200.0;
+  });
 
   globalAlarmEnabled.addListener(saveSettings);
   globalAlarmSound.addListener(saveSettings);
@@ -376,13 +399,16 @@ class SharedClockPainter extends CustomPainter {
 
     // 💡 에러 해결: 대문자로 저장된 설정을 무조건 소문자로 변환해서 비교!
     String indMode = indicatorMode.toLowerCase();
+// 💡 [수정됨] 소수점 단위(2.5 등)도 깔끔하게 그려지도록 보정
+    double tickInterval = maxScaleSeconds / 12;
 
-    for (int i = 0; i < maxScaleSeconds; i += 5) {
+    for (int i = 0; i < 12; i++) {
       if (indMode == "none") continue;
 
+      double currentScale = i * tickInterval;
       double angle = isTimer
-          ? (-pi / 2 - (i / maxScaleSeconds) * 2 * pi)
-          : (-pi / 2 + (i / maxScaleSeconds) * 2 * pi);
+          ? (-pi / 2 - (i / 12) * 2 * pi)
+          : (-pi / 2 + (i / 12) * 2 * pi);
       final x = center.dx + relativePadding * cos(angle);
       final y = center.dy + relativePadding * sin(angle);
 
@@ -392,8 +418,17 @@ class SharedClockPainter extends CustomPainter {
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
       } else if (indMode == "number") {
+        // 초 단위면 그대로, 60초 초과면 분 단위로 변경. 소수점(.5)이 있으면 출력, 아니면 정수로.
+        double val = maxScaleSeconds <= 120 ? currentScale : currentScale / 60;
+        String tickText = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(1);
+
+        if (currentScale == 0) {
+          double maxVal = maxScaleSeconds <= 120 ? maxScaleSeconds : maxScaleSeconds / 60;
+          tickText = (maxVal % 1 == 0) ? maxVal.toInt().toString() : maxVal.toStringAsFixed(1);
+        }
+
         textPainter.text = TextSpan(
-          text: '$i',
+          text: tickText,
           style: TextStyle(
             fontSize: relativeFontSize,
             color: globalIndicatorColor.value,
@@ -413,12 +448,12 @@ class SharedClockPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
+// 🌟 [수정됨] 00:00 (분:초) 형식으로 변경
 String formatDigitalTimeLong(double seconds) {
   int s = seconds.toInt();
-  int h = s ~/ 3600;
-  int m = (s % 3600) ~/ 60;
+  int m = s ~/ 60; // 100분이어도 100으로 표시됨
   s = s % 60;
-  return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
 }
 
 // 6. 다기능 디지털 시계 위젯
@@ -797,6 +832,8 @@ class BaseClockLayout extends StatelessWidget {
   final double digitalSeconds;
 
   final String? indicatorModeOverride;
+  // 💡 [추가됨] 꾹 누르기 기능 연결을 위한 콜백 추가
+  final VoidCallback? onDigitalLongPress;
 
   const BaseClockLayout({
     super.key,
@@ -809,7 +846,8 @@ class BaseClockLayout extends StatelessWidget {
     required this.maxScaleSeconds,
     required this.isTimer,
     required this.digitalSeconds,
-    this.indicatorModeOverride, // 🔥 여기 추가
+    this.indicatorModeOverride, 
+    this.onDigitalLongPress, // 🔥 여기 추가
   });
 
   @override
@@ -831,8 +869,6 @@ class BaseClockLayout extends StatelessWidget {
             globalDigitalFontSize,
           ]),
           builder: (context, child) {
-            // 💡 설정한 폰트 사이즈(Small, Medium, Large)에 따라 텍스트 크기 비율 조절
-            // 💡 에러 해결: 대문자로 설정된 값들을 무조건 소문자로 변환해서 에러 방지!
             String displayMode = globalDisplayMode.value.toLowerCase();
             String indicatorMode =
                 indicatorModeOverride ??
@@ -889,7 +925,6 @@ class BaseClockLayout extends StatelessWidget {
                             onPanEnd: onPanEnd != null
                                 ? (_) => onPanEnd!()
                                 : null,
-
                             child: CustomPaint(
                               size: Size(clockSize, clockSize),
                               painter: SharedClockPainter(
@@ -905,13 +940,17 @@ class BaseClockLayout extends StatelessWidget {
                           SizedBox(height: availableHeight * 0.08),
 
                         if (displayMode == "both" || displayMode == "digital")
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: CustomDigitalClock(
-                              seconds: digitalSeconds,
-                              styleMode: digitalStyle,
-                              fontSize: digitalFontSize,
-                              defaultColor: globalDigitalColor.value,
+                          // 💡 [수정됨] 디지털 시계에 LongPress 연결
+                          GestureDetector(
+                            onLongPress: onDigitalLongPress,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: CustomDigitalClock(
+                                seconds: digitalSeconds,
+                                styleMode: digitalStyle,
+                                fontSize: digitalFontSize,
+                                defaultColor: globalDigitalColor.value,
+                              ),
                             ),
                           ),
                       ],

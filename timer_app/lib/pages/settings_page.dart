@@ -3,8 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart'; // 💡 진동(Haptic) 기능용
-import 'package:audioplayers/audioplayers.dart'; // 💡 오디오 재생 기능용
+import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class AppThemePreset {
   final Color bg;
@@ -34,42 +34,36 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   final List<AppThemePreset> _themePresets = [
-    // 정현표 디폴트
     const AppThemePreset(
       Color(0xFF252528),
       Color.fromARGB(255, 185, 70, 70),
       Color(0xFFE5E5EA),
       Color(0xFF8E8E93),
     ),
-    // 1. 다크 모드 매트
     const AppThemePreset(
       Color(0xFF252528),
       Color(0xFF4A4A4D),
       Color(0xFFE5E5EA),
       Color(0xFF8E8E93),
     ),
-    // 2. 애플 레드
     const AppThemePreset(
       Color(0xFFF9F9F9),
       Color(0xFFD32F2F),
       Color(0xFF1C1C1E),
       Color(0xFFD32F2F),
     ),
-    // 3. 네이비 블루
     const AppThemePreset(
       Color(0xFF1C2536),
       Color(0xFF2D3C5A),
       Color(0xFFFFFFFF),
       Color(0xFF8B9BB4),
     ),
-    // 4. 포레스트 그린
     const AppThemePreset(
       Color(0xFF1E2E26),
       Color(0xFF334A3E),
       Color(0xFFE2E8E4),
       Color(0xFF88A094),
     ),
-    // 5. 따뜻한 베이지
     const AppThemePreset(
       Color(0xFFF4EFE6),
       Color(0xFFD1C2A5),
@@ -98,7 +92,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // 💡 영어 괄호 싹 지움 & 11개 커스텀 리스트 연동!
   void _previewAlarm(String option) {
     _stopPreview();
     if (option == "진동만") {
@@ -106,30 +99,28 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    String fileName = '';
-    if (option == '기본음') fileName = 'default.mp3';
-    else if (option == '자전거 벨') fileName = 'bike.mp3';
-    else if (option == '빠른 알림 1') fileName = 'fast1.mp3';
-    else if (option == '빠른 알림 2') fileName = 'fast2.mp3';
-    else if (option == '신비로운 1') fileName = 'mystical1.mp3';
-    else if (option == '신비로운 2') fileName = 'mystical2.mp3';
-    else if (option == '신비로운 3') fileName = 'mystical3.mp3';
-    else if (option == '심플한 알림 1') fileName = 'simple1.mp3';
-    else if (option == '심플한 알림 2') fileName = 'simple2.mp3';
-    else if (option == '심플한 알림 3') fileName = 'simple3.mp3';
-    else if (option == '심플한 알림 4') fileName = 'simple4.mp3';
+    String fileName = "";
+    if (option == "기본음 (Bell)")
+      fileName = "bell.mp3";
+    else if (option == "경고음 (Beep)")
+      fileName = "beep.mp3";
+    else if (option == "부드러운 (Soft)")
+      fileName = "soft.mp3";
 
     if (fileName.isNotEmpty) _playAudio(fileName);
   }
 
-  // 💡 영어 괄호 싹 지움!
   void _previewBgm(String option) {
     _stopPreview();
     String fileName = "";
-    if (option == "백색소음") fileName = "white_noise.mp3";
-    else if (option == "잔잔한 비") fileName = "rain.mp3";
-    else if (option == "모닥불") fileName = "fireplace.mp3";
-    else if (option == "카페 소음") fileName = "cafe.mp3";
+    if (option == "백색소음 (White Noise)")
+      fileName = "white_noise.mp3";
+    else if (option == "잔잔한 비 (Rain)")
+      fileName = "rain.mp3";
+    else if (option == "모닥불 (Fireplace)")
+      fileName = "fireplace.mp3";
+    else if (option == "카페 소음 (Cafe)")
+      fileName = "cafe.mp3";
 
     if (fileName.isNotEmpty) _playAudio(fileName);
   }
@@ -141,7 +132,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _tabKeys = List.generate(
       _tabTitles.length,
       (index) => GlobalKey(),
-    ); // 💡 탭 키 초기화
+    );
     _scrollController.addListener(_onScroll);
   }
 
@@ -178,7 +169,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _isTappingTab = true;
     });
 
-    _scrollToTabCenter(index); // 💡 상단 탭을 터치했을 때도 해당 탭이 가운데로 오게 만듦!
+    _scrollToTabCenter(index);
 
     final context = _sectionKeys[index].currentContext;
     if (context != null) {
@@ -205,7 +196,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // 💡 accentColor를 파라미터로 받아서 색상 적용!
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
@@ -219,7 +209,6 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // 💡 여기 글자색을 accentColor로 연동했습니다!
               Text(
                 title,
                 style: TextStyle(
@@ -295,7 +284,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: ConstrainedBox(
-                    // 💡 [수정됨] 최대 너비를 220 -> 150으로 줄여서 아담하게 만들었습니다.
+                    // 💡 [수정됨] 스위치 너비 150px로 축소 완료!
                     constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
                     child: SizedBox(
                       width: double.infinity,
@@ -397,7 +386,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               return GestureDetector(
                                 onTap: () => _scrollToSection(index),
                                 child: Container(
-                                  key: _tabKeys[index], // 💡 각 탭에 센서(위치 추적용 키)를 달아줍니다!
+                                  key: _tabKeys[index],
                                   margin: const EdgeInsets.only(right: 20.0),
                                   padding: const EdgeInsets.only(bottom: 8.0),
                                   child: Text(
@@ -539,6 +528,15 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
+          // 💡 [추가됨] 타이머 눈금 단위 세팅!
+          // 💡 [수정됨] 12의 배수에 맞춰 눈금이 예쁘게 떨어지도록 변경
+          CustomWheelPicker(
+            title: "타이머 최대 눈금",
+            options: const ["60초 (1분)", "120초 (2분)", "60분", "120분"],
+            notifier: globalTimerMaxString,
+            accentColor: accentColor,
+          ),
+          Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
           CustomWheelPicker(
             title: "시계 표시",
             options: const ["BOTH", "ANALOG", "DIGITAL"],
@@ -595,25 +593,15 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          
-          // 💡 한글만 깔끔하게 남긴 11개 알림 목록!
           CustomWheelPicker(
-            title: "알림 방식", 
+            title: "알림 방식",
             options: const [
-              "기본음",
-              "자전거 벨",
-              "빠른 알림 1",
-              "빠른 알림 2",
-              "신비로운 1",
-              "신비로운 2",
-              "신비로운 3",
-              "심플한 알림 1",
-              "심플한 알림 2",
-              "심플한 알림 3",
-              "심플한 알림 4",
-              "진동만"
-            ], 
-            notifier: globalAlarmSound, 
+              "기본음 (Bell)",
+              "경고음 (Beep)",
+              "부드러운 (Soft)",
+              "진동만 (Vibrate)",
+            ],
+            notifier: globalAlarmSound,
             accentColor: accentColor,
             onSelected: (val) => _previewAlarm(val),
           ),
@@ -631,15 +619,13 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          
-          // 💡 한글만 깔끔하게 남긴 BGM 목록!
           CustomWheelPicker(
             title: "트랙 선택",
             options: const [
-              "백색소음", 
-              "잔잔한 비", 
-              "모닥불", 
-              "카페 소음"
+              "백색소음 (White Noise)",
+              "잔잔한 비 (Rain)",
+              "모닥불 (Fireplace)",
+              "카페 소음 (Cafe)",
             ],
             notifier: globalBgmTrack,
             accentColor: accentColor,
@@ -694,9 +680,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 }
 
-// =========================================================
-// 🌟 CustomWheelPicker (길이 축소 적용)
-// =========================================================
 class CustomWheelPicker extends StatefulWidget {
   final String title;
   final List<String> options;
@@ -755,8 +738,8 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
             child: Align(
               alignment: Alignment.centerRight,
               child: ConstrainedBox(
-                // 💡 [수정됨] 최대 너비를 220 -> 150으로 줄여서 아담하게 만들었습니다.
-                constraints: const BoxConstraints(minWidth: 100, maxWidth: 150), 
+                // 💡 [수정됨] 피커 너비도 150px로 축소 완료!
+                constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
                 child: SizedBox(
                   height: 90,
                   child: Stack(
@@ -770,7 +753,6 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
-
                       ScrollConfiguration(
                         behavior: ScrollConfiguration.of(context).copyWith(
                           dragDevices: {
