@@ -33,7 +33,7 @@ final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>(
   "백색소음 (White Noise)",
 );
 
-// 💡 [추가됨] 타이머 최대 눈금 (기본 60초)
+// 💡 타이머 최대 눈금 (기본 60초)
 final ValueNotifier<String> globalTimerMaxString = ValueNotifier<String>("60초 (1분)");
 final ValueNotifier<double> globalTimerMaxSeconds = ValueNotifier<double>(60.0);
 
@@ -52,7 +52,7 @@ final ValueNotifier<Color> globalIndicatorColor = ValueNotifier(
 );
 
 // =========================================================
-// 🌟 0-2. 설정 저장/불러오기 함수 (중복 제거 완료!)
+// 🌟 0-2. 설정 저장/불러오기 함수
 // =========================================================
 Future<void> saveSettings() async {
   final prefs = await SharedPreferences.getInstance();
@@ -64,7 +64,6 @@ Future<void> saveSettings() async {
   await prefs.setString("fontSize", globalDigitalFontSize.value);
   await prefs.setString("haptic", globalHapticIntensity.value);
 
-  // 💡 [추가됨] 타이머 최대 눈금 저장
   await prefs.setString("timerMaxString", globalTimerMaxString.value);
   await prefs.setDouble("timerMaxSeconds", globalTimerMaxSeconds.value);
 
@@ -89,7 +88,6 @@ Future<void> loadSettings() async {
   globalDigitalFontSize.value = prefs.getString("fontSize") ?? "MEDIUM";
   globalHapticIntensity.value = prefs.getString("haptic") ?? "MEDIUM";
 
-  // 💡 [추가됨] 타이머 최대 눈금 불러오기
   globalTimerMaxString.value = prefs.getString("timerMaxString") ?? "60초 (1분)";
   globalTimerMaxSeconds.value = prefs.getDouble("timerMaxSeconds") ?? 60.0;
 
@@ -119,12 +117,10 @@ void initSettingsListener() {
   globalDigitalFontSize.addListener(saveSettings);
   globalHapticIntensity.addListener(saveSettings);
 
-  // 💡 [추가됨] 눈금 변경 감지
-  // 💡 [수정됨] 눈금 변경 감지 로직 (새로운 단위 인식)
   globalTimerMaxString.addListener(() {
     saveSettings();
     String val = globalTimerMaxString.value;
-    if (val.contains("60초")) globalTimerMaxSeconds.value = 60.0;
+  if (val.contains("60초")) globalTimerMaxSeconds.value = 60.0;
     else if (val.contains("120초")) globalTimerMaxSeconds.value = 120.0;
     else if (val.contains("60분")) globalTimerMaxSeconds.value = 3600.0;
     else if (val.contains("120분")) globalTimerMaxSeconds.value = 7200.0;
@@ -193,13 +189,12 @@ class DragHapticManager {
 
       if (intensity == "NONE") return;
 
-      // 🔥 인간 체감 기준으로 재배치
       if (intensity == "SOFT") {
-        HapticFeedback.heavyImpact(); // 중간 (의외로 medium보다 덜 또렷함)
+        HapticFeedback.heavyImpact(); 
       } else if (intensity == "MEDIUM") {
-        HapticFeedback.mediumImpact(); // 🔥 실제로 제일 강하게 느껴짐
+        HapticFeedback.mediumImpact(); 
       } else if (intensity == "STRONG") {
-        HapticFeedback.lightImpact(); // 가장 약함
+        HapticFeedback.lightImpact(); 
       }
     }
   }
@@ -304,6 +299,14 @@ class FloatingGlassMenuButton extends StatelessWidget {
   }
 }
 
+// 🌟 [미리 당겨옴] 00:00 형식으로 시간을 만들어주는 함수
+String formatDigitalTimeLong(double seconds) {
+  int s = seconds.toInt();
+  int m = s ~/ 60; 
+  s = s % 60;
+  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+}
+
 // =========================================================
 // 5. 시계 디자인 페인터
 // =========================================================
@@ -397,13 +400,14 @@ class SharedClockPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     );
 
-    // 💡 에러 해결: 대문자로 저장된 설정을 무조건 소문자로 변환해서 비교!
     String indMode = indicatorMode.toLowerCase();
-// 💡 [수정됨] 소수점 단위(2.5 등)도 깔끔하게 그려지도록 보정
     double tickInterval = maxScaleSeconds / 12;
 
     for (int i = 0; i < 12; i++) {
       if (indMode == "none") continue;
+      
+      // 스탑워치용 특수 모드: 꼭대기(MAX) 값 하나만 남기고 전부 숨기기
+      if (indMode == "max_only" && i != 0) continue; 
 
       double currentScale = i * tickInterval;
       double angle = isTimer
@@ -417,14 +421,25 @@ class SharedClockPainter extends CustomPainter {
           ..color = globalIndicatorColor.value
           ..style = PaintingStyle.fill;
         canvas.drawCircle(Offset(x, y), radius * 0.03, dotPaint);
-      } else if (indMode == "number") {
-        // 초 단위면 그대로, 60초 초과면 분 단위로 변경. 소수점(.5)이 있으면 출력, 아니면 정수로.
-        double val = maxScaleSeconds <= 120 ? currentScale : currentScale / 60;
-        String tickText = (val % 1 == 0) ? val.toInt().toString() : val.toStringAsFixed(1);
+      } else if (indMode == "number" || indMode == "max_only") {
+        String tickText;
 
-        if (currentScale == 0) {
-          double maxVal = maxScaleSeconds <= 120 ? maxScaleSeconds : maxScaleSeconds / 60;
-          tickText = (maxVal % 1 == 0) ? maxVal.toInt().toString() : maxVal.toStringAsFixed(1);
+        // 💡 [핵심 수정] max_only 모드일 때는 00:00 포맷으로 예쁘게 표시!
+        if (indMode == "max_only") {
+          tickText = formatDigitalTimeLong(maxScaleSeconds);
+        } else {
+          // 일반 number 모드 로직 (소수점 오차 방지 포함)
+          double val = maxScaleSeconds <= 120 ? currentScale : currentScale / 60;
+          tickText = (val.roundToDouble() == val || (val - val.roundToDouble()).abs() < 0.001) 
+              ? val.round().toString() 
+              : val.toStringAsFixed(1);
+
+          if (currentScale == 0) {
+            double maxVal = maxScaleSeconds <= 120 ? maxScaleSeconds : maxScaleSeconds / 60;
+            tickText = (maxVal.roundToDouble() == maxVal || (maxVal - maxVal.roundToDouble()).abs() < 0.001) 
+                ? maxVal.round().toString() 
+                : maxVal.toStringAsFixed(1);
+          }
         }
 
         textPainter.text = TextSpan(
@@ -448,15 +463,6 @@ class SharedClockPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// 🌟 [수정됨] 00:00 (분:초) 형식으로 변경
-String formatDigitalTimeLong(double seconds) {
-  int s = seconds.toInt();
-  int m = s ~/ 60; // 100분이어도 100으로 표시됨
-  s = s % 60;
-  return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
-}
-
-// 6. 다기능 디지털 시계 위젯
 class CustomDigitalClock extends StatelessWidget {
   final double seconds;
   final String styleMode;
@@ -474,7 +480,6 @@ class CustomDigitalClock extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     String timeString = formatDigitalTimeLong(seconds);
-    // 💡 에러 해결: 무조건 소문자로 변환해서 비교!
     String style = styleMode.toLowerCase();
 
     if (style == "flip") {
@@ -540,7 +545,6 @@ class CustomDigitalClock extends StatelessWidget {
   }
 }
 
-// 아날로그 플립 카드
 class ClassicFlipDigit extends StatefulWidget {
   final String digit;
   final double fontSize;
@@ -682,7 +686,6 @@ class _ClassicFlipDigitState extends State<ClassicFlipDigit>
   }
 }
 
-// 7-세그먼트 LED
 class SevenSegmentDigit extends StatelessWidget {
   final String digit;
   final double height;
@@ -729,15 +732,7 @@ class SevenSegmentDigit extends StatelessWidget {
     final bool a = ['0', '2', '3', '5', '6', '7', '8', '9'].contains(digit);
     final bool b = ['0', '1', '2', '3', '4', '7', '8', '9'].contains(digit);
     final bool c = [
-      '0',
-      '1',
-      '3',
-      '4',
-      '5',
-      '6',
-      '7',
-      '8',
-      '9',
+      '0', '1', '3', '4', '5', '6', '7', '8', '9',
     ].contains(digit);
     final bool d = ['0', '2', '3', '5', '6', '8', '9'].contains(digit);
     final bool e = ['0', '2', '6', '8'].contains(digit);
@@ -762,55 +757,13 @@ class SevenSegmentDigit extends StatelessWidget {
         height: height,
         child: Stack(
           children: [
-            Positioned(
-              top: 0,
-              left: t * 0.4,
-              right: t * 0.4,
-              height: t,
-              child: segment(a),
-            ),
-            Positioned(
-              top: t * 0.5,
-              right: 0,
-              width: t,
-              height: height / 2 - t * 0.5,
-              child: segment(b),
-            ),
-            Positioned(
-              bottom: t * 0.5,
-              right: 0,
-              width: t,
-              height: height / 2 - t * 0.5,
-              child: segment(c),
-            ),
-            Positioned(
-              bottom: 0,
-              left: t * 0.4,
-              right: t * 0.4,
-              height: t,
-              child: segment(d),
-            ),
-            Positioned(
-              bottom: t * 0.5,
-              left: 0,
-              width: t,
-              height: height / 2 - t * 0.5,
-              child: segment(e),
-            ),
-            Positioned(
-              top: t * 0.5,
-              left: 0,
-              width: t,
-              height: height / 2 - t * 0.5,
-              child: segment(f),
-            ),
-            Positioned(
-              top: height / 2 - t / 2,
-              left: t * 0.4,
-              right: t * 0.4,
-              height: t,
-              child: segment(g),
-            ),
+            Positioned(top: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(a)),
+            Positioned(top: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(b)),
+            Positioned(bottom: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(c)),
+            Positioned(bottom: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(d)),
+            Positioned(bottom: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(e)),
+            Positioned(top: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(f)),
+            Positioned(top: height / 2 - t / 2, left: t * 0.4, right: t * 0.4, height: t, child: segment(g)),
           ],
         ),
       ),
@@ -832,8 +785,7 @@ class BaseClockLayout extends StatelessWidget {
   final double digitalSeconds;
 
   final String? indicatorModeOverride;
-  // 💡 [추가됨] 꾹 누르기 기능 연결을 위한 콜백 추가
-  final VoidCallback? onDigitalLongPress;
+  final VoidCallback? onDigitalLongPress; 
 
   const BaseClockLayout({
     super.key,
@@ -847,7 +799,7 @@ class BaseClockLayout extends StatelessWidget {
     required this.isTimer,
     required this.digitalSeconds,
     this.indicatorModeOverride, 
-    this.onDigitalLongPress, // 🔥 여기 추가
+    this.onDigitalLongPress, 
   });
 
   @override
@@ -910,11 +862,8 @@ class BaseClockLayout extends StatelessWidget {
                                     double clockwise = angle - (-pi / 2);
                                     if (clockwise < 0) clockwise += 2 * pi;
 
-                                    int currentTick =
-                                        ((clockwise / (2 * pi)) * 60).toInt();
-                                    DragHapticManager.checkAndTrigger(
-                                      currentTick,
-                                    );
+                                    int currentTick = ((clockwise / (2 * pi)) * 60).toInt();
+                                    DragHapticManager.checkAndTrigger(currentTick);
 
                                     onPanUpdate!(
                                       details.localPosition,
@@ -940,7 +889,6 @@ class BaseClockLayout extends StatelessWidget {
                           SizedBox(height: availableHeight * 0.08),
 
                         if (displayMode == "both" || displayMode == "digital")
-                          // 💡 [수정됨] 디지털 시계에 LongPress 연결
                           GestureDetector(
                             onLongPress: onDigitalLongPress,
                             child: FittedBox(
