@@ -322,22 +322,200 @@ class SevenSegmentDigit extends StatelessWidget {
 typedef ClockPanCallback = void Function(Offset localPosition, Size size);
 
 class BaseClockLayout extends StatelessWidget {
-  final bool isRunning; final VoidCallback onTapToggle; final VoidCallback? onPanStart; final ClockPanCallback? onPanUpdate; final VoidCallback? onPanEnd; final double drawnSeconds; final double maxScaleSeconds; final bool isTimer; final double digitalSeconds; final String? indicatorModeOverride; final VoidCallback? onDigitalLongPress;
-  const BaseClockLayout({super.key, required this.isRunning, required this.onTapToggle, this.onPanStart, this.onPanUpdate, this.onPanEnd, required this.drawnSeconds, required this.maxScaleSeconds, required this.isTimer, required this.digitalSeconds, this.indicatorModeOverride, this.onDigitalLongPress});
+  final bool isRunning;
+  final VoidCallback onTapToggle;
+  final VoidCallback? onPanStart;
+  final ClockPanCallback? onPanUpdate;
+  final VoidCallback? onPanEnd;
+  final double drawnSeconds;
+  final double maxScaleSeconds;
+  final bool isTimer;
+  final double digitalSeconds;
 
-  @override Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final availableHeight = constraints.maxHeight; final clockSize = min(constraints.maxWidth, constraints.maxHeight) * 0.7;
-      return AnimatedBuilder(animation: Listenable.merge([globalDisplayMode, globalIndicatorMode, globalDigitalStyle, globalClockColor, globalDigitalColor, globalIndicatorColor, globalDigitalFontSize]), builder: (context, child) {
-        String displayMode = globalDisplayMode.value.toLowerCase(); String indicatorMode = indicatorModeOverride ?? globalIndicatorMode.value.toLowerCase(); String digitalStyle = globalDigitalStyle.value.toLowerCase(); String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
-        double fontMultiplier = 1.0; if (fontSizeStr == "small") fontMultiplier = 0.7; if (fontSizeStr == "large") fontMultiplier = 1.3; final digitalFontSize = availableHeight * 0.07 * fontMultiplier;
-        return GestureDetector(behavior: HitTestBehavior.deferToChild, onTap: onTapToggle, child: Stack(children: [Align(alignment: const Alignment(0, 0), child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
-          if (displayMode == "both" || displayMode == "analog") GestureDetector(onPanStart: onPanStart != null ? (_) => onPanStart!() : null, onPanUpdate: onPanUpdate != null ? (details) { final center = Offset(clockSize / 2, clockSize / 2); double angle = atan2(details.localPosition.dy - center.dy, details.localPosition.dx - center.dx); double clockwise = angle - (-pi / 2); if (clockwise < 0) clockwise += 2 * pi; int currentTick = ((clockwise / (2 * pi)) * 60).toInt(); DragHapticManager.checkAndTrigger(currentTick); onPanUpdate!(details.localPosition, Size(clockSize, clockSize)); } : null, onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null, child: CustomPaint(size: Size(clockSize, clockSize), painter: SharedClockPainter(drawnSeconds, maxScaleSeconds, isTimer: isTimer, indicatorMode: indicatorMode))),
-          if (displayMode == "both") SizedBox(height: availableHeight * 0.08),
-          if (displayMode == "both" || displayMode == "digital") GestureDetector(onLongPress: onDigitalLongPress, child: FittedBox(fit: BoxFit.scaleDown, child: CustomDigitalClock(seconds: digitalSeconds, styleMode: digitalStyle, fontSize: digitalFontSize, defaultColor: globalDigitalColor.value)))
-        ]))]));
-      });
-    });
+  final String? indicatorModeOverride;
+  final VoidCallback? onDigitalLongPress;
+
+  const BaseClockLayout({
+    super.key,
+    required this.isRunning,
+    required this.onTapToggle,
+    this.onPanStart,
+    this.onPanUpdate,
+    this.onPanEnd,
+    required this.drawnSeconds,
+    required this.maxScaleSeconds,
+    required this.isTimer,
+    required this.digitalSeconds,
+    this.indicatorModeOverride,
+    this.onDigitalLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final availableHeight = constraints.maxHeight;
+
+        // 🌟 1. 가로 모드인지 세로 모드인지 감지합니다!
+        final bool isLandscape = availableWidth > availableHeight;
+
+        // =========================================================
+        // 🌟 2. [추가됨] 아날로그 시계 크기 커스텀 (여기 숫자를 바꿔서 조절하세요!)
+        // =========================================================
+        double clockSize;
+        if (isLandscape) {
+          // 💡 가로 모드일 때 아날로그 시계 크기: 높이(availableHeight)의 85% 
+          // (더 키우고 싶으면 0.9, 줄이고 싶으면 0.7 등으로 변경하세요)
+          clockSize = availableHeight * 0.75; 
+        } else {
+          // 💡 세로 모드일 때 아날로그 시계 크기: 너비(availableWidth)의 75%
+          // (더 꽉 차게 하고 싶으면 0.85, 줄이고 싶으면 0.65 등으로 변경하세요)
+          clockSize = availableWidth * 0.65; 
+        }
+
+        return AnimatedBuilder(
+          animation: Listenable.merge([
+            globalDisplayMode,
+            globalIndicatorMode,
+            globalDigitalStyle,
+            globalClockColor,
+            globalDigitalColor,
+            globalIndicatorColor,
+            globalDigitalFontSize,
+          ]),
+          builder: (context, child) {
+            String displayMode = globalDisplayMode.value.toLowerCase();
+            String indicatorMode = indicatorModeOverride ?? globalIndicatorMode.value.toLowerCase();
+            String digitalStyle = globalDigitalStyle.value.toLowerCase();
+            String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
+
+            // =========================================================
+            // 🌟 3. 디지털 시계 크기 커스텀 (여기 숫자도 자유롭게 조절!)
+            // =========================================================
+            double baseFontSize = availableHeight * 0.07; // 기본 크기
+
+            if (displayMode == "digital") {
+              if (isLandscape) {
+                // 💡 가로 화면 + 디지털 ONLY : 글자를 엄청 크게! (높이의 35%)
+                baseFontSize = availableHeight * 0.35; 
+              } else {
+                // 💡 세로 화면 + 디지털 ONLY : 기본보다 크게! (높이의 15%)
+                baseFontSize = availableHeight * 0.15; 
+              }
+            } else if (displayMode == "both"){
+              if (isLandscape){
+              // 💡 가로 화면 + BOTH 모드 : 아날로그 시계 옆에 있으니 살짝 키움! (높이의 15%)
+              baseFontSize = availableHeight * 0.15; 
+              } else {
+                baseFontSize = availableHeight * 0.08; 
+              }
+            }
+
+            // 설정창(SMALL, MEDIUM, LARGE) 비율 적용
+            double fontMultiplier = 1.0;
+            if (fontSizeStr == "small") fontMultiplier = 0.7;
+            if (fontSizeStr == "large") fontMultiplier = 1.3;
+            
+            final digitalFontSize = baseFontSize * fontMultiplier;
+
+            // =========================================================
+            // 🌟 아날로그 시계 위젯 조립
+            // =========================================================
+            Widget analogClockWidget = GestureDetector(
+              onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
+              onPanUpdate: onPanUpdate != null
+                  ? (details) {
+                      final center = Offset(clockSize / 2, clockSize / 2);
+                      double angle = atan2(
+                        details.localPosition.dy - center.dy,
+                        details.localPosition.dx - center.dx,
+                      );
+                      double clockwise = angle - (-pi / 2);
+                      if (clockwise < 0) clockwise += 2 * pi;
+
+                      int currentTick = ((clockwise / (2 * pi)) * 60).toInt();
+                      DragHapticManager.checkAndTrigger(currentTick);
+
+                      onPanUpdate!(details.localPosition, Size(clockSize, clockSize));
+                    }
+                  : null,
+              onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
+              child: CustomPaint(
+                size: Size(clockSize, clockSize),
+                painter: SharedClockPainter(
+                  drawnSeconds, maxScaleSeconds,
+                  isTimer: isTimer, indicatorMode: indicatorMode,
+                ),
+              ),
+            );
+
+            // =========================================================
+            // 🌟 디지털 시계 위젯 조립
+            // =========================================================
+            Widget digitalClockWidget = GestureDetector(
+              onLongPress: onDigitalLongPress,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: CustomDigitalClock(
+                  seconds: digitalSeconds,
+                  styleMode: digitalStyle,
+                  fontSize: digitalFontSize,
+                  defaultColor: globalDigitalColor.value,
+                ),
+              ),
+            );
+
+            // =========================================================
+            // 🌟 4. 화면 배치 로직 (가로 모드면 좌우, 세로 모드면 상하)
+            // =========================================================
+            Widget layoutContent;
+
+            if (displayMode == "digital") {
+              // 디지털 ONLY는 항상 정중앙
+              layoutContent = Center(child: digitalClockWidget);
+            } else if (displayMode == "analog") {
+              // 아날로그 ONLY는 항상 정중앙
+              layoutContent = Center(child: analogClockWidget);
+            } else {
+              // 💡 BOTH 모드일 때 가로/세로 배치 분기!
+              if (isLandscape) {
+                // 가로 모드: 좌측 아날로그, 우측 디지털
+                layoutContent = Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    analogClockWidget,
+                    digitalClockWidget,
+                  ],
+                );
+              } else {
+                // 세로 모드: 상단 아날로그, 하단 디지털
+                layoutContent = Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    analogClockWidget,
+                    SizedBox(height: availableHeight * 0.08),
+                    digitalClockWidget,
+                  ],
+                );
+              }
+            }
+
+            return GestureDetector(
+              behavior: HitTestBehavior.deferToChild,
+              onTap: onTapToggle,
+              child: SizedBox(
+                width: availableWidth,
+                height: availableHeight,
+                child: layoutContent,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
