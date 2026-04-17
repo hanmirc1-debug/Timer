@@ -1,9 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart';
-import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+// 💡 flutter_colorpicker 패키지 제거 완료!
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+
+// =========================================================
+// 🌟 [추가됨] 테마 아이템 모델 (색상인지, 영상인지, 잠겨있는지 구분)
+// =========================================================
+class ThemeItem {
+  final String name;      // 식별용 이름 (예: "빨강", "비 오는 밤")
+  final Color? color;     // 단색일 경우 색상값
+  final String? video;    // 영상일 경우 식별자
+  final bool isLocked;    // 잠금 여부 (나중에 포인트 시스템 연결)
+
+  const ThemeItem({
+    required this.name,
+    this.color,
+    this.video,
+    this.isLocked = false, // 기본값은 열려있음
+  });
+}
 
 class AppThemePreset {
   final Color bg;
@@ -34,6 +51,7 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   final List<AppThemePreset> _themePresets = [
+    // 정현표 프리셋
     const AppThemePreset(bg: Color(0xFF252528), clock: Color.fromARGB(255, 185, 70, 70), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFF252528), clock: Color(0xFF4A4A4D), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFFF9F9F9), clock: Color(0xFFD32F2F), digital: Color(0xFF1C1C1E), indicator: Color(0xFFD32F2F)),
@@ -52,15 +70,45 @@ class _SettingsPageState extends State<SettingsPage> {
     ),
   ];
 
-  // 💡 스크롤 가능한 예쁜 30여가지 커스텀 팔레트 
-  final List<Color> customColors = [
-    Colors.white, Colors.grey.shade300, Colors.grey.shade500, Colors.grey.shade700, Colors.black,
-    const Color(0xFF252528), const Color(0xFF1C1C1E), const Color(0xFF1C2536), const Color(0xFF1E2E26), const Color(0xFFF4EFE6),
-    Colors.red, const Color(0xFFD32F2F), const Color.fromARGB(255, 185, 70, 70), Colors.pink, Colors.purple,
-    Colors.deepPurple, Colors.indigo, Colors.blue, const Color(0xFF4A6B8C), Colors.lightBlue,
-    Colors.cyan, Colors.teal, Colors.green, const Color(0xFF334A3E), Colors.lightGreen,
-    Colors.lime, Colors.yellow, Colors.amber, Colors.orange, Colors.deepOrange,
-    Colors.brown, const Color(0xFFD1C2A5), const Color(0xFF5C4E3A), Colors.transparent
+  // 💡 스크롤 가능한 예쁜 30여가지 커스텀 팔레트 (ThemeItem으로 변경하여 동영상/잠금 지원!)
+  final List<ThemeItem> _backgroundOptions = [
+    const ThemeItem(name: "흰색", color: Colors.white),
+    ThemeItem(name: "연회색", color: Colors.grey.shade300),
+    ThemeItem(name: "회색", color: Colors.grey.shade500),
+    ThemeItem(name: "진회색", color: Colors.grey.shade700),
+    const ThemeItem(name: "검정", color: Colors.black),
+    const ThemeItem(name: "매트 다크", color: Color(0xFF252528)),
+    const ThemeItem(name: "애플 블랙", color: Color(0xFF1C1C1E)),
+    const ThemeItem(name: "네이비", color: Color(0xFF1C2536)),
+    const ThemeItem(name: "포레스트", color: Color(0xFF1E2E26)),
+    const ThemeItem(name: "베이지", color: Color(0xFFF4EFE6)),
+    const ThemeItem(name: "빨강", color: Colors.red),
+    const ThemeItem(name: "체리", color: Color(0xFFD32F2F)),
+    const ThemeItem(name: "벽돌", color: Color.fromARGB(255, 185, 70, 70)),
+    const ThemeItem(name: "분홍", color: Colors.pink),
+    const ThemeItem(name: "보라", color: Colors.purple),
+    const ThemeItem(name: "진보라", color: Colors.deepPurple),
+    const ThemeItem(name: "인디고", color: Colors.indigo),
+    const ThemeItem(name: "파랑", color: Colors.blue),
+    const ThemeItem(name: "스틸 블루", color: Color(0xFF4A6B8C)),
+    const ThemeItem(name: "연파랑", color: Colors.lightBlue),
+    const ThemeItem(name: "청록", color: Colors.cyan),
+    const ThemeItem(name: "틸", color: Colors.teal),
+    const ThemeItem(name: "초록", color: Colors.green),
+    const ThemeItem(name: "딥 그린", color: Color(0xFF334A3E)),
+    const ThemeItem(name: "연두", color: Colors.lightGreen),
+    const ThemeItem(name: "라임", color: Colors.lime),
+    const ThemeItem(name: "노랑", color: Colors.yellow),
+    const ThemeItem(name: "호박", color: Colors.amber),
+    const ThemeItem(name: "주황", color: Colors.orange),
+    const ThemeItem(name: "진주황", color: Colors.deepOrange),
+    const ThemeItem(name: "갈색", color: Colors.brown),
+    const ThemeItem(name: "모카", color: Color(0xFFD1C2A5)),
+    const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
+    const ThemeItem(name: "투명", color: Colors.transparent),
+    
+    // 💡 여기에 동영상 옵션도 자연스럽게 끼워 넣을 수 있습니다! (나중에 isLocked: true 만 추가하면 잠금 처리됨)
+    const ThemeItem(name: "비 오는 밤", color: Colors.grey, video: "비 오는 밤 (Rain)"),
   ];
 
   late List<GlobalKey> _sectionKeys;
@@ -130,6 +178,116 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  // =========================================================
+  // 🌟 [핵심 변경] 패키지 없이 우리가 직접 만든 커스텀 테마 선택창!
+  // =========================================================
+  void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+              ),
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5, // 한 줄에 5개씩
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: _backgroundOptions.length,
+                  itemBuilder: (context, index) {
+                    final item = _backgroundOptions[index];
+                    
+                    // 현재 선택된 항목인지 확인
+                    bool isSelected = false;
+                    if (title == "배경색") {
+                      if (item.video != null) {
+                        isSelected = globalBgVideoName.value == item.video;
+                      } else {
+                        isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함";
+                      }
+                    } else {
+                      isSelected = colorNotifier.value == item.color;
+                    }
+
+                    // 배경색이 아닌 옵션(시계색 등)을 고를 때는 비디오 전용 아이템을 화면에서 숨깁니다.
+                    if (title != "배경색" && item.video != null) return const SizedBox.shrink();
+
+                    return GestureDetector(
+                      onTap: () {
+                        // 🔒 잠금 기능 로직 (포인트 시스템 추가 시 여기서 차감 팝업 띄우면 됨!)
+                        if (item.isLocked) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')),
+                          );
+                          return;
+                        }
+
+                        // 🎨 색상 적용
+                        if (item.color != null) colorNotifier.value = item.color!;
+
+                        // 🎬 배경색 설정일 경우 비디오 켜고 끄기 연동 처리
+                        if (title == "배경색") {
+                          if (item.video != null) {
+                            globalBgVideoName.value = item.video!; // 비디오 켬
+                          } else {
+                            globalBgVideoName.value = "사용 안 함"; // 비디오 끔
+                          }
+                        }
+
+                        Navigator.pop(context); // 창 닫기
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: item.color,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected ? accentColor : Colors.grey.shade300,
+                                width: isSelected ? 3.0 : 1.0,
+                              ),
+                              boxShadow: [
+                                if (isSelected)
+                                  BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)
+                              ],
+                            ),
+                          ),
+                          // 영상 아이템이면 안에 액자(이미지) 아이콘 표시
+                          if (item.video != null)
+                            const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                          
+                          // 잠겨있으면 반투명 검은 막과 자물쇠 아이콘 표시
+                          if (item.isLocked)
+                            Container(
+                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
+                              child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
+                            ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget colorPicker(String title, ValueNotifier<Color> notifier, Color accentColor) {
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
@@ -141,46 +299,18 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
               GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (_) {
-                      Color tempColor = notifier.value;
-                      return StatefulBuilder(
-                        builder: (context, setStateDialog) {
-                          return AlertDialog(
-                            title: Text("색상 선택", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: accentColor)),
-                            content: SizedBox(
-                              width: double.maxFinite,
-                              height: 250, 
-                              child: SingleChildScrollView(
-                                child: BlockPicker(
-                                  pickerColor: tempColor,
-                                  availableColors: customColors, 
-                                  onColorChanged: (c) {
-                                    setStateDialog(() => tempColor = c);
-                                    notifier.value = c;
-                                    
-                                    // 🔥 [핵심 로직] 배경색을 수동으로 선택하면 비디오 배경을 자동으로 끔!
-                                    if (title == "배경색") {
-                                      globalBgVideoName.value = "사용 안 함"; 
-                                    }
-                                  },
-                                ),
-                              ),
-                            ),
-                            actions: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기", style: TextStyle(color: Colors.grey)))
-                            ],
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
+                onTap: () => _showCustomPicker(title, notifier, accentColor), // 💡 패키지 대신 커스텀 창 호출
                 child: Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+                  decoration: BoxDecoration(
+                    color: color, 
+                    borderRadius: BorderRadius.circular(8), 
+                    border: Border.all(color: Colors.grey.shade300)
+                  ),
+                  // 배경색 옵션인데 비디오가 켜져있다면, 현재 상태 박스 안에도 아이콘 표시
+                  child: (title == "배경색" && globalBgVideoName.value != "사용 안 함")
+                      ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
+                      : null,
                 ),
               ),
             ],
@@ -335,9 +465,6 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 16),
               Text("세부 색상 커스텀", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
-              
-              // 배경영상 옵션 휠 피커는 완전히 삭제되었습니다!
-              
               colorPicker("배경색", globalBgColor, accentColor),
               colorPicker("시계색", globalClockColor, accentColor),
               colorPicker("디지털 시계", globalDigitalColor, accentColor),

@@ -518,9 +518,8 @@ class BaseClockLayout extends StatelessWidget {
     );
   }
 }
-
 // =========================================================
-// 🌟 [수정됨] 크롬/웹 멈춤 버그 완벽 해결 + 비디오 배경 위젯
+// 🌟 크롬/웹 멈춤 버그 완벽 해결 + 비디오 배경 위젯
 // =========================================================
 class GlobalVideoBackground extends StatefulWidget {
   final Widget child; 
@@ -533,6 +532,7 @@ class GlobalVideoBackground extends StatefulWidget {
 class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   VideoPlayerController? _videoController;
   bool _hasError = false;
+  String _currentVideoPath = ""; // 현재 재생 중인 영상 경로 기억하기
 
   @override
   void initState() {
@@ -542,25 +542,41 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   }
 
   void _updateVideoState() {
-    if (globalBgVideoName.value != "사용 안 함") {
-      if (_videoController == null) {
-        _hasError = false;
-        _videoController = VideoPlayerController.asset('assets/video/rainwindow.mp4')
-          ..initialize().then((_) {
-            // 🔥 [핵심 해결] 웹브라우저 강제 멈춤 방지를 위해 볼륨을 0으로 세팅 (Autoplay 허용됨)
-            _videoController!.setVolume(0.0); 
-            _videoController!.setLooping(true);
-            _videoController!.play();
-            if (mounted) setState(() {});
-          }).catchError((e) {
-            debugPrint("비디오 재생 에러: $e");
-            if (mounted) setState(() => _hasError = true);
-          });
-      }
-    } else {
+    // 1. "사용 안 함"이면 비디오 끄기
+    if (globalBgVideoName.value == "사용 안 함") {
       _videoController?.dispose();
       _videoController = null;
+      _currentVideoPath = "";
       if (mounted) setState(() {});
+      return;
+    }
+
+    // 2. 💡 [핵심] 셋팅창에서 보낸 이름표를 보고, 실제 mp4 파일 경로를 짝지어줍니다!
+    String targetVideoPath = "";
+    if (globalBgVideoName.value == "비 오는 밤 (Rain)") {
+      targetVideoPath = 'assets/video/rainwindow.mp4';
+    } 
+    // 나중에 다른 영상을 추가한다면 여기에 else if 로 계속 이어 붙이면 됩니다!
+    // else if (globalBgVideoName.value == "눈 오는 밤 (Snow)") {
+    //   targetVideoPath = 'assets/video/snow.mp4';
+    // }
+
+    // 3. 새로 틀어야 할 영상이 지금 틀어진 영상과 다를 때만 새로 로딩합니다.
+    if (_videoController == null || _currentVideoPath != targetVideoPath) {
+      _videoController?.dispose(); // 기존 영상 끄기
+      _hasError = false;
+      _currentVideoPath = targetVideoPath;
+      
+      _videoController = VideoPlayerController.asset(targetVideoPath)
+        ..initialize().then((_) {
+          _videoController!.setVolume(0.0); // 웹 프리징 방지용 음소거
+          _videoController!.setLooping(true); // 무한 반복
+          _videoController!.play(); // 재생 시작!
+          if (mounted) setState(() {});
+        }).catchError((e) {
+          debugPrint("비디오 재생 에러: $e");
+          if (mounted) setState(() => _hasError = true);
+        });
     }
   }
 
