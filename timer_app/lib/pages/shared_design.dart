@@ -518,8 +518,9 @@ class BaseClockLayout extends StatelessWidget {
     );
   }
 }
+
 // =========================================================
-// 🌟 크롬/웹 멈춤 버그 완벽 해결 + 비디오 배경 위젯
+// 🌟 동영상뿐만 아니라 '사진' 배경까지 완벽 지원하는 배경 위젯!
 // =========================================================
 class GlobalVideoBackground extends StatefulWidget {
   final Widget child; 
@@ -532,7 +533,10 @@ class GlobalVideoBackground extends StatefulWidget {
 class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   VideoPlayerController? _videoController;
   bool _hasError = false;
-  String _currentVideoPath = ""; // 현재 재생 중인 영상 경로 기억하기
+  
+  // 💡 현재 띄워진 배경의 경로와 '영상인지 사진인지' 구분하는 변수 추가!
+  String _currentBgPath = ""; 
+  bool _isCurrentVideo = false; 
 
   @override
   void initState() {
@@ -542,41 +546,56 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   }
 
   void _updateVideoState() {
-    // 1. "사용 안 함"이면 비디오 끄기
+    // 1. "사용 안 함"이면 싹 다 끄고 비우기
     if (globalBgVideoName.value == "사용 안 함") {
       _videoController?.dispose();
       _videoController = null;
-      _currentVideoPath = "";
+      _currentBgPath = "";
+      _isCurrentVideo = false;
       if (mounted) setState(() {});
       return;
     }
 
-    // 2. 💡 [핵심] 셋팅창에서 보낸 이름표를 보고, 실제 mp4 파일 경로를 짝지어줍니다!
-    String targetVideoPath = "";
+    // 2. 💡 [핵심] 이름표를 보고 파일 경로와 '동영상 여부'를 짝지어줍니다!
+    String targetPath = "";
+    bool isVideo = false;
+
     if (globalBgVideoName.value == "비 오는 밤 (Rain)") {
-      targetVideoPath = 'assets/video/rainwindow.mp4';
+      targetPath = 'assets/video/rainwindow.mp4';
+      isVideo = true; // 이건 동영상이야!
     } 
-    // 나중에 다른 영상을 추가한다면 여기에 else if 로 계속 이어 붙이면 됩니다!
-    // else if (globalBgVideoName.value == "눈 오는 밤 (Snow)") {
-    //   targetVideoPath = 'assets/video/snow.mp4';
+    // 🔥 나중에 사진을 추가하고 싶다면 이런 식으로 계속 적어주시면 됩니다!
+    // else if (globalBgVideoName.value == "멋진 우주 사진") {
+    //   targetPath = 'assets/images/space.jpg';
+    //   isVideo = false; // 이건 사진이야!
     // }
 
-    // 3. 새로 틀어야 할 영상이 지금 틀어진 영상과 다를 때만 새로 로딩합니다.
-    if (_videoController == null || _currentVideoPath != targetVideoPath) {
-      _videoController?.dispose(); // 기존 영상 끄기
-      _hasError = false;
-      _currentVideoPath = targetVideoPath;
-      
-      _videoController = VideoPlayerController.asset(targetVideoPath)
-        ..initialize().then((_) {
-          _videoController!.setVolume(0.0); // 웹 프리징 방지용 음소거
-          _videoController!.setLooping(true); // 무한 반복
-          _videoController!.play(); // 재생 시작!
-          if (mounted) setState(() {});
-        }).catchError((e) {
-          debugPrint("비디오 재생 에러: $e");
-          if (mounted) setState(() => _hasError = true);
-        });
+    // 3. 배경이 바뀌었을 때만 새로 로딩합니다.
+    if (_currentBgPath != targetPath) {
+      _currentBgPath = targetPath;
+      _isCurrentVideo = isVideo;
+
+      if (isVideo) {
+        // 🎬 동영상일 경우: 비디오 플레이어 가동!
+        _videoController?.dispose();
+        _hasError = false;
+        
+        _videoController = VideoPlayerController.asset(targetPath)
+          ..initialize().then((_) {
+            _videoController!.setVolume(0.0); 
+            _videoController!.setLooping(true); 
+            _videoController!.play(); 
+            if (mounted) setState(() {});
+          }).catchError((e) {
+            debugPrint("비디오 재생 에러: $e");
+            if (mounted) setState(() => _hasError = true);
+          });
+      } else {
+        // 🖼️ 사진일 경우: 비디오 플레이어는 필요 없으니 끕니다!
+        _videoController?.dispose();
+        _videoController = null;
+        if (mounted) setState(() {});
+      }
     }
   }
 
@@ -591,6 +610,7 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   Widget build(BuildContext context) {
     return Stack(
       children: [
+        // 1. 기본 배경색 깔기
         ValueListenableBuilder<Color>(
           valueListenable: globalBgColor,
           builder: (context, bgColor, child) {
@@ -598,8 +618,8 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
           }
         ),
         
-        // 비디오가 켜져 있고 로딩이 끝났다면 꽉 차게 틀어줍니다!
-        if (_videoController != null && _videoController!.value.isInitialized && !_hasError)
+        // 2-A. 만약 '동영상'이고 로딩이 끝났다면 꽉 차게 틀어주기
+        if (_isCurrentVideo && _videoController != null && _videoController!.value.isInitialized && !_hasError)
           Positioned.fill(
             child: FittedBox(
               fit: BoxFit.cover,
@@ -610,7 +630,17 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
               ),
             ),
           ),
+
+        // 2-B. 💡 만약 '사진'이라면 Image 위젯으로 꽉 차게 띄워주기!
+        if (!_isCurrentVideo && _currentBgPath.isNotEmpty)
+          Positioned.fill(
+            child: Image.asset(
+              _currentBgPath,
+              fit: BoxFit.cover, // 사진 비율 안 깨지고 화면에 꽉 차게!
+            ),
+          ),
           
+        // 3. 그 위에 진짜 앱 화면 올리기
         widget.child,
       ],
     );
