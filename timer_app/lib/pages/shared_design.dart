@@ -195,6 +195,7 @@ class FloatingGlassMenuButton extends StatelessWidget {
     );
   }
 }
+
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds; final double maxScaleSeconds; final bool isTimer; final String indicatorMode;
   SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
@@ -204,7 +205,6 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
 
-    // 🔥 [수정 3번] 투명이 아닐 때만 그림자와 시계 바탕을 그립니다. 투명이면 뻥 뚫리게!
     if (globalClockColor.value != Colors.transparent) {
       final shadowPaint = Paint()..color = Colors.black.withOpacity(0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
       canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
@@ -216,7 +216,6 @@ class SharedClockPainter extends CustomPainter {
     final highlightPaint = Paint()..color = Colors.white.withOpacity(0.04)..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, highlightPaint);
 
-    // 💡 [수정 3번] 투명일 때 테두리를 글자색의 반투명 버전으로 굵게 그려서 잘 보이게!
     final rimColor = globalClockColor.value == Colors.transparent
         ? globalIndicatorColor.value.withOpacity(0.4) 
         : Colors.white.withOpacity(0.08);
@@ -224,16 +223,15 @@ class SharedClockPainter extends CustomPainter {
     final rimPaint = Paint()
       ..color = rimColor
       ..style = PaintingStyle.stroke
-      ..strokeWidth = globalClockColor.value == Colors.transparent ? 2.0 : 1.0; // 투명이면 선 두께도 약간 키움
+      ..strokeWidth = globalClockColor.value == Colors.transparent ? 2.0 : 1.0; 
     canvas.drawCircle(center, radius, rimPaint);
 
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     double startAngle = isTimer ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi : -pi / 2;
 
-    // 💡 [수정 4번] 투명일 때 드래그 영역(채워진 시간)이 옅은 반투명으로 보이도록 보정!
     Color arcColor = globalClockColor.value;
     if (globalClockColor.value == Colors.transparent) {
-      arcColor = globalIndicatorColor.value.withOpacity(0.25); // 숫자 색상을 기반으로 반투명 적용
+      arcColor = globalIndicatorColor.value.withOpacity(0.25); 
     }
 
     final paintArc = Paint()..color = arcColor..style = PaintingStyle.fill;
@@ -336,7 +334,7 @@ class SevenSegmentDigit extends StatelessWidget {
     return Transform(transform: Matrix4.skewX(-0.15), child: SizedBox(width: w, height: height, child: Stack(children: [Positioned(top: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(a)), Positioned(top: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(b)), Positioned(bottom: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(c)), Positioned(bottom: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(d)), Positioned(bottom: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(e)), Positioned(top: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(f)), Positioned(top: height / 2 - t / 2, left: t * 0.4, right: t * 0.4, height: t, child: segment(g))])));
   }
 }
-// 💡 [추가됨] 잠금 기능(Hit Test)을 위한 정밀 센서 키
+
 final GlobalKey analogClockHitKey = GlobalKey();
 final GlobalKey digitalClockHitKey = GlobalKey();
 
@@ -378,20 +376,12 @@ class BaseClockLayout extends StatelessWidget {
         final availableWidth = constraints.maxWidth;
         final availableHeight = constraints.maxHeight;
 
-        // 🌟 1. 가로 모드인지 세로 모드인지 감지합니다!
         final bool isLandscape = availableWidth > availableHeight;
 
-        // =========================================================
-        // 🌟 2. [추가됨] 아날로그 시계 크기 커스텀 (여기 숫자를 바꿔서 조절하세요!)
-        // =========================================================
         double clockSize;
         if (isLandscape) {
-          // 💡 가로 모드일 때 아날로그 시계 크기: 높이(availableHeight)의 85% 
-          // (더 키우고 싶으면 0.9, 줄이고 싶으면 0.7 등으로 변경하세요)
           clockSize = availableHeight * 0.75; 
         } else {
-          // 💡 세로 모드일 때 아날로그 시계 크기: 너비(availableWidth)의 75%
-          // (더 꽉 차게 하고 싶으면 0.85, 줄이고 싶으면 0.65 등으로 변경하세요)
           clockSize = availableWidth * 0.65; 
         }
 
@@ -411,38 +401,28 @@ class BaseClockLayout extends StatelessWidget {
             String digitalStyle = globalDigitalStyle.value.toLowerCase();
             String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
 
-            // =========================================================
-            // 🌟 3. 디지털 시계 크기 커스텀 (여기 숫자도 자유롭게 조절!)
-            // =========================================================
-            double baseFontSize = availableHeight * 0.07; // 기본 크기
+            double baseFontSize = availableHeight * 0.07; 
 
             if (displayMode == "digital") {
               if (isLandscape) {
-                // 💡 가로 화면 + 디지털 ONLY : 글자를 엄청 크게! (높이의 35%)
                 baseFontSize = availableHeight * 0.35; 
               } else {
-                // 💡 세로 화면 + 디지털 ONLY : 기본보다 크게! (높이의 15%)
                 baseFontSize = availableHeight * 0.15; 
               }
             } else if (displayMode == "both"){
               if (isLandscape){
-              // 💡 가로 화면 + BOTH 모드 : 아날로그 시계 옆에 있으니 살짝 키움! (높이의 15%)
               baseFontSize = availableHeight * 0.15; 
               } else {
                 baseFontSize = availableHeight * 0.08; 
               }
             }
 
-            // 설정창(SMALL, MEDIUM, LARGE) 비율 적용
             double fontMultiplier = 1.0;
             if (fontSizeStr == "small") fontMultiplier = 0.7;
             if (fontSizeStr == "large") fontMultiplier = 1.3;
             
             final digitalFontSize = baseFontSize * fontMultiplier;
 
-            // =========================================================
-            // 🌟 아날로그 시계 위젯 조립
-            // =========================================================
             Widget analogClockWidget = GestureDetector(
               onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
               onPanUpdate: onPanUpdate != null
@@ -463,7 +443,7 @@ class BaseClockLayout extends StatelessWidget {
                   : null,
               onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
               child: CustomPaint(
-                key: analogClockHitKey, // 🔥 아날로그 시계에 센서 부착!
+                key: analogClockHitKey, 
                 size: Size(clockSize, clockSize),
                 painter: SharedClockPainter(
                   drawnSeconds, maxScaleSeconds,
@@ -472,16 +452,13 @@ class BaseClockLayout extends StatelessWidget {
               ),
             );
 
-            // =========================================================
-            // 🌟 디지털 시계 위젯 조립
-            // =========================================================
             Widget digitalClockWidget = GestureDetector(
               onLongPress: onDigitalLongPress,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Container(
-                  key: digitalClockHitKey, // 🔥 디지털 시계에 센서 부착!
-                  color: Colors.transparent, // 터치 인식용 투명 배경
+                  key: digitalClockHitKey, 
+                  color: Colors.transparent, 
                   child: CustomDigitalClock(
                     seconds: digitalSeconds,
                     styleMode: digitalStyle,
@@ -492,21 +469,14 @@ class BaseClockLayout extends StatelessWidget {
               ),
             );
 
-            // =========================================================
-            // 🌟 4. 화면 배치 로직 (가로 모드면 좌우, 세로 모드면 상하)
-            // =========================================================
             Widget layoutContent;
 
             if (displayMode == "digital") {
-              // 디지털 ONLY는 항상 정중앙
               layoutContent = Center(child: digitalClockWidget);
             } else if (displayMode == "analog") {
-              // 아날로그 ONLY는 항상 정중앙
               layoutContent = Center(child: analogClockWidget);
             } else {
-              // 💡 BOTH 모드일 때 가로/세로 배치 분기!
               if (isLandscape) {
-                // 가로 모드: 좌측 아날로그, 우측 디지털
                 layoutContent = Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -516,7 +486,6 @@ class BaseClockLayout extends StatelessWidget {
                   ],
                 );
               } else {
-                // 세로 모드: 상단 아날로그, 하단 디지털
                 layoutContent = Column(
                   mainAxisSize: MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -546,129 +515,192 @@ class BaseClockLayout extends StatelessWidget {
 }
 
 // =========================================================
-// 🌟 동영상뿐만 아니라 '사진' 배경까지 완벽 지원하는 배경 위젯!
+// 🌸 1. 벚꽃잎 데이터 모델
 // =========================================================
-class GlobalVideoBackground extends StatefulWidget {
-  final Widget child; 
-  const GlobalVideoBackground({super.key, required this.child});
+class CherryBlossomPetal {
+  double x;
+  double y;
+  double speed;
+  double spin;
+  double angle;
+  double scale;
 
-  @override
-  State<GlobalVideoBackground> createState() => _GlobalVideoBackgroundState();
+  CherryBlossomPetal({
+    required this.x,
+    required this.y,
+    required this.speed,
+    required this.spin,
+    required this.angle,
+    required this.scale,
+  });
 }
 
-class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
-  VideoPlayerController? _videoController;
-  bool _hasError = false;
-  
-  // 💡 현재 띄워진 배경의 경로와 '영상인지 사진인지' 구분하는 변수 추가!
-  String _currentBgPath = ""; 
-  bool _isCurrentVideo = false; 
+// =========================================================
+// 🌸 2. 벚꽃 애니메이션 오버레이 (바람에 흩날리는 효과)
+// =========================================================
+class CherryBlossomOverlay extends StatefulWidget {
+  const CherryBlossomOverlay({super.key});
+
+  @override
+  State<CherryBlossomOverlay> createState() => _CherryBlossomOverlayState();
+}
+
+class _CherryBlossomOverlayState extends State<CherryBlossomOverlay> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  final List<CherryBlossomPetal> _petals = [];
+  final int _petalCount = 35; // 흩날리는 벚꽃잎 개수
+  final Random _random = Random();
 
   @override
   void initState() {
     super.initState();
-    globalBgVideoName.addListener(_updateVideoState);
-    _updateVideoState();
-  }
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 10))..repeat();
 
-  void _updateVideoState() {
-    // 1. "사용 안 함"이면 싹 다 끄고 비우기
-    if (globalBgVideoName.value == "사용 안 함") {
-      _videoController?.dispose();
-      _videoController = null;
-      _currentBgPath = "";
-      _isCurrentVideo = false;
-      if (mounted) setState(() {});
-      return;
-    }
-
-    // 2. 💡 [핵심] 이름표를 보고 파일 경로와 '동영상 여부'를 짝지어줍니다!
-    String targetPath = "";
-    bool isVideo = false;
-
-    if (globalBgVideoName.value == "비 오는 밤 (Rain)") {
-      targetPath = 'assets/video/rainwindow.mp4';
-      isVideo = true; // 이건 동영상이야!
-    } 
-    // 🔥 나중에 사진을 추가하고 싶다면 이런 식으로 계속 적어주시면 됩니다!
-    // else if (globalBgVideoName.value == "멋진 우주 사진") {
-    //   targetPath = 'assets/images/space.jpg';
-    //   isVideo = false; // 이건 사진이야!
-    // }
-
-    // 3. 배경이 바뀌었을 때만 새로 로딩합니다.
-    if (_currentBgPath != targetPath) {
-      _currentBgPath = targetPath;
-      _isCurrentVideo = isVideo;
-
-      if (isVideo) {
-        // 🎬 동영상일 경우: 비디오 플레이어 가동!
-        _videoController?.dispose();
-        _hasError = false;
-        
-        _videoController = VideoPlayerController.asset(targetPath)
-          ..initialize().then((_) {
-            _videoController!.setVolume(0.0); 
-            _videoController!.setLooping(true); 
-            _videoController!.play(); 
-            if (mounted) setState(() {});
-          }).catchError((e) {
-            debugPrint("비디오 재생 에러: $e");
-            if (mounted) setState(() => _hasError = true);
-          });
-      } else {
-        // 🖼️ 사진일 경우: 비디오 플레이어는 필요 없으니 끕니다!
-        _videoController?.dispose();
-        _videoController = null;
-        if (mounted) setState(() {});
+    // 화면 아무 곳이나 벚꽃잎 초기 배치
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final size = MediaQuery.of(context).size;
+      for (int i = 0; i < _petalCount; i++) {
+        _petals.add(CherryBlossomPetal(
+          x: _random.nextDouble() * size.width,
+          y: _random.nextDouble() * size.height,
+          speed: 1.0 + _random.nextDouble() * 2.0,
+          spin: _random.nextDouble() * pi * 2,
+          angle: _random.nextDouble() * 0.5,
+          scale: 0.5 + _random.nextDouble() * 0.8,
+        ));
       }
-    }
+    });
   }
 
   @override
   void dispose() {
-    globalBgVideoName.removeListener(_updateVideoState);
-    _videoController?.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        // 1. 기본 배경색 깔기
-        ValueListenableBuilder<Color>(
-          valueListenable: globalBgColor,
-          builder: (context, bgColor, child) {
-            return Container(color: bgColor);
-          }
-        ),
-        
-        // 2-A. 만약 '동영상'이고 로딩이 끝났다면 꽉 차게 틀어주기
-        if (_isCurrentVideo && _videoController != null && _videoController!.value.isInitialized && !_hasError)
-          Positioned.fill(
-            child: FittedBox(
-              fit: BoxFit.cover,
-              child: SizedBox(
-                width: _videoController!.value.size.width,
-                height: _videoController!.value.size.height,
-                child: VideoPlayer(_videoController!),
-              ),
-            ),
-          ),
-
-        // 2-B. 💡 만약 '사진'이라면 Image 위젯으로 꽉 차게 띄워주기!
-        if (!_isCurrentVideo && _currentBgPath.isNotEmpty)
-          Positioned.fill(
-            child: Image.asset(
-              _currentBgPath,
-              fit: BoxFit.cover, // 사진 비율 안 깨지고 화면에 꽉 차게!
-            ),
-          ),
-          
-        // 3. 그 위에 진짜 앱 화면 올리기
-        widget.child,
-      ],
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: CherryBlossomPainter(_petals, _random),
+          size: Size.infinite,
+        );
+      },
     );
+  }
+}
+
+// =========================================================
+// 🌸 3. 벚꽃잎 그리기 붓 (Painter)
+// =========================================================
+class CherryBlossomPainter extends CustomPainter {
+  final List<CherryBlossomPetal> petals;
+  final Random random;
+
+  CherryBlossomPainter(this.petals, this.random);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFFFFB7C5).withOpacity(0.8) // 예쁜 연분홍색
+      ..style = PaintingStyle.fill;
+
+    for (var petal in petals) {
+      // 아래로, 그리고 살짝 대각선으로 떨어짐
+      petal.y += petal.speed;
+      petal.x += sin(petal.angle) * 1.5;
+      petal.spin += 0.02; // 빙글빙글 돌기
+      petal.angle += 0.01; // 바람에 흔들리기
+
+      // 바닥으로 떨어지면 다시 위로 올려보냄
+      if (petal.y > size.height + 20) {
+        petal.y = -20;
+        petal.x = random.nextDouble() * size.width;
+      }
+      if (petal.x > size.width + 20) petal.x = -20;
+      if (petal.x < -20) petal.x = size.width + 20;
+
+      // 벚꽃잎 모양 그려주기 (타원을 살짝 비틀어서 표현)
+      canvas.save();
+      canvas.translate(petal.x, petal.y);
+      canvas.rotate(petal.spin);
+      canvas.scale(petal.scale);
+      canvas.drawOval(const Rect.fromLTWH(-5, -10, 10, 20), paint);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+// =========================================================
+// 🌟 동영상/사진 + 벚꽃 효과를 지원하는 완벽한 배경 위젯!
+// =========================================================
+class GlobalVideoBackground extends StatefulWidget {
+  final Widget child; 
+  const GlobalVideoBackground({super.key, required this.child});
+  @override State<GlobalVideoBackground> createState() => _GlobalVideoBackgroundState();
+}
+
+class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
+  VideoPlayerController? _videoController;
+  bool _hasError = false;
+  String _currentBgPath = ""; 
+  bool _isCurrentVideo = false; 
+
+  @override void initState() { super.initState(); globalBgVideoName.addListener(_updateVideoState); _updateVideoState(); }
+  
+  void _updateVideoState() {
+    if (globalBgVideoName.value == "사용 안 함") {
+      _videoController?.dispose(); _videoController = null; _currentBgPath = ""; _isCurrentVideo = false;
+      if (mounted) setState(() {}); return;
+    }
+    
+    String targetPath = ""; bool isVideo = false;
+    
+    if (globalBgVideoName.value == "비 오는 밤 (Rain)") { 
+      targetPath = 'assets/video/rainwindow.mp4'; 
+      isVideo = true; }
+// 💡 [여기!] 질문자님이 직접 수정하신 이름표와 완벽하게 똑같이 맞췄습니다!
+    else if (globalBgVideoName.value == "벚꽃 (Cherry Blossom)") {
+      targetPath = 'assets/video/sakura.mp4'; // 👈 파일명도 지정하신 sakura.mp4 로 맞춤!
+      isVideo = true;
+    }
+    
+    if (_currentBgPath != targetPath) {
+      _currentBgPath = targetPath; _isCurrentVideo = isVideo;
+      if (isVideo) {
+        _videoController?.dispose(); _hasError = false;
+        _videoController = VideoPlayerController.asset(targetPath)..initialize().then((_) { _videoController!.setVolume(0.0); _videoController!.setLooping(true); _videoController!.play(); if (mounted) setState(() {}); }).catchError((e) { debugPrint("비디오 재생 에러: $e"); if (mounted) setState(() => _hasError = true); });
+      } else {
+        _videoController?.dispose(); _videoController = null; if (mounted) setState(() {});
+      }
+    }
+  }
+  
+  @override void dispose() { globalBgVideoName.removeListener(_updateVideoState); _videoController?.dispose(); super.dispose(); }
+  
+  @override Widget build(BuildContext context) {
+    // 현재 "벚꽃" 테마가 켜져있는지 확인
+    bool isCherryBlossom = globalBgVideoName.value.contains("벚꽃");
+
+    return Stack(children: [
+        ValueListenableBuilder<Color>(valueListenable: globalBgColor, builder: (context, bgColor, child) { return Container(color: bgColor); }),
+        
+        if (_isCurrentVideo && _videoController != null && _videoController!.value.isInitialized && !_hasError) 
+          Positioned.fill(child: FittedBox(fit: BoxFit.cover, child: SizedBox(width: _videoController!.value.size.width, height: _videoController!.value.size.height, child: VideoPlayer(_videoController!)))),
+        
+        if (!_isCurrentVideo && _currentBgPath.isNotEmpty) 
+          Positioned.fill(child: Image.asset(_currentBgPath, fit: BoxFit.cover)),
+          
+        // 🌸 [핵심 추가] 벚꽃 테마일 때만 터치를 통과하는(IgnorePointer) 애니메이션을 화면 꽉 차게 띄웁니다!
+        if (isCherryBlossom)
+          const Positioned.fill(child: IgnorePointer(child: CherryBlossomOverlay())),
+
+        widget.child,
+      ]);
   }
 }

@@ -45,38 +45,39 @@ class _SettingsPageState extends State<SettingsPage> {
   final List<String> _tabTitles = [
     "계정 설정", "즐겨 찾기", "테마", "시계 설정", "알림 설정", "BGM", "고객 센터",
   ];
-final List<AppThemePreset> _themePresets = [
-    // 기존 프리셋 6개
+
+  final List<AppThemePreset> _themePresets = [
     const AppThemePreset(bg: Color(0xFF252528), clock: Color.fromARGB(255, 185, 70, 70), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFF252528), clock: Color(0xFF4A4A4D), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFFF9F9F9), clock: Color(0xFFD32F2F), digital: Color(0xFF1C1C1E), indicator: Color(0xFFD32F2F)),
     const AppThemePreset(bg: Color(0xFF1C2536), clock: Color(0xFF2D3C5A), digital: Color(0xFFFFFFFF), indicator: Color(0xFF8B9BB4)),
     const AppThemePreset(bg: Color(0xFF1E2E26), clock: Color(0xFF334A3E), digital: Color(0xFFE2E8E4), indicator: Color(0xFF88A094)),
     const AppThemePreset(bg: Color(0xFFF4EFE6), clock: Color(0xFFD1C2A5), digital: Color(0xFF5C4E3A), indicator: Color(0xFF9E8E76)),
-
-    // 💡 [새로 추가됨] 7. Mint & Forest (눈이 가장 편안한 민트/그린 톤)
+    
     const AppThemePreset(bg: Color(0xFFE8F5E9), clock: Color(0xFF81C784), digital: Color(0xFF2E7D32), indicator: Color(0xFF388E3C)),
-    
-    // 💡 [새로 추가됨] 8. Midnight Purple (차분하고 우아한 딥 퍼플 톤)
     const AppThemePreset(bg: Color(0xFF2A2344), clock: Color(0xFF524582), digital: Color(0xFFE6E2F1), indicator: Color(0xFFA197C4)),
-    
-    // 💡 [새로 추가됨] 9. Warm Peach (따뜻하고 포근한 코랄/브라운 톤)
     const AppThemePreset(bg: Color(0xFFFFF0E5), clock: Color(0xFFFF8A65), digital: Color(0xFF5D4037), indicator: Color(0xFF8D6E63)),
-    
-    // 💡 [새로 추가됨] 10. Ocean Blue (집중력을 극대화하는 딥 네이비 & 시안)
     const AppThemePreset(bg: Color(0xFF0F172A), clock: Color(0xFF38BDF8), digital: Color(0xFFF8FAFC), indicator: Color(0xFF94A3B8)),
 
-    // 비 오는 밤 영상 프리셋
+    // 비 오는 밤 프리셋
     const AppThemePreset(
-      bg: Colors.grey, 
+      bg: Color.fromARGB(255, 111, 184, 212), 
       clock: Colors.transparent, 
       digital: Color(0xFF9E9E9E), 
       indicator: Colors.white70,
       bgVideo: "비 오는 밤 (Rain)"
     ),
+    
+    // 🌸 [추가됨] 벚꽃 프리셋 (시계판은 투명하게 설정)
+    const AppThemePreset(
+      bg: Color(0xFFFFB7C5), 
+      clock: Colors.transparent, 
+      digital: Color(0xFFFFB7C5), // 벚꽃빛깔 핑크 숫자
+      indicator: Colors.white70,
+      bgVideo: "벚꽃 (Cherry Blossom)"
+    ),
   ];
 
-  // 💡 [수정 2번] 중복을 제거하고 딱 35개의 깔끔한 옵션으로 정리했습니다.
   final List<ThemeItem> _backgroundOptions = [
     const ThemeItem(name: "흰색", color: Colors.white),
     ThemeItem(name: "연회색", color: Colors.grey.shade300),
@@ -111,10 +112,11 @@ final List<AppThemePreset> _themePresets = [
     const ThemeItem(name: "갈색", color: Colors.brown),
     const ThemeItem(name: "모카", color: Color(0xFFD1C2A5)),
     const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
-    // 오직 한 개의 투명색
     const ThemeItem(name: "투명", color: Colors.transparent), 
     
     const ThemeItem(name: "비 오는 밤", color: Colors.grey, video: "비 오는 밤 (Rain)"),
+    // 🌸 [추가됨] 벚꽃 영상 옵션
+    const ThemeItem(name: "벚꽃", color: Color(0xFFFFB7C5), video: "벚꽃 (Cherry Blossom)"),
   ];
 
   late List<GlobalKey> _sectionKeys;
@@ -229,10 +231,7 @@ final List<AppThemePreset> _themePresets = [
                         isSelected = colorNotifier.value == item.color;
                       }
 
-                      // 비디오 옵션 숨기기
                       if (title != "배경색" && item.video != null) return const SizedBox.shrink();
-                      
-                      // 💡 [수정 5번] 투명 옵션은 오직 "시계색"을 선택할 때만 나타납니다!
                       if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
 
                       return GestureDetector(
@@ -264,7 +263,6 @@ final List<AppThemePreset> _themePresets = [
                                 color: item.color,
                                 borderRadius: BorderRadius.circular(borderRadius), 
                                 border: Border.all(
-                                  // 투명색일 땐 잘 보이게 테두리를 살짝 진하게
                                   color: isSelected ? accentColor : (item.color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
                                   width: isSelected ? 3.0 : 1.0,
                                 ),
@@ -386,7 +384,6 @@ final List<AppThemePreset> _themePresets = [
         valueListenable: globalClockColor,
         builder: (context, rawAccentColor, child) {
           
-          // 💡 [수정 1번] 시계색이 투명이면, 설정창 전체 UI 글자/테두리가 안 보이지 않도록 '진한 회색'으로 강제 보정!
           Color uiAccentColor = rawAccentColor == Colors.transparent ? Colors.grey.shade800 : rawAccentColor;
 
           return Scaffold(
