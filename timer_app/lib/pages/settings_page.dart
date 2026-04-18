@@ -45,15 +45,28 @@ class _SettingsPageState extends State<SettingsPage> {
   final List<String> _tabTitles = [
     "계정 설정", "즐겨 찾기", "테마", "시계 설정", "알림 설정", "BGM", "고객 센터",
   ];
-
-  final List<AppThemePreset> _themePresets = [
+final List<AppThemePreset> _themePresets = [
+    // 기존 프리셋 6개
     const AppThemePreset(bg: Color(0xFF252528), clock: Color.fromARGB(255, 185, 70, 70), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFF252528), clock: Color(0xFF4A4A4D), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFFF9F9F9), clock: Color(0xFFD32F2F), digital: Color(0xFF1C1C1E), indicator: Color(0xFFD32F2F)),
     const AppThemePreset(bg: Color(0xFF1C2536), clock: Color(0xFF2D3C5A), digital: Color(0xFFFFFFFF), indicator: Color(0xFF8B9BB4)),
     const AppThemePreset(bg: Color(0xFF1E2E26), clock: Color(0xFF334A3E), digital: Color(0xFFE2E8E4), indicator: Color(0xFF88A094)),
     const AppThemePreset(bg: Color(0xFFF4EFE6), clock: Color(0xFFD1C2A5), digital: Color(0xFF5C4E3A), indicator: Color(0xFF9E8E76)),
+
+    // 💡 [새로 추가됨] 7. Mint & Forest (눈이 가장 편안한 민트/그린 톤)
+    const AppThemePreset(bg: Color(0xFFE8F5E9), clock: Color(0xFF81C784), digital: Color(0xFF2E7D32), indicator: Color(0xFF388E3C)),
     
+    // 💡 [새로 추가됨] 8. Midnight Purple (차분하고 우아한 딥 퍼플 톤)
+    const AppThemePreset(bg: Color(0xFF2A2344), clock: Color(0xFF524582), digital: Color(0xFFE6E2F1), indicator: Color(0xFFA197C4)),
+    
+    // 💡 [새로 추가됨] 9. Warm Peach (따뜻하고 포근한 코랄/브라운 톤)
+    const AppThemePreset(bg: Color(0xFFFFF0E5), clock: Color(0xFFFF8A65), digital: Color(0xFF5D4037), indicator: Color(0xFF8D6E63)),
+    
+    // 💡 [새로 추가됨] 10. Ocean Blue (집중력을 극대화하는 딥 네이비 & 시안)
+    const AppThemePreset(bg: Color(0xFF0F172A), clock: Color(0xFF38BDF8), digital: Color(0xFFF8FAFC), indicator: Color(0xFF94A3B8)),
+
+    // 비 오는 밤 영상 프리셋
     const AppThemePreset(
       bg: Colors.grey, 
       clock: Colors.transparent, 
