@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart';
-// 💡 flutter_colorpicker 패키지 제거 완료!
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
@@ -70,7 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
     ),
   ];
 
-  // 💡 스크롤 가능한 예쁜 30여가지 커스텀 팔레트 (ThemeItem으로 변경하여 동영상/잠금 지원!)
+  // 💡 스크롤 가능한 예쁜 30여가지 커스텀 팔레트 
   final List<ThemeItem> _backgroundOptions = [
     const ThemeItem(name: "흰색", color: Colors.white),
     ThemeItem(name: "연회색", color: Colors.grey.shade300),
@@ -107,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
     const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
     const ThemeItem(name: "투명", color: Colors.transparent),
     
-    // 💡 여기에 동영상 옵션도 자연스럽게 끼워 넣을 수 있습니다! (나중에 isLocked: true 만 추가하면 잠금 처리됨)
+    // 영상 옵션
     const ThemeItem(name: "비 오는 밤", color: Colors.grey, video: "비 오는 밤 (Rain)"),
   ];
 
@@ -179,109 +178,130 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   // =========================================================
-  // 🌟 [핵심 변경] 패키지 없이 우리가 직접 만든 커스텀 테마 선택창!
+  // 🌟 [수정됨] 중앙에 뜨는 네모난 커스텀 테마 선택 팝업 (비율 조절 가능)
   // =========================================================
   void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
-              ),
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5, // 한 줄에 5개씩
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: _backgroundOptions.length,
-                  itemBuilder: (context, index) {
-                    final item = _backgroundOptions[index];
-                    
-                    // 현재 선택된 항목인지 확인
-                    bool isSelected = false;
-                    if (title == "배경색") {
-                      if (item.video != null) {
-                        isSelected = globalBgVideoName.value == item.video;
-                      } else {
-                        isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함";
-                      }
-                    } else {
-                      isSelected = colorNotifier.value == item.color;
-                    }
+        // 💡 1. [팝업 크기 조절] 화면 너비/높이에 대한 비율을 여기서 바꿀 수 있습니다!
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final double popupWidth = screenWidth * 0.85;  // 팝업 가로 크기 (화면의 85%)
+        final double popupHeight = screenHeight * 0.5; // 팝업 세로 크기 (화면의 50%)
 
-                    // 배경색이 아닌 옵션(시계색 등)을 고를 때는 비디오 전용 아이템을 화면에서 숨깁니다.
-                    if (title != "배경색" && item.video != null) return const SizedBox.shrink();
+        // 💡 2. [색상 네모 크기 조절] 한 줄에 몇 개를 넣을지 정합니다. 숫자가 클수록 작아집니다!
+        final int columns = 6; // 한 줄에 6개 (원래는 5개였음)
+        final double spacing = 12.0; // 네모 사이의 간격
+        final double borderRadius = 12.0; // 네모 모서리의 둥근 정도 (프리셋과 동일한 12)
 
-                    return GestureDetector(
-                      onTap: () {
-                        // 🔒 잠금 기능 로직 (포인트 시스템 추가 시 여기서 차감 팝업 띄우면 됨!)
-                        if (item.isLocked) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')),
-                          );
-                          return;
-                        }
-
-                        // 🎨 색상 적용
-                        if (item.color != null) colorNotifier.value = item.color!;
-
-                        // 🎬 배경색 설정일 경우 비디오 켜고 끄기 연동 처리
-                        if (title == "배경색") {
-                          if (item.video != null) {
-                            globalBgVideoName.value = item.video!; // 비디오 켬
-                          } else {
-                            globalBgVideoName.value = "사용 안 함"; // 비디오 끔
-                          }
-                        }
-
-                        Navigator.pop(context); // 창 닫기
-                      },
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: item.color,
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: isSelected ? accentColor : Colors.grey.shade300,
-                                width: isSelected ? 3.0 : 1.0,
-                              ),
-                              boxShadow: [
-                                if (isSelected)
-                                  BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)
-                              ],
-                            ),
-                          ),
-                          // 영상 아이템이면 안에 액자(이미지) 아이콘 표시
-                          if (item.video != null)
-                            const Icon(Icons.wallpaper, color: Colors.white, size: 20),
-                          
-                          // 잠겨있으면 반투명 검은 막과 자물쇠 아이콘 표시
-                          if (item.isLocked)
-                            Container(
-                              decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), shape: BoxShape.circle),
-                              child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
-                            ),
-                        ],
-                      ),
-                    );
-                  },
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: popupWidth,
+            height: popupHeight,
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
                 ),
-              ),
-            ],
+                Expanded(
+                  child: GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns, 
+                      crossAxisSpacing: spacing,
+                      mainAxisSpacing: spacing,
+                      childAspectRatio: 1.0, // 완벽한 정사각형 유지
+                    ),
+                    itemCount: _backgroundOptions.length,
+                    itemBuilder: (context, index) {
+                      final item = _backgroundOptions[index];
+                      
+                      // 현재 선택된 항목인지 확인
+                      bool isSelected = false;
+                      if (title == "배경색") {
+                        if (item.video != null) {
+                          isSelected = globalBgVideoName.value == item.video;
+                        } else {
+                          isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함";
+                        }
+                      } else {
+                        isSelected = colorNotifier.value == item.color;
+                      }
+
+                      // 배경색이 아닌 옵션(시계색 등)을 고를 때는 비디오 전용 아이템을 화면에서 숨깁니다.
+                      if (title != "배경색" && item.video != null) return const SizedBox.shrink();
+
+                      return GestureDetector(
+                        onTap: () {
+                          // 잠금 기능 로직 
+                          if (item.isLocked) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')),
+                            );
+                            return;
+                          }
+
+                          // 색상 적용
+                          if (item.color != null) colorNotifier.value = item.color!;
+
+                          // 배경색 설정일 경우 비디오 연동 처리
+                          if (title == "배경색") {
+                            if (item.video != null) {
+                              globalBgVideoName.value = item.video!; // 비디오 켬
+                            } else {
+                              globalBgVideoName.value = "사용 안 함"; // 비디오 끔
+                            }
+                          }
+
+                          Navigator.pop(context); // 창 닫기
+                        },
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: item.color,
+                                borderRadius: BorderRadius.circular(borderRadius), // 🔥 동그라미 대신 부드러운 네모 적용!
+                                border: Border.all(
+                                  color: isSelected ? accentColor : Colors.grey.shade300,
+                                  width: isSelected ? 3.0 : 1.0,
+                                ),
+                                boxShadow: [
+                                  if (isSelected)
+                                    BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)
+                                ],
+                              ),
+                            ),
+                            // 영상 아이템이면 안에 액자 아이콘 표시
+                            if (item.video != null)
+                              const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                            
+                            // 잠겨있으면 반투명 검은 막과 자물쇠 아이콘 표시
+                            if (item.isLocked)
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5), 
+                                  borderRadius: BorderRadius.circular(borderRadius)
+                                ),
+                                child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+                )
+              ],
+            ),
           ),
         );
       },
@@ -299,7 +319,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
               GestureDetector(
-                onTap: () => _showCustomPicker(title, notifier, accentColor), // 💡 패키지 대신 커스텀 창 호출
+                onTap: () => _showCustomPicker(title, notifier, accentColor), // 💡 중앙 팝업창 호출!
                 child: Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
@@ -307,7 +327,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     borderRadius: BorderRadius.circular(8), 
                     border: Border.all(color: Colors.grey.shade300)
                   ),
-                  // 배경색 옵션인데 비디오가 켜져있다면, 현재 상태 박스 안에도 아이콘 표시
                   child: (title == "배경색" && globalBgVideoName.value != "사용 안 함")
                       ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
                       : null,
@@ -435,7 +454,6 @@ class _SettingsPageState extends State<SettingsPage> {
               Wrap(
                 spacing: 12.0, runSpacing: 12.0,
                 children: _themePresets.map((theme) {
-                  // 💡 영상 사용 여부까지 확인해서 겉 테두리에 표시!
                   bool isSelected = globalBgColor.value == theme.bg && globalClockColor.value == theme.clock && globalDigitalColor.value == theme.digital && globalIndicatorColor.value == theme.indicator && globalBgVideoName.value == theme.bgVideo;
                   bool isVideoPreset = theme.bgVideo != "사용 안 함";
 
@@ -445,7 +463,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       globalClockColor.value = theme.clock;
                       globalDigitalColor.value = theme.digital;
                       globalIndicatorColor.value = theme.indicator;
-                      globalBgVideoName.value = theme.bgVideo; // 🔥 비디오도 자동 적용!
+                      globalBgVideoName.value = theme.bgVideo; 
                     },
                     child: Container(
                       width: 56, height: 56,
@@ -454,7 +472,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
                         gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, stops: const [0.5, 0.5], colors: [theme.bg, theme.clock]),
                       ),
-                      // 💡 영상 프리셋이면 액자(이미지) 모양 아이콘 표시!
                       child: isVideoPreset ? const Icon(Icons.wallpaper, color: Colors.white, size: 20) : null,
                     ),
                   );
