@@ -89,10 +89,8 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 💡 [핵심 추가됨] 여기서 화면 전체를 비디오 배경 위젯으로 감싸줍니다!
     return GlobalVideoBackground(
       child: Scaffold(
-        // 영상이 보일 수 있게 배경색을 투명하게 설정!
         backgroundColor: Colors.transparent, 
         body: SafeArea(
           child: Stack(
@@ -117,6 +115,7 @@ class _MainScreenState extends State<MainScreen> {
               Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (event) {
+                  // 1. 세팅 메뉴를 건드렸는지 확인
                   if (menuKey.currentContext != null) {
                     final RenderBox menuBox = menuKey.currentContext!.findRenderObject() as RenderBox;
                     final Offset menuPosition = menuBox.localToGlobal(Offset.zero);
@@ -124,19 +123,37 @@ class _MainScreenState extends State<MainScreen> {
                     final bool isInsideMenu = event.position.dx >= menuPosition.dx && event.position.dx <= menuPosition.dx + menuSize.width && event.position.dy >= menuPosition.dy && event.position.dy <= menuPosition.dy + menuSize.height;
                     if (isInsideMenu) { isBackgroundTouched = false; return; }
                   }
-                  final RenderBox box = clockKey.currentContext!.findRenderObject() as RenderBox;
-                  final position = box.localToGlobal(Offset.zero);
-                  final size = box.size;
-                  final center = Offset(position.dx + size.width / 2, position.dy + size.height / 2);
-                  final radius = size.width / 2;
-                  final dx = event.position.dx - center.dx;
-                  final dy = event.position.dy - center.dy;
-                  final distance = sqrt(dx * dx + dy * dy);
 
-                  if (distance <= radius) return;
-                  if (distance > radius) {
-                    isBackgroundTouched = true; _touchStartTime = DateTime.now(); _startLockTimer();
+                  bool isHitClock = false;
+
+                  // 🌟 2. 아날로그 시계(동그라미)를 건드렸는지 정밀 검사!
+                  if (analogClockHitKey.currentContext != null) {
+                    final box = analogClockHitKey.currentContext!.findRenderObject() as RenderBox;
+                    final pos = box.localToGlobal(Offset.zero);
+                    final center = Offset(pos.dx + box.size.width / 2, pos.dy + box.size.height / 2);
+                    final radius = box.size.width / 2;
+                    final distance = sqrt(pow(event.position.dx - center.dx, 2) + pow(event.position.dy - center.dy, 2));
+                    if (distance <= radius) isHitClock = true;
                   }
+
+                  // 🌟 3. 디지털 시계(네모 글자)를 건드렸는지 정밀 검사!
+                  if (digitalClockHitKey.currentContext != null) {
+                    final box = digitalClockHitKey.currentContext!.findRenderObject() as RenderBox;
+                    final pos = box.localToGlobal(Offset.zero);
+                    final rect = pos & box.size;
+                    if (rect.contains(event.position)) isHitClock = true;
+                  }
+
+                  // 시계 부품 중 하나라도 건드렸다면 배경 터치가 아니므로 잠금 취소!
+                  if (isHitClock) {
+                    isBackgroundTouched = false;
+                    return;
+                  }
+
+                  // 🌟 완벽하게 텅 빈 배경을 눌렀을 때만 잠금 시작!
+                  isBackgroundTouched = true; 
+                  _touchStartTime = DateTime.now(); 
+                  _startLockTimer();
                 },
                 onPointerUp: (_) {
                   if (!isBackgroundTouched) return;
@@ -152,7 +169,7 @@ class _MainScreenState extends State<MainScreen> {
                   child: ValueListenableBuilder<Color>(
                     valueListenable: globalBgColor,
                     builder: (context, color, _) {
-                      return FloatingGlassMenuButton(backgroundColor: color);
+                      return FloatingGlassMenuButton(key: menuKey, backgroundColor: color);
                     }
                   ),
                 ),

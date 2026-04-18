@@ -318,6 +318,9 @@ class SevenSegmentDigit extends StatelessWidget {
     return Transform(transform: Matrix4.skewX(-0.15), child: SizedBox(width: w, height: height, child: Stack(children: [Positioned(top: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(a)), Positioned(top: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(b)), Positioned(bottom: t * 0.5, right: 0, width: t, height: height / 2 - t * 0.5, child: segment(c)), Positioned(bottom: 0, left: t * 0.4, right: t * 0.4, height: t, child: segment(d)), Positioned(bottom: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(e)), Positioned(top: t * 0.5, left: 0, width: t, height: height / 2 - t * 0.5, child: segment(f)), Positioned(top: height / 2 - t / 2, left: t * 0.4, right: t * 0.4, height: t, child: segment(g))])));
   }
 }
+// 💡 [추가됨] 잠금 기능(Hit Test)을 위한 정밀 센서 키
+final GlobalKey analogClockHitKey = GlobalKey();
+final GlobalKey digitalClockHitKey = GlobalKey();
 
 typedef ClockPanCallback = void Function(Offset localPosition, Size size);
 
@@ -442,6 +445,7 @@ class BaseClockLayout extends StatelessWidget {
                   : null,
               onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
               child: CustomPaint(
+                key: analogClockHitKey, // 🔥 아날로그 시계에 센서 부착!
                 size: Size(clockSize, clockSize),
                 painter: SharedClockPainter(
                   drawnSeconds, maxScaleSeconds,
@@ -457,11 +461,15 @@ class BaseClockLayout extends StatelessWidget {
               onLongPress: onDigitalLongPress,
               child: FittedBox(
                 fit: BoxFit.scaleDown,
-                child: CustomDigitalClock(
-                  seconds: digitalSeconds,
-                  styleMode: digitalStyle,
-                  fontSize: digitalFontSize,
-                  defaultColor: globalDigitalColor.value,
+                child: Container(
+                  key: digitalClockHitKey, // 🔥 디지털 시계에 센서 부착!
+                  color: Colors.transparent, // 터치 인식용 투명 배경
+                  child: CustomDigitalClock(
+                    seconds: digitalSeconds,
+                    styleMode: digitalStyle,
+                    fontSize: digitalFontSize,
+                    defaultColor: globalDigitalColor.value,
+                  ),
                 ),
               ),
             );
