@@ -195,7 +195,6 @@ class FloatingGlassMenuButton extends StatelessWidget {
     );
   }
 }
-
 class SharedClockPainter extends CustomPainter {
   final double drawnSeconds; final double maxScaleSeconds; final bool isTimer; final String indicatorMode;
   SharedClockPainter(this.drawnSeconds, this.maxScaleSeconds, {this.isTimer = true, this.indicatorMode = "number"});
@@ -205,23 +204,42 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
 
-    final shadowPaint = Paint()..color = Colors.black.withOpacity(0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
-    canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
+    // 🔥 [수정 3번] 투명이 아닐 때만 그림자와 시계 바탕을 그립니다. 투명이면 뻥 뚫리게!
+    if (globalClockColor.value != Colors.transparent) {
+      final shadowPaint = Paint()..color = Colors.black.withOpacity(0.5)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
+      canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
 
-    final facePaint = Paint()..color = globalBgColor.value;
-    canvas.drawCircle(center, radius, facePaint);
+      final facePaint = Paint()..color = globalBgColor.value;
+      canvas.drawCircle(center, radius, facePaint);
+    }
 
     final highlightPaint = Paint()..color = Colors.white.withOpacity(0.04)..style = PaintingStyle.fill;
     canvas.drawCircle(center, radius, highlightPaint);
 
-    final rimPaint = Paint()..color = Colors.white.withOpacity(0.08)..style = PaintingStyle.stroke..strokeWidth = 1.0;
+    // 💡 [수정 3번] 투명일 때 테두리를 글자색의 반투명 버전으로 굵게 그려서 잘 보이게!
+    final rimColor = globalClockColor.value == Colors.transparent
+        ? globalIndicatorColor.value.withOpacity(0.4) 
+        : Colors.white.withOpacity(0.08);
+        
+    final rimPaint = Paint()
+      ..color = rimColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = globalClockColor.value == Colors.transparent ? 2.0 : 1.0; // 투명이면 선 두께도 약간 키움
     canvas.drawCircle(center, radius, rimPaint);
 
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     double startAngle = isTimer ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi : -pi / 2;
 
-    final paintArc = Paint()..color = globalClockColor.value..style = PaintingStyle.fill;
-    if (drawnSeconds > 0) { canvas.drawArc(Rect.fromCircle(center: center, radius: radius * 0.98), startAngle, sweepAngle, true, paintArc); }
+    // 💡 [수정 4번] 투명일 때 드래그 영역(채워진 시간)이 옅은 반투명으로 보이도록 보정!
+    Color arcColor = globalClockColor.value;
+    if (globalClockColor.value == Colors.transparent) {
+      arcColor = globalIndicatorColor.value.withOpacity(0.25); // 숫자 색상을 기반으로 반투명 적용
+    }
+
+    final paintArc = Paint()..color = arcColor..style = PaintingStyle.fill;
+    if (drawnSeconds > 0) { 
+      canvas.drawArc(Rect.fromCircle(center: center, radius: radius * 0.98), startAngle, sweepAngle, true, paintArc); 
+    }
 
     final tickPaint = Paint()..color = globalIndicatorColor.value.withOpacity(0.4)..strokeWidth = 1.5..strokeCap = StrokeCap.round;
     final fiveTickPaint = Paint()..color = globalIndicatorColor.value.withOpacity(0.8)..strokeWidth = 3.0..strokeCap = StrokeCap.round;

@@ -4,20 +4,17 @@ import 'package:timer_app/pages/shared_design.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 
-// =========================================================
-// 🌟 [추가됨] 테마 아이템 모델 (색상인지, 영상인지, 잠겨있는지 구분)
-// =========================================================
 class ThemeItem {
-  final String name;      // 식별용 이름 (예: "빨강", "비 오는 밤")
-  final Color? color;     // 단색일 경우 색상값
-  final String? video;    // 영상일 경우 식별자
-  final bool isLocked;    // 잠금 여부 (나중에 포인트 시스템 연결)
+  final String name;      
+  final Color? color;     
+  final String? video;    
+  final bool isLocked;    
 
   const ThemeItem({
     required this.name,
     this.color,
     this.video,
-    this.isLocked = false, // 기본값은 열려있음
+    this.isLocked = false, 
   });
 }
 
@@ -26,14 +23,14 @@ class AppThemePreset {
   final Color clock;
   final Color digital;
   final Color indicator;
-  final String bgVideo; // 💡 프리셋에 비디오 요소 추가!
+  final String bgVideo; 
 
   const AppThemePreset({
     required this.bg,
     required this.clock,
     required this.digital,
     required this.indicator,
-    this.bgVideo = "사용 안 함", // 기본값은 비디오 끄기
+    this.bgVideo = "사용 안 함", 
   });
 }
 
@@ -50,7 +47,6 @@ class _SettingsPageState extends State<SettingsPage> {
   ];
 
   final List<AppThemePreset> _themePresets = [
-    // 정현표 프리셋
     const AppThemePreset(bg: Color(0xFF252528), clock: Color.fromARGB(255, 185, 70, 70), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFF252528), clock: Color(0xFF4A4A4D), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
     const AppThemePreset(bg: Color(0xFFF9F9F9), clock: Color(0xFFD32F2F), digital: Color(0xFF1C1C1E), indicator: Color(0xFFD32F2F)),
@@ -58,18 +54,16 @@ class _SettingsPageState extends State<SettingsPage> {
     const AppThemePreset(bg: Color(0xFF1E2E26), clock: Color(0xFF334A3E), digital: Color(0xFFE2E8E4), indicator: Color(0xFF88A094)),
     const AppThemePreset(bg: Color(0xFFF4EFE6), clock: Color(0xFFD1C2A5), digital: Color(0xFF5C4E3A), indicator: Color(0xFF9E8E76)),
     
-    // 💡 [새로 추가됨] 비 오는 밤 영상 프리셋! 
-    // (배경은 영상이 보이게 무조건 '회색(Grey)' 톤으로 지정)
     const AppThemePreset(
-      bg: Colors.grey, // 무조건 회색!
-      clock: Color(0xFF4A6B8C), 
-      digital: Colors.white, 
+      bg: Colors.grey, 
+      clock: Colors.transparent, 
+      digital: Color(0xFF9E9E9E), 
       indicator: Colors.white70,
       bgVideo: "비 오는 밤 (Rain)"
     ),
   ];
 
-  // 💡 스크롤 가능한 예쁜 30여가지 커스텀 팔레트 
+  // 💡 [수정 2번] 중복을 제거하고 딱 35개의 깔끔한 옵션으로 정리했습니다.
   final List<ThemeItem> _backgroundOptions = [
     const ThemeItem(name: "흰색", color: Colors.white),
     ThemeItem(name: "연회색", color: Colors.grey.shade300),
@@ -104,9 +98,9 @@ class _SettingsPageState extends State<SettingsPage> {
     const ThemeItem(name: "갈색", color: Colors.brown),
     const ThemeItem(name: "모카", color: Color(0xFFD1C2A5)),
     const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
-    const ThemeItem(name: "투명", color: Colors.transparent),
+    // 오직 한 개의 투명색
+    const ThemeItem(name: "투명", color: Colors.transparent), 
     
-    // 영상 옵션
     const ThemeItem(name: "비 오는 밤", color: Colors.grey, video: "비 오는 밤 (Rain)"),
   ];
 
@@ -116,17 +110,13 @@ class _SettingsPageState extends State<SettingsPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isTappingTab = false;
 
-  void _stopPreview() {
-    // 미리듣기 끄기 (AudioPlayer 필요시 추가 구현 가능)
-  }
+  void _stopPreview() { }
 
   void _previewAlarm(String option) {
     if (option == "진동만") HapticFeedback.vibrate();
   }
 
-  void _previewBgm(String option) {
-    // BGM 미리듣기 로직
-  }
+  void _previewBgm(String option) { }
 
   @override
   void initState() {
@@ -177,23 +167,18 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // =========================================================
-  // 🌟 [수정됨] 중앙에 뜨는 네모난 커스텀 테마 선택 팝업 (비율 조절 가능)
-  // =========================================================
   void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
     showDialog(
       context: context,
       builder: (context) {
-        // 💡 1. [팝업 크기 조절] 화면 너비/높이에 대한 비율을 여기서 바꿀 수 있습니다!
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
-        final double popupWidth = screenWidth * 0.85;  // 팝업 가로 크기 (화면의 85%)
-        final double popupHeight = screenHeight * 0.5; // 팝업 세로 크기 (화면의 50%)
+        final double popupWidth = screenWidth * 0.85;  
+        final double popupHeight = screenHeight * 0.5; 
 
-        // 💡 2. [색상 네모 크기 조절] 한 줄에 몇 개를 넣을지 정합니다. 숫자가 클수록 작아집니다!
-        final int columns = 6; // 한 줄에 6개 (원래는 5개였음)
-        final double spacing = 12.0; // 네모 사이의 간격
-        final double borderRadius = 12.0; // 네모 모서리의 둥근 정도 (프리셋과 동일한 12)
+        final int columns = 6; 
+        final double spacing = 12.0; 
+        final double borderRadius = 12.0; 
 
         return Dialog(
           backgroundColor: Colors.white,
@@ -214,13 +199,12 @@ class _SettingsPageState extends State<SettingsPage> {
                       crossAxisCount: columns, 
                       crossAxisSpacing: spacing,
                       mainAxisSpacing: spacing,
-                      childAspectRatio: 1.0, // 완벽한 정사각형 유지
+                      childAspectRatio: 1.0, 
                     ),
                     itemCount: _backgroundOptions.length,
                     itemBuilder: (context, index) {
                       final item = _backgroundOptions[index];
                       
-                      // 현재 선택된 항목인지 확인
                       bool isSelected = false;
                       if (title == "배경색") {
                         if (item.video != null) {
@@ -232,12 +216,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         isSelected = colorNotifier.value == item.color;
                       }
 
-                      // 배경색이 아닌 옵션(시계색 등)을 고를 때는 비디오 전용 아이템을 화면에서 숨깁니다.
+                      // 비디오 옵션 숨기기
                       if (title != "배경색" && item.video != null) return const SizedBox.shrink();
+                      
+                      // 💡 [수정 5번] 투명 옵션은 오직 "시계색"을 선택할 때만 나타납니다!
+                      if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
 
                       return GestureDetector(
                         onTap: () {
-                          // 잠금 기능 로직 
                           if (item.isLocked) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')),
@@ -245,19 +231,17 @@ class _SettingsPageState extends State<SettingsPage> {
                             return;
                           }
 
-                          // 색상 적용
                           if (item.color != null) colorNotifier.value = item.color!;
 
-                          // 배경색 설정일 경우 비디오 연동 처리
                           if (title == "배경색") {
                             if (item.video != null) {
-                              globalBgVideoName.value = item.video!; // 비디오 켬
+                              globalBgVideoName.value = item.video!; 
                             } else {
-                              globalBgVideoName.value = "사용 안 함"; // 비디오 끔
+                              globalBgVideoName.value = "사용 안 함"; 
                             }
                           }
 
-                          Navigator.pop(context); // 창 닫기
+                          Navigator.pop(context); 
                         },
                         child: Stack(
                           alignment: Alignment.center,
@@ -265,9 +249,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             Container(
                               decoration: BoxDecoration(
                                 color: item.color,
-                                borderRadius: BorderRadius.circular(borderRadius), // 🔥 동그라미 대신 부드러운 네모 적용!
+                                borderRadius: BorderRadius.circular(borderRadius), 
                                 border: Border.all(
-                                  color: isSelected ? accentColor : Colors.grey.shade300,
+                                  // 투명색일 땐 잘 보이게 테두리를 살짝 진하게
+                                  color: isSelected ? accentColor : (item.color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
                                   width: isSelected ? 3.0 : 1.0,
                                 ),
                                 boxShadow: [
@@ -275,12 +260,13 @@ class _SettingsPageState extends State<SettingsPage> {
                                     BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2)
                                 ],
                               ),
+                              child: item.color == Colors.transparent 
+                                  ? const Center(child: Icon(Icons.format_color_reset, color: Colors.grey, size: 20))
+                                  : null,
                             ),
-                            // 영상 아이템이면 안에 액자 아이콘 표시
                             if (item.video != null)
                               const Icon(Icons.wallpaper, color: Colors.white, size: 20),
                             
-                            // 잠겨있으면 반투명 검은 막과 자물쇠 아이콘 표시
                             if (item.isLocked)
                               Container(
                                 decoration: BoxDecoration(
@@ -319,17 +305,19 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
               GestureDetector(
-                onTap: () => _showCustomPicker(title, notifier, accentColor), // 💡 중앙 팝업창 호출!
+                onTap: () => _showCustomPicker(title, notifier, accentColor), 
                 child: Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
                     color: color, 
                     borderRadius: BorderRadius.circular(8), 
-                    border: Border.all(color: Colors.grey.shade300)
+                    border: Border.all(color: color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300)
                   ),
-                  child: (title == "배경색" && globalBgVideoName.value != "사용 안 함")
-                      ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
-                      : null,
+                  child: color == Colors.transparent
+                      ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20)
+                      : (title == "배경색" && globalBgVideoName.value != "사용 안 함")
+                          ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
+                          : null,
                 ),
               ),
             ],
@@ -383,7 +371,11 @@ class _SettingsPageState extends State<SettingsPage> {
       onPointerDown: (_) => _stopPreview(),
       child: ValueListenableBuilder<Color>(
         valueListenable: globalClockColor,
-        builder: (context, accentColor, child) {
+        builder: (context, rawAccentColor, child) {
+          
+          // 💡 [수정 1번] 시계색이 투명이면, 설정창 전체 UI 글자/테두리가 안 보이지 않도록 '진한 회색'으로 강제 보정!
+          Color uiAccentColor = rawAccentColor == Colors.transparent ? Colors.grey.shade800 : rawAccentColor;
+
           return Scaffold(
             backgroundColor: const Color(0xFFF9F9F9),
             body: SafeArea(
@@ -399,8 +391,8 @@ class _SettingsPageState extends State<SettingsPage> {
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
-                              Align(alignment: Alignment.centerLeft, child: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: accentColor), onPressed: () => Navigator.pop(context))),
-                              Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                              Align(alignment: Alignment.centerLeft, child: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: uiAccentColor), onPressed: () => Navigator.pop(context))),
+                              Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: uiAccentColor)),
                             ],
                           ),
                         ),
@@ -413,7 +405,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                 onTap: () => _scrollToSection(index),
                                 child: Container(
                                   key: _tabKeys[index], margin: const EdgeInsets.only(right: 20.0), padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Text(_tabTitles[index], style: TextStyle(fontSize: 16, fontWeight: isActive ? FontWeight.bold : FontWeight.w600, color: isActive ? accentColor : Colors.grey.shade400)),
+                                  child: Text(_tabTitles[index], style: TextStyle(fontSize: 16, fontWeight: isActive ? FontWeight.bold : FontWeight.w600, color: isActive ? uiAccentColor : Colors.grey.shade400)),
                                 ),
                               );
                             }),
@@ -426,7 +418,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _scrollController, padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                      child: Column(children: List.generate(_tabTitles.length, (index) { return _buildSectionBox(index, accentColor); })),
+                      child: Column(children: List.generate(_tabTitles.length, (index) { return _buildSectionBox(index, uiAccentColor); })),
                     ),
                   ),
                 ],
