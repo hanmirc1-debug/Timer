@@ -187,17 +187,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _stopPreview() {}
 
-  void _previewAlarm(String val) {
-    if (val == "진동만") {
-      HapticFeedback.vibrate();
-      return;
-    }
-
-    previewAlarmSound(val);
-  }
-
-  void _previewBgm(String option) {}
-
   @override
   void initState() {
     super.initState();
@@ -855,7 +844,7 @@ class _SettingsPageState extends State<SettingsPage> {
             options: alarmOptions,
             notifier: globalAlarmSound,
             accentColor: accentColor,
-            onSelected: (val) => _previewAlarm(val),
+            onSelected: (val) => GlobalBgmManager.previewAlarmSound(val),
           ),
         ],
       );
@@ -873,10 +862,10 @@ class _SettingsPageState extends State<SettingsPage> {
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
           CustomWheelPicker(
             title: "트랙 선택",
-            options: const ["백색소음", "잔잔한 비", "모닥불", "카페 소음"],
+            options: bgmOptions,
             notifier: globalBgmTrack,
             accentColor: accentColor,
-            onSelected: (val) => _previewBgm(val),
+            onSelected: (val) => GlobalBgmManager.previewBgm(val),
           ),
         ],
       );

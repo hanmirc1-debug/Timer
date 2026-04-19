@@ -25,6 +25,7 @@ class _TimerAppPageState extends State<TimerAppPage>
   bool isRunning = false;
   bool isAlarmPlaying = false;
   bool alarmTriggered = false;
+  bool hasStarted = false; // 🔥 추가
   @override
   void initState() {
     super.initState();
@@ -35,11 +36,14 @@ class _TimerAppPageState extends State<TimerAppPage>
           currentSeconds = controller.value * targetSeconds;
         });
       });
-    controller.addStatusListener((status) {
-      if (status == AnimationStatus.dismissed && !alarmTriggered) {
-        alarmTriggered = true;
 
-        stop();
+    controller.addStatusListener((status) {
+      debugPrint("STATUS: $status");
+
+      if (status == AnimationStatus.dismissed && !alarmTriggered) {
+        debugPrint("🔥 DISMISSED");
+
+        alarmTriggered = true;
         _triggerAlarm();
       }
     });
@@ -58,40 +62,52 @@ class _TimerAppPageState extends State<TimerAppPage>
     }
   }
 
-  void _triggerAlarm() {
+  void _triggerAlarm() async {
+    debugPrint("triggerAlarm called");
     if (!globalAlarmEnabled.value) return;
+    if (isAlarmPlaying) return;
 
-    String option = globalAlarmSound.value;
+    isAlarmPlaying = true;
+
+    await GlobalBgmManager.stopBgm();
+
+    final option = globalAlarmSound.value;
 
     if (option == "진동만") {
       HapticFeedback.vibrate();
       return;
     }
 
-    isAlarmPlaying = true;
-    playAlarmSound(option);
+    await GlobalBgmManager.playAlarmSound(option);
   }
 
   void start() {
+    debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
-    alarmTriggered = false; // 🔥 이거 추가
+
+    alarmTriggered = false;
+    isAlarmPlaying = false;
+
+    controller.reset();
     controller.duration = Duration(seconds: targetSeconds.toInt());
-    controller.reverse(from: controller.value == 0.0 ? 1.0 : controller.value);
+    controller.reverse(from: 1.0);
+
     setState(() => isRunning = true);
     widget.onRunningChanged(true);
-    // 🔥 여기 추가 (맨 마지막)
+
+    // 🔥 BGM 시작
     if (globalBgmEnabled.value) {
-      GlobalBgmManager.playBgm("audio/default.mp3");
+      GlobalBgmManager.playBgm(globalBgmTrack.value); // 🔥 이거 추가
     }
   }
 
   void stop() {
+    debugPrint("stop called");
     controller.stop();
     setState(() => isRunning = false);
     widget.onRunningChanged(false);
-    // 🔥 추가
-    GlobalBgmManager.stopBgm();
-    alarmTriggered = false; // 🔥 이거 추가
+
+    GlobalBgmManager.stopBgm(); // 🔥 BGM만 끔
   }
 
   void updateStartTime(Offset localPosition, Size size) {
@@ -353,11 +369,13 @@ class _TimerAppPageState extends State<TimerAppPage>
         if (isAlarmPlaying)
           Positioned.fill(
             child: GestureDetector(
-              behavior:
-                  HitTestBehavior.translucent, // 🔥 opaque → translucent 변경
+              behavior: HitTestBehavior.opaque, // 🔥 다시 opaque로
               onTap: () {
                 GlobalBgmManager.stopAllSound();
-                setState(() => isAlarmPlaying = false);
+
+                setState(() {
+                  isAlarmPlaying = false;
+                });
               },
               child: Container(color: Colors.transparent),
             ),

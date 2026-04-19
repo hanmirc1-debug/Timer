@@ -142,56 +142,62 @@ void initSettingsListener() {
 }
 
 const Map<String, String> alarmSoundMap = {
-  "기본음": "audio/default.mp3",
-  "자전거 벨": "audio/bike.mp3",
-  "빠른 알림 1": "audio/fast1.mp3",
-  "빠른 알림 2": "audio/fast2.mp3",
-  "신비로운 1": "audio/mystical1.mp3",
-  "신비로운 2": "audio/mystical2.mp3",
-  "신비로운 3": "audio/mystical3.mp3",
-  "심플한 알림 1": "audio/simple1.mp3",
-  "심플한 알림 2": "audio/simple2.mp3",
-  "심플한 알림 3": "audio/simple3.mp3",
-  "심플한 알림 4": "audio/simple4.mp3",
+  "기본음": "audio/alarm/default.mp3",
+  "자전거 벨": "audio/alarm/bike.mp3",
+  "빠른 알림 1": "audio/alarm/fast1.mp3",
+  "빠른 알림 2": "audio/alarm/fast2.mp3",
+  "신비로운 1": "audio/alarm/mystical1.mp3",
+  "신비로운 2": "audio/alarm/mystical2.mp3",
+  "신비로운 3": "audio/alarm/mystical3.mp3",
+  "심플한 알림 1": "audio/alarm/simple1.mp3",
+  "심플한 알림 2": "audio/alarm/simple2.mp3",
+  "심플한 알림 3": "audio/alarm/simple3.mp3",
+  "심플한 알림 4": "audio/alarm/simple4.mp3",
 };
 
 final List<String> alarmOptions = [...alarmSoundMap.keys, "진동만"];
+
 String getAlarmPath(String name) {
-  return alarmSoundMap[name] ?? "audio/default.mp3";
+  return alarmSoundMap[name] ?? "audio/alarm/default.mp3";
 }
 
-Future<void> playAlarmSound(String soundName) async {
-  final path = alarmSoundMap[soundName] ?? "audio/default.mp3";
-
-  await GlobalBgmManager.stopBgm();
-  await GlobalBgmManager._bgmPlayer.play(AssetSource(path));
-}
-
-Future<void> previewAlarmSound(String soundName) async {
-  final path = alarmSoundMap[soundName] ?? "audio/default.mp3";
-
-  // 🔥 BGM 안끄고 미리듣기만
-  await GlobalBgmManager._bgmPlayer.stop();
-  await GlobalBgmManager._bgmPlayer.play(AssetSource(path));
-}
+const Map<String, String> bgmMap = {
+  "빗소리": "audio/bgm/rain.mp3",
+  "봄": "audio/bgm/spring.mp3",
+};
+final List<String> bgmOptions = [...bgmMap.keys];
 
 class GlobalBgmManager {
   static final AudioPlayer _bgmPlayer = AudioPlayer();
+  static final AudioPlayer _alarmPlayer = AudioPlayer(); // 🔥 분리
+
   static bool _isInitialized = false;
+
   static void init() {
     if (_isInitialized) return;
+
     _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+
     globalBgmEnabled.addListener(_updateBgm);
     globalBgmTrack.addListener(_updateBgm);
+
     _isInitialized = true;
     _updateBgm();
   }
 
+  // 🔥 전체 정지
   static Future<void> stopAllSound() async {
     await _bgmPlayer.stop();
+    await _alarmPlayer.stop();
   }
 
-  static Future<void> playBgm(String path) async {
+  // 🔥 BGM 재생
+  static Future<void> playBgm(String name) async {
+    debugPrint("🔥 playBgm CALLED");
+    final path = bgmMap[name];
+    if (path == null) return;
+
+    await _bgmPlayer.stop();
     await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
     await _bgmPlayer.play(AssetSource(path));
   }
@@ -200,22 +206,46 @@ class GlobalBgmManager {
     await _bgmPlayer.stop();
   }
 
+  // 🔥 알람 재생 (핵심)
+  static Future<void> playAlarmSound(String soundName) async {
+    debugPrint("🔥 playAlarmSound CALLED");
+    final path = alarmSoundMap[soundName];
+    if (path == null) return;
+
+    await _alarmPlayer.stop();
+    await _alarmPlayer.play(AssetSource(path));
+  }
+
+  // 🔥 알람 미리듣기 (설정페이지용)
+  static Future<void> previewAlarmSound(String soundName) async {
+    debugPrint("🔥 previewAlarmSound CALLED");
+    final path = alarmSoundMap[soundName] ?? "audio/alarm/default.mp3";
+
+    await _alarmPlayer.stop();
+    await _alarmPlayer.play(AssetSource(path));
+  }
+
+  // 🔥 BGM 미리듣기 (설정페이지용)
+  static Future<void> previewBgm(String soundName) async {
+    debugPrint("🔥 previewBgm CALLED");
+    final path = bgmMap[soundName] ?? "audio/bgm/default.mp3";
+
+    await _bgmPlayer.stop();
+    await _bgmPlayer.play(AssetSource(path));
+  }
+
+  // 🔥 BGM 자동 업데이트
   static Future<void> _updateBgm() async {
     if (globalBgmEnabled.value) {
       String option = globalBgmTrack.value;
-      String fileName = "";
-      if (option == "백색소음")
-        fileName = "white_noise.mp3";
-      else if (option == "잔잔한 비")
-        fileName = "rain.mp3";
-      else if (option == "모닥불")
-        fileName = "fireplace.mp3";
-      else if (option == "카페 소음")
-        fileName = "cafe.mp3";
 
-      if (fileName.isNotEmpty) {
+      final path = bgmMap[option]; // 🔥 map 사용
+
+      if (path != null) {
         try {
-          await _bgmPlayer.play(AssetSource('audio/$fileName'));
+          await _bgmPlayer.stop(); // 🔥 추가 (중복 방지)
+          await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
+          await _bgmPlayer.play(AssetSource(path));
         } catch (e) {
           debugPrint("BGM 재생 실패: $e");
         }
