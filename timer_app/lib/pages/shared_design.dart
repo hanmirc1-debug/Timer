@@ -213,6 +213,7 @@ class GlobalBgmManager {
     if (path == null) return;
 
     await _alarmPlayer.stop();
+    await _alarmPlayer.setReleaseMode(ReleaseMode.loop); // 🔥 핵심
     await _alarmPlayer.play(AssetSource(path));
   }
 
@@ -231,6 +232,7 @@ class GlobalBgmManager {
     final path = bgmMap[soundName] ?? "audio/bgm/default.mp3";
 
     await _bgmPlayer.stop();
+    await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
     await _bgmPlayer.play(AssetSource(path));
   }
 

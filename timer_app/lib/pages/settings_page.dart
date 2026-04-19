@@ -3,6 +3,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ThemeItem {
   final String name;
@@ -34,6 +37,39 @@ class AppThemePreset {
   });
 }
 
+class AuthService {
+  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+
+  static Future<User?> signInWithGoogle() async {
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) return null; // 취소
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+
+      return userCredential.user;
+    } catch (e) {
+      print("로그인 에러: $e");
+      return null;
+    }
+  }
+
+  static Future<void> signOut() async {
+    await _auth.signOut();
+    await _googleSignIn.signOut();
+  }
+}
+
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
 
@@ -51,7 +87,7 @@ class _SettingsPageState extends State<SettingsPage> {
     "BGM",
     "고객 센터",
   ];
-
+  User? _user;
   final List<AppThemePreset> _themePresets = [
     const AppThemePreset(
       bg: Color(0xFF252528),
@@ -193,6 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _scrollController.addListener(_onScroll);
+    _user = FirebaseAuth.instance.currentUser;
   }
 
   @override
@@ -670,11 +707,83 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _buildLoginButton(BuildContext context, Color accentColor) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final user = snapshot.data;
+
+        return Padding(
+          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.008),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(screenWidth * 0.02),
+            onTap: () async {
+              if (user == null) {
+                await AuthService.signInWithGoogle();
+
+                final result = await AuthService.signInWithGoogle();
+                print("로그인 결과: $result"); // 👈 추가
+                print("현재 유저: ${FirebaseAuth.instance.currentUser}"); // 👈 추가
+              } else {
+                await AuthService.signOut();
+              }
+            },
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(
+                vertical: screenHeight * 0.015,
+                horizontal: screenWidth * 0.02,
+              ),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    "assets/icons/google.svg",
+                    width: screenWidth * 0.055,
+                    height: screenWidth * 0.055,
+                  ),
+                  SizedBox(width: screenWidth * 0.03),
+
+                  Expanded(
+                    child: Text(
+                      user == null ? "Google로 로그인" : user.displayName ?? "사용자",
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.04,
+                        fontWeight: FontWeight.w600,
+                        color: accentColor,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                  Icon(
+                    user == null ? Icons.login : Icons.logout,
+                    size: screenWidth * 0.04,
+                    color: accentColor.withOpacity(0.6),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSectionBox(int index, Color accentColor) {
     bool isLastItem = index == _tabTitles.length - 1;
     Widget sectionContent;
-
-    if (index == 2) {
+    if (index == 0) {
+      // 🔥 계정 설정 탭
+      sectionContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildLoginButton(context, accentColor), // ✅
+        ],
+      );
+    } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
           globalBgColor,
