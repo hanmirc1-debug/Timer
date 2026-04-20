@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:ui';
+import 'dart:async';
 import 'settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
+import '../services/firebase_settings_service.dart';
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
@@ -105,18 +107,51 @@ Future<void> loadSettings() async {
 }
 
 void initSettingsListener() {
-  globalBgColor.addListener(saveSettings);
-  globalClockColor.addListener(saveSettings);
-  globalDigitalColor.addListener(saveSettings);
-  globalIndicatorColor.addListener(saveSettings);
-  globalBgVideoName.addListener(saveSettings);
+  globalBgColor.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalClockColor.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalDigitalColor.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalIndicatorColor.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalBgVideoName.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
 
-  globalIsTimerMode.addListener(saveSettings);
-  globalDisplayMode.addListener(saveSettings);
-  globalIndicatorMode.addListener(saveSettings);
-  globalDigitalStyle.addListener(saveSettings);
-  globalDigitalFontSize.addListener(saveSettings);
-  globalHapticIntensity.addListener(saveSettings);
+  globalIsTimerMode.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalDisplayMode.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalIndicatorMode.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalDigitalStyle.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalDigitalFontSize.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalHapticIntensity.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
 
   globalTimerMaxString.addListener(() {
     saveSettings();
@@ -135,10 +170,22 @@ void initSettingsListener() {
       globalTimerMaxSeconds.value = 7200.0;
   });
 
-  globalAlarmEnabled.addListener(saveSettings);
-  globalAlarmSound.addListener(saveSettings);
-  globalBgmEnabled.addListener(saveSettings);
-  globalBgmTrack.addListener(saveSettings);
+  globalAlarmEnabled.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalAlarmSound.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalBgmEnabled.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalBgmTrack.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
 }
 
 const Map<String, String> alarmSoundMap = {

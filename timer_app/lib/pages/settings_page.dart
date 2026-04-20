@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import '../services/firebase_settings_service.dart';
 
 class ThemeItem {
   final String name;
@@ -722,12 +723,15 @@ class _SettingsPageState extends State<SettingsPage> {
             borderRadius: BorderRadius.circular(screenWidth * 0.02),
             onTap: () async {
               if (user == null) {
-                await AuthService.signInWithGoogle();
-
                 final result = await AuthService.signInWithGoogle();
+
+                if (result != null) {
+                  await FirebaseSettingsService.loadSettingsFromCloud();
+                }
                 print("로그인 결과: $result"); // 👈 추가
                 print("현재 유저: ${FirebaseAuth.instance.currentUser}"); // 👈 추가
               } else {
+                await FirebaseSettingsService.saveSettingsToCloud();
                 await AuthService.signOut();
               }
             },
