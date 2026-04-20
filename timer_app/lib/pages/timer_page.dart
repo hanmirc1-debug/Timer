@@ -39,8 +39,9 @@ class _TimerAppPageState extends State<TimerAppPage>
 
     controller.addStatusListener((status) {
       debugPrint("STATUS: $status");
-
-      if (status == AnimationStatus.dismissed && !alarmTriggered) {
+      if (status == AnimationStatus.dismissed &&
+          !alarmTriggered &&
+          hasStarted) {
         debugPrint("🔥 DISMISSED");
 
         alarmTriggered = true;
@@ -85,10 +86,11 @@ class _TimerAppPageState extends State<TimerAppPage>
     debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
 
+    hasStarted = true; // 🔥 추가
     alarmTriggered = false;
     isAlarmPlaying = false;
 
-    controller.reset();
+    // controller.reset();
     controller.duration = Duration(seconds: targetSeconds.toInt());
     controller.reverse(from: 1.0);
 
