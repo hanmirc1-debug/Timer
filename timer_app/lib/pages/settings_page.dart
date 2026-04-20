@@ -467,6 +467,130 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+// =========================================================
+  // 🌟 [새로 추가할 함수 2개] 알림음/BGM 전용 팝업 및 버튼 UI
+  // =========================================================
+  void _showAudioPickerDialog(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final double popupWidth = screenWidth * 0.85;  
+        final double popupHeight = screenHeight * 0.6; // 리스트가 기니까 세로로 길게
+
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Container(
+            width: popupWidth,
+            height: popupHeight,
+            padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0, bottom: 12.0),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                ),
+                Expanded(
+                  child: ValueListenableBuilder<String>(
+                    valueListenable: notifier,
+                    builder: (context, currentValue, _) {
+                      return ListView.separated(
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: options.length,
+                        separatorBuilder: (context, index) => Divider(color: Colors.grey.shade200, height: 1),
+                        itemBuilder: (context, index) {
+                          final option = options[index];
+                          final isSelected = option == currentValue;
+                          
+                          return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            // 선택된 항목은 예쁜 반투명 배경색 적용
+                            tileColor: isSelected ? accentColor.withOpacity(0.1) : Colors.transparent,
+                            leading: Icon(
+                              title.contains("BGM") ? Icons.music_note : Icons.notifications_active,
+                              color: isSelected ? accentColor : Colors.grey.shade400,
+                            ),
+                            title: Text(
+                              option,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected ? accentColor : Colors.black87,
+                              ),
+                            ),
+                            trailing: isSelected ? Icon(Icons.check_circle, color: accentColor) : null,
+                            onTap: () {
+                              notifier.value = option; // 값 변경
+                              onPreview(option);       // 미리듣기 재생
+                            },
+                          );
+                        },
+                      );
+                    }
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context), 
+                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16))
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget audioPickerRow(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+          GestureDetector(
+            onTap: () => _showAudioPickerDialog("$title 선택", options, notifier, accentColor, onPreview),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
+                ]
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ValueListenableBuilder<String>(
+                    valueListenable: notifier,
+                    builder: (context, val, _) {
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.35),
+                        child: Text(
+                          val, 
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)
+                        ),
+                      );
+                    }
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 20),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
@@ -948,12 +1072,13 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          CustomWheelPicker(
-            title: "알림 방식",
-            options: alarmOptions,
-            notifier: globalAlarmSound,
-            accentColor: accentColor,
-            onSelected: (val) => GlobalBgmManager.previewAlarmSound(val),
+          // 💡 CustomWheelPicker를 지우고 기존 로직을 그대로 살린 audioPickerRow!
+          audioPickerRow(
+            "알림 방식",
+            alarmOptions,
+            globalAlarmSound,
+            accentColor,
+            (val) => GlobalBgmManager.previewAlarmSound(val),
           ),
         ],
       );
@@ -969,12 +1094,13 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          CustomWheelPicker(
-            title: "트랙 선택",
-            options: bgmOptions,
-            notifier: globalBgmTrack,
-            accentColor: accentColor,
-            onSelected: (val) => GlobalBgmManager.previewBgm(val),
+          // 💡 CustomWheelPicker를 지우고 기존 로직을 그대로 살린 audioPickerRow!
+          audioPickerRow(
+            "트랙 선택",
+            bgmOptions,
+            globalBgmTrack,
+            accentColor,
+            (val) => GlobalBgmManager.previewBgm(val),
           ),
         ],
       );
