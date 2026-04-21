@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:timer_app/pages/shared_design.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../services/firebase_settings_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ThemeItem {
   final String name;
@@ -297,6 +297,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _stopPreview() {}
 
+  List<Map<String, dynamic>> _favorites = [];
+
   @override
   void initState() {
     super.initState();
@@ -305,6 +307,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _scrollController.addListener(_onScroll);
     _user = FirebaseAuth.instance.currentUser;
     _refreshUser(); // 🔥 이거 추가
+    _loadFavorites();
   }
 
   void _refreshUser() async {
@@ -326,6 +329,119 @@ class _SettingsPageState extends State<SettingsPage> {
     GlobalBgmManager.stopAllSound();
 
     super.dispose();
+  }
+
+  Future<void> _loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? favsJson = prefs.getString('my_favorites');
+    if (favsJson != null) {
+      setState(() {
+        _favorites = List<Map<String, dynamic>>.from(jsonDecode(favsJson));
+      });
+    }
+  }
+
+  Future<void> _saveFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('my_favorites', jsonEncode(_favorites));
+  }
+
+  void _addFavorite(String name) {
+    final newFav = {
+      "name": name,
+      "bgColor": globalBgColor.value.value,
+      "clockColor": globalClockColor.value.value,
+      "digitalColor": globalDigitalColor.value.value,
+      "indicatorColor": globalIndicatorColor.value.value,
+      "bgVideoName": globalBgVideoName.value,
+      "isTimerMode": globalIsTimerMode.value,
+      "timerMaxString": globalTimerMaxString.value,
+      "displayMode": globalDisplayMode.value,
+      "indicatorMode": globalIndicatorMode.value,
+      "digitalStyle": globalDigitalStyle.value,
+      "digitalFontSize": globalDigitalFontSize.value,
+      "hapticIntensity": globalHapticIntensity.value,
+      "alarmEnabled": globalAlarmEnabled.value,
+      "alarmSound": globalAlarmSound.value,
+      "bgmEnabled": globalBgmEnabled.value,
+      "bgmTrack": globalBgmTrack.value,
+    };
+
+    setState(() {
+      _favorites.add(newFav);
+    });
+    _saveFavorites();
+  }
+
+  void _applyFavorite(Map<String, dynamic> fav) {
+    setState(() {
+      globalBgColor.value = Color(fav["bgColor"]);
+      globalClockColor.value = Color(fav["clockColor"]);
+      globalDigitalColor.value = Color(fav["digitalColor"]);
+      globalIndicatorColor.value = Color(fav["indicatorColor"]);
+      globalBgVideoName.value = fav["bgVideoName"] ?? "사용 안 함";
+      globalIsTimerMode.value = fav["isTimerMode"] ?? true;
+      globalTimerMaxString.value = fav["timerMaxString"] ?? "60초 (1분)";
+      globalDisplayMode.value = fav["displayMode"] ?? "BOTH";
+      globalIndicatorMode.value = fav["indicatorMode"] ?? "NUMBER";
+      globalDigitalStyle.value = fav["digitalStyle"] ?? "DEFAULT";
+      globalDigitalFontSize.value = fav["digitalFontSize"] ?? "MEDIUM";
+      globalHapticIntensity.value = fav["hapticIntensity"] ?? "NONE";
+      globalAlarmEnabled.value = fav["alarmEnabled"] ?? true;
+      globalAlarmSound.value = fav["alarmSound"] ?? "기본 알람";
+      globalBgmEnabled.value = fav["bgmEnabled"] ?? false;
+      globalBgmTrack.value = fav["bgmTrack"] ?? "기본 BGM";
+    });
+    // 파이어베이스 저장 (있다면)
+    FirebaseSettingsService.saveSettingsDebounced();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('"${fav["name"]}" 테마가 적용되었습니다!'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
+  void _showAddFavoriteDialog(Color accentColor) {
+    TextEditingController nameController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          title: Text(
+            "즐겨찾기 추가",
+            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+          ),
+          content: TextField(
+            controller: nameController,
+            decoration: const InputDecoration(hintText: "예: 집중 모드, 벚꽃 테마 등"),
+            maxLength: 15,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("취소", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () {
+                if (nameController.text.trim().isEmpty) return;
+                _addFavorite(nameController.text.trim());
+                Navigator.pop(context);
+              },
+              child: Text(
+                "저장",
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _onScroll() {
@@ -1262,6 +1378,112 @@ class _SettingsPageState extends State<SettingsPage> {
     Widget sectionContent;
     if (index == 0) {
       sectionContent = _buildAccountSection(accentColor);
+    } else if (index == 1) {
+      // 🌟 [수정] 즐겨찾기 탭 화면 구성
+      sectionContent = Column(
+        children: [
+          if (_favorites.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Text(
+                "저장된 즐겨찾기가 없습니다.\n아래 + 버튼을 눌러 현재 설정을 저장해보세요!",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade500, height: 1.5),
+              ),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _favorites.length,
+              itemBuilder: (context, i) {
+                final fav = _favorites[i];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.star, color: accentColor),
+                  title: Text(
+                    fav["name"],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  trailing: IconButton(
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
+                    onPressed: () {
+                      // 👇 버튼을 누르면 바로 안 지우고 팝업(Dialog)을 띄웁니다.
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            backgroundColor: Colors.white,
+                            title: Text(
+                              "즐겨찾기 삭제",
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            content: const Text(
+                              "해당 즐겨찾기를 제거하시겠습니까?",
+                              style: TextStyle(fontSize: 15),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () =>
+                                    Navigator.pop(context), // 팝업 닫기 (취소)
+                                child: const Text(
+                                  "취소",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {
+                                  // 진짜 삭제 실행
+                                  setState(() {
+                                    _favorites.removeAt(i);
+                                  });
+                                  _saveFavorites();
+                                  Navigator.pop(context); // 팝업 닫기
+                                },
+                                child: const Text(
+                                  "제거",
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  onTap: () => _applyFavorite(fav),
+                );
+              },
+            ),
+          const SizedBox(height: 12),
+          // 하단 + 버튼
+          GestureDetector(
+            onTap: () => _showAddFavoriteDialog(accentColor),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.add, size: 32, color: accentColor),
+            ),
+          ),
+        ],
+      );
     } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
@@ -1670,6 +1892,17 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
     int initialIndex = widget.options.indexOf(widget.notifier.value);
     if (initialIndex == -1) initialIndex = 0;
     _controller = FixedExtentScrollController(initialItem: initialIndex);
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomWheelPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    int targetIndex = widget.options.indexOf(widget.notifier.value);
+    if (targetIndex != -1 &&
+        _controller.hasClients &&
+        _controller.selectedItem != targetIndex) {
+      _controller.jumpToItem(targetIndex);
+    }
   }
 
   @override
