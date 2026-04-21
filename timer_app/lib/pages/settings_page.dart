@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../services/firebase_settings_service.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class ThemeItem {
   final String name;
@@ -39,35 +40,107 @@ class AppThemePreset {
 }
 
 class AuthService {
-  static final FirebaseAuth _auth = FirebaseAuth.instance;
+  static FirebaseAuth get _auth => FirebaseAuth.instance;
   static final GoogleSignIn _googleSignIn = GoogleSignIn();
 
+  // ✅ Google 로그인
   static Future<User?> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return null;
 
-      if (googleUser == null) return null; // 취소
-
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      final googleAuth = await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final userCredential = await _auth.signInWithCredential(credential);
-
-      return userCredential.user;
+      final result = await _auth.signInWithCredential(credential);
+      return result.user;
     } catch (e) {
-      print("로그인 에러: $e");
+      print("구글 로그인 에러: $e");
       return null;
     }
   }
 
+  // ✅ 이메일 로그인 (차단 X)
+  static Future<User?> signInWithEmail(String email, String password) async {
+    try {
+      final result = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return result.user;
+    } catch (e) {
+      print("이메일 로그인 에러: $e");
+      return null;
+    }
+  }
+
+  static Future<User?> signUpWithEmail(String email, String password) async {
+    print("🔥 Firebase apps: ${Firebase.apps}");
+
+    print("🔥 [SIGNUP START]");
+    print("📧 email: $email");
+    print("🔑 pw: $password");
+    print("👤 currentUser: ${_auth.currentUser}");
+
+    try {
+      if (_auth.currentUser != null) {
+        print("⚠️ 기존 유저 있어서 로그아웃 시도");
+        await _auth.signOut();
+      }
+
+      print("🚀 createUserWithEmailAndPassword 호출 직전");
+
+      final result = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      print("✅ Firebase 응답 받음");
+
+      final user = result.user;
+
+      print("👤 생성된 user: $user");
+
+      if (user != null && !user.emailVerified) {
+        print("📨 인증 메일 전송");
+        await user.sendEmailVerification();
+      }
+
+      print("🔥 [SIGNUP END SUCCESS]");
+      return user;
+    } on FirebaseAuthException catch (e) {
+      print("❌ FirebaseAuthException");
+      print("코드: ${e.code}");
+      print("메시지: ${e.message}");
+      return null;
+    } catch (e, stack) {
+      print("💥 일반 에러");
+      print("에러: $e");
+      print("스택: $stack");
+      return null;
+    }
+  }
+
+  // ✅ 로그아웃
   static Future<void> signOut() async {
     await _auth.signOut();
     await _googleSignIn.signOut();
+  }
+
+  // ✅ 탈퇴
+  static Future<void> deleteAccount() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await user.delete();
+    } catch (e) {
+      print("탈퇴 에러: $e");
+    }
   }
 }
 
@@ -231,6 +304,18 @@ class _SettingsPageState extends State<SettingsPage> {
     _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _scrollController.addListener(_onScroll);
     _user = FirebaseAuth.instance.currentUser;
+    _refreshUser(); // 🔥 이거 추가
+  }
+
+  void _refreshUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    await user?.reload();
+
+    setState(() {
+      _user = FirebaseAuth.instance.currentUser;
+    });
+
+    print("🔄 인증 상태 갱신: ${_user?.emailVerified}");
   }
 
   @override
@@ -468,30 +553,50 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-// =========================================================
+  // =========================================================
   // 🌟 [새로 추가할 함수 2개] 알림음/BGM 전용 팝업 및 버튼 UI
   // =========================================================
-  void _showAudioPickerDialog(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+  void _showAudioPickerDialog(
+    String title,
+    List<String> options,
+    ValueNotifier<String> notifier,
+    Color accentColor,
+    Function(String) onPreview,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
-        final double popupWidth = screenWidth * 0.85;  
+        final double popupWidth = screenWidth * 0.85;
         final double popupHeight = screenHeight * 0.6; // 리스트가 기니까 세로로 길게
 
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: popupWidth,
             height: popupHeight,
-            padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0, bottom: 12.0),
+            padding: const EdgeInsets.only(
+              top: 20.0,
+              left: 16.0,
+              right: 16.0,
+              bottom: 12.0,
+            ),
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
                 ),
                 Expanded(
                   child: ValueListenableBuilder<String>(
@@ -500,44 +605,69 @@ class _SettingsPageState extends State<SettingsPage> {
                       return ListView.separated(
                         physics: const BouncingScrollPhysics(),
                         itemCount: options.length,
-                        separatorBuilder: (context, index) => Divider(color: Colors.grey.shade200, height: 1),
+                        separatorBuilder: (context, index) =>
+                            Divider(color: Colors.grey.shade200, height: 1),
                         itemBuilder: (context, index) {
                           final option = options[index];
                           final isSelected = option == currentValue;
-                          
+
                           return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12.0,
+                              vertical: 4.0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                             // 선택된 항목은 예쁜 반투명 배경색 적용
-                            tileColor: isSelected ? accentColor.withOpacity(0.1) : Colors.transparent,
+                            tileColor: isSelected
+                                ? accentColor.withOpacity(0.1)
+                                : Colors.transparent,
                             leading: Icon(
-                              title.contains("BGM") ? Icons.music_note : Icons.notifications_active,
-                              color: isSelected ? accentColor : Colors.grey.shade400,
+                              title.contains("BGM")
+                                  ? Icons.music_note
+                                  : Icons.notifications_active,
+                              color: isSelected
+                                  ? accentColor
+                                  : Colors.grey.shade400,
                             ),
                             title: Text(
                               option,
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                color: isSelected ? accentColor : Colors.black87,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? accentColor
+                                    : Colors.black87,
                               ),
                             ),
-                            trailing: isSelected ? Icon(Icons.check_circle, color: accentColor) : null,
+                            trailing: isSelected
+                                ? Icon(Icons.check_circle, color: accentColor)
+                                : null,
                             onTap: () {
                               notifier.value = option; // 값 변경
-                              onPreview(option);       // 미리듣기 재생
+                              onPreview(option); // 미리듣기 재생
                             },
                           );
                         },
                       );
-                    }
+                    },
                   ),
                 ),
                 const SizedBox(height: 8),
                 TextButton(
-                  onPressed: () => Navigator.pop(context), 
-                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16))
-                )
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    "닫기",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -546,24 +676,50 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget audioPickerRow(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+  Widget audioPickerRow(
+    String title,
+    List<String> options,
+    ValueNotifier<String> notifier,
+    Color accentColor,
+    Function(String) onPreview,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: accentColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           GestureDetector(
-            onTap: () => _showAudioPickerDialog("$title 선택", options, notifier, accentColor, onPreview),
+            onTap: () => _showAudioPickerDialog(
+              "$title 선택",
+              options,
+              notifier,
+              accentColor,
+              onPreview,
+            ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))
-                ]
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -572,17 +728,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     valueListenable: notifier,
                     builder: (context, val, _) {
                       return ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.35),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.35,
+                        ),
                         child: Text(
-                          val, 
+                          val,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
                         ),
                       );
-                    }
+                    },
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 20),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
@@ -832,69 +998,260 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildLoginButton(BuildContext context, Color accentColor) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+  Widget _loginButton(
+    String text,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    final size = MediaQuery.of(context).size;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          vertical: size.height * 0.015,
+          horizontal: size.width * 0.03,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: size.width * 0.06),
+            SizedBox(width: size.width * 0.03),
+
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: size.width * 0.04,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _actionButton(String text, Color color, VoidCallback onTap) {
+    final size = MediaQuery.of(context).size;
+
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.012),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+      onPressed: onTap,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: size.width * 0.035,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
+  Future<Map<String, String>?> _showEmailDialog() {
+    final email = TextEditingController();
+    final pw = TextEditingController();
+
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("이메일 로그인"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: email,
+                decoration: const InputDecoration(labelText: "이메일"),
+              ),
+              TextField(
+                controller: pw,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "비밀번호"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  "email": email.text.trim(),
+                  "pw": pw.text.trim(),
+                  "type": "login", // ✔ 로그인
+                });
+              },
+              child: const Text("로그인"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, {
+                  "email": email.text.trim(),
+                  "pw": pw.text.trim(),
+                  "type": "signup", // ✔ 회원가입
+                });
+              },
+              child: const Text("회원가입"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildAccountSection(Color accentColor) {
+    final size = MediaQuery.of(context).size;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final user = snapshot.data;
 
-        return Padding(
-          padding: EdgeInsets.symmetric(vertical: screenHeight * 0.008),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(screenWidth * 0.02),
-            onTap: () async {
-              if (user == null) {
-                final result = await AuthService.signInWithGoogle();
-
-                if (result != null) {
-                  await FirebaseSettingsService.loadSettingsFromCloud();
-                }
-                print("로그인 결과: $result"); // 👈 추가
-                print("현재 유저: ${FirebaseAuth.instance.currentUser}"); // 👈 추가
-              } else {
-                await FirebaseSettingsService.saveSettingsToCloud();
-                await AuthService.signOut();
-              }
-            },
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                vertical: screenHeight * 0.015,
-                horizontal: screenWidth * 0.02,
+        return Column(
+          children: [
+            if (user == null) ...[
+              _loginButton(
+                "Google로 로그인",
+                Icons.g_mobiledata,
+                accentColor,
+                () async {
+                  final result = await AuthService.signInWithGoogle();
+                  if (result != null) {
+                    await FirebaseSettingsService.loadSettingsFromCloud();
+                  }
+                },
               ),
-              child: Row(
+
+              SizedBox(height: size.height * 0.01),
+              _loginButton("이메일 로그인", Icons.email, accentColor, () async {
+                print("🔥 이메일 버튼 클릭");
+
+                final result = await _showEmailDialog();
+
+                print("📦 dialog result: $result");
+
+                if (result == null) return;
+
+                final email = result["email"]!;
+                final pw = result["pw"]!;
+                final type = result["type"];
+
+                print("📧 입력 email: $email");
+                print("🔑 입력 pw: $pw");
+                print("🧭 type: $type");
+
+                // 🔥 입력값 체크 필수
+                if (type == "login" && (email.isEmpty || pw.isEmpty)) {
+                  print("❌ 로그인 입력값 없음");
+                  return;
+                }
+
+                if (type == "signup") {
+                  // 🔥 회원가입은 페이지로 이동
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SignUpPage()),
+                  );
+                } else {
+                  final user = await AuthService.signInWithEmail(email, pw);
+                  print("🎯 로그인 결과: $user");
+                }
+              }),
+            ] else ...[
+              Row(
                 children: [
-                  SvgPicture.asset(
-                    "assets/icons/google.svg",
-                    width: screenWidth * 0.055,
-                    height: screenWidth * 0.055,
-                  ),
-                  SizedBox(width: screenWidth * 0.03),
+                  Icon(Icons.person, color: accentColor),
+                  SizedBox(width: size.width * 0.03),
 
                   Expanded(
-                    child: Text(
-                      user == null ? "Google로 로그인" : user.displayName ?? "사용자",
-                      style: TextStyle(
-                        fontSize: screenWidth * 0.04,
-                        fontWeight: FontWeight.w600,
-                        color: accentColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.email ?? "사용자",
+                          style: TextStyle(
+                            fontSize: size.width * 0.04,
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                          ),
+                        ),
 
-                  Icon(
-                    user == null ? Icons.login : Icons.logout,
-                    size: screenWidth * 0.04,
-                    color: accentColor.withOpacity(0.6),
+                        if (!user.emailVerified) ...[
+                          Text(
+                            "이메일 인증 필요",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: size.width * 0.03,
+                            ),
+                          ),
+
+                          const SizedBox(height: 6),
+
+                          TextButton(
+                            onPressed: () async {
+                              final user = FirebaseAuth.instance.currentUser;
+
+                              await user?.reload(); // 🔥 핵심
+
+                              final refreshedUser =
+                                  FirebaseAuth.instance.currentUser;
+
+                              setState(() {
+                                _user = refreshedUser;
+                              });
+
+                              print(
+                                "🔄 인증 상태: ${refreshedUser?.emailVerified}",
+                              );
+
+                              if (refreshedUser?.emailVerified == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("인증 완료!")),
+                                );
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("아직 인증 안됨")),
+                                );
+                              }
+                            },
+                            child: const Text("인증 확인"),
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
-            ),
-          ),
+
+              SizedBox(height: size.height * 0.015),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: _actionButton("로그아웃", accentColor, () async {
+                      await FirebaseSettingsService.saveSettingsToCloud();
+                      await AuthService.signOut();
+                    }),
+                  ),
+                  SizedBox(width: size.width * 0.02),
+                  Expanded(
+                    child: _actionButton("탈퇴", Colors.red, () async {
+                      await AuthService.deleteAccount();
+                    }),
+                  ),
+                ],
+              ),
+            ],
+          ],
         );
       },
     );
@@ -904,13 +1261,7 @@ class _SettingsPageState extends State<SettingsPage> {
     bool isLastItem = index == _tabTitles.length - 1;
     Widget sectionContent;
     if (index == 0) {
-      // 🔥 계정 설정 탭
-      sectionContent = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildLoginButton(context, accentColor), // ✅
-        ],
-      );
+      sectionContent = _buildAccountSection(accentColor);
     } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
@@ -1151,6 +1502,144 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
       ],
+    );
+  }
+}
+
+class SignUpPage extends StatefulWidget {
+  @override
+  State<SignUpPage> createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final email = TextEditingController();
+  final pw = TextEditingController();
+  final pwConfirm = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("회원가입")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: "이메일"),
+            ),
+            TextField(
+              controller: pw,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "비밀번호"),
+            ),
+            TextField(
+              controller: pwConfirm,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "비밀번호 확인"),
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: () async {
+                if (pw.text != pwConfirm.text) {
+                  print("비밀번호 다름");
+                  return;
+                }
+
+                final user = await AuthService.signUpWithEmail(
+                  email.text.trim(),
+                  pw.text.trim(),
+                );
+
+                if (user != null) {
+                  // 🔥 1. 성공 팝업
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text("회원가입 완료"),
+                      content: const Text("회원가입에 성공했습니다"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context); // 팝업 닫기
+                            Navigator.pop(context); // 회원가입 페이지 닫기
+                          },
+                          child: const Text("확인"),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  // 🔥 실패 처리
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("회원가입 실패")));
+                }
+              },
+              child: const Text("회원가입"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class EmailLoginPage extends StatefulWidget {
+  @override
+  State<EmailLoginPage> createState() => _EmailLoginPageState();
+}
+
+class _EmailLoginPageState extends State<EmailLoginPage> {
+  final email = TextEditingController();
+  final pw = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("로그인")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: "이메일"),
+            ),
+            TextField(
+              controller: pw,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "비밀번호"),
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: () async {
+                final user = await AuthService.signInWithEmail(
+                  email.text.trim(),
+                  pw.text.trim(),
+                );
+
+                print("로그인 결과: $user");
+              },
+              child: const Text("로그인"),
+            ),
+
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => SignUpPage()),
+                );
+              },
+              child: const Text("회원가입"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
