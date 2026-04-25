@@ -22,6 +22,8 @@ void main() async {
     await loadSettings();
   }
   initSettingsListener();
+  // 🌟 여기에 뽀모도로 초기화 감지기 시작 코드를 한 줄 추가합니다!
+  initPomodoroResetListener();
   runApp(const MyApp());
 }
 

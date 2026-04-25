@@ -157,6 +157,7 @@ class _SettingsPageState extends State<SettingsPage> {
     "즐겨 찾기",
     "테마",
     "시계 설정",
+    "뽀모도로",   // 👈 여기에 추가!
     "알림 설정",
     "BGM",
     "고객 센터",
@@ -288,7 +289,67 @@ class _SettingsPageState extends State<SettingsPage> {
       video: "벚꽃 (Cherry Blossom)",
     ),
   ];
-
+  void _showPomodoroHelpDialog(Color accentColor) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.timer, color: accentColor),
+              const SizedBox(width: 8),
+              Text(
+                "뽀모도로 모드란?",
+                style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "짧은 집중과 휴식을 반복하여 뇌의 집중력을 극대화하는 시간 관리 기법입니다. 🍅",
+                  style: TextStyle(fontSize: 14, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                const Text("⚙️ 동작 설정", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 4),
+                const Text(
+                  "• 집중 시간: 목표에만 몰두하는 시간\n"
+                  "• 짧은 휴식: 집중 후 뇌를 잠깐 쉬게 해주는 시간\n"
+                  "• 긴 휴식: 짧은 휴식 대신 길게 쉬면서 에너지를 완전히 회복하는 시간\n"
+                  "• 긴 휴식 주기: 집중-휴식 사이클을 몇 번 반복한 후 '긴 휴식'을 가질지 결정하는 횟수\n"
+                  "• 최대 뽀모도로 횟수: 타이머가 자동으로 종료될 총 뽀모도로 진행 횟수 한도",
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+                const SizedBox(height: 16),
+                const Text("⚙️ 자동 시작 옵션", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const SizedBox(height: 4),
+                const Text(
+                  "• 켜짐(ON): 이전 모드가 끝나면 화면 터치 없이 즉시 다음 타이머가 시작됩니다.\n"
+                  "• 꺼짐(OFF): 화면을 터치해야 다음 타이머가 시작됩니다.",
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "확인",
+                style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            )
+          ],
+        );
+      },
+    );
+  }
   late List<GlobalKey> _sectionKeys;
   late List<GlobalKey> _tabKeys;
   int _selectedIndex = 0;
@@ -1637,7 +1698,75 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       );
-    } else if (index == 4) {
+    } // 🌟 뽀모도로 탭 추가 (index 4)// 🌟 뽀모도로 탭 (index 4)
+    else if (index == 4) {
+      sectionContent = ValueListenableBuilder<bool>(
+        valueListenable: globalPomodoroMode,
+        builder: (context, isPomodoroOn, child) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. 전체 ON/OFF
+              buildTwoOptionToggle("뽀모도로 모드", "ON", "OFF", globalPomodoroMode, accentColor),
+              
+              // 2. 모드가 ON일 때만 아래 설정들 보여주기
+              if (isPomodoroOn) ...[
+                Divider(color: Colors.grey.shade200, height: 24, thickness: 1),
+                
+                // 시간 및 사이클 설정
+                Text("시간 및 횟수 설정", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                
+                // 💡 List.generate를 활용하여 1~60까지의 리스트 자동 생성
+                CustomWheelPicker(
+                  title: "집중 시간", 
+                  options: List.generate(60, (i) => "${i + 1}분"), 
+                  notifier: globalPomodoroWorkTime, 
+                  accentColor: accentColor
+                ),
+                const SizedBox(height: 4),
+                CustomWheelPicker(
+                  title: "짧은 휴식", 
+                  options: List.generate(60, (i) => "${i + 1}분"), 
+                  notifier: globalPomodoroShortBreak, 
+                  accentColor: accentColor
+                ),
+                const SizedBox(height: 4),
+                CustomWheelPicker(
+                  title: "긴 휴식", 
+                  options: List.generate(60, (i) => "${i + 1}분"), 
+                  notifier: globalPomodoroLongBreak, 
+                  accentColor: accentColor
+                ),
+                const SizedBox(height: 4),
+                CustomWheelPicker(
+                  title: "긴 휴식 주기", 
+                  options: List.generate(10, (i) => "${i + 1}번"), 
+                  notifier: globalPomodoroCycleCount, 
+                  accentColor: accentColor
+                ),
+                const SizedBox(height: 4),
+                CustomWheelPicker(
+                  title: "최대 뽀모도로 횟수", 
+                  // "제한 없음"을 맨 앞에 넣고, 뒤에 1번~20번을 이어붙입니다. 괄호 내용 삭제!
+                  options: ["제한 없음", ...List.generate(20, (i) => "${i + 1}세션")], 
+                  notifier: globalPomodoroMaxSessions, 
+                  accentColor: accentColor
+                ),
+                
+                Divider(color: Colors.grey.shade200, height: 24, thickness: 1),
+
+                // 자동 시작 설정
+                Text("자동 시작 옵션", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                buildTwoOptionToggle("집중 모드 자동시작", "ON", "OFF", globalPomodoroAutoWork, accentColor),
+                buildTwoOptionToggle("휴식 모드 자동시작", "ON", "OFF", globalPomodoroAutoBreak, accentColor),
+              ],
+            ],
+          );
+        },
+      );
+    } else if (index == 5) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1659,7 +1788,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       );
-    } else if (index == 5) {
+    } else if (index == 6) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1694,13 +1823,27 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
-          child: Text(
-            _tabTitles[index],
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: accentColor,
-            ),
+// 🌟 타이틀 옆에 물음표 아이콘 추가
+          child: Row(
+            children: [
+              Text(
+                _tabTitles[index],
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
+              if (_tabTitles[index] == "뽀모도로")
+                Padding(
+                  padding: const EdgeInsets.only(left: 6.0),
+                  child: InkWell(
+                    onTap: () => _showPomodoroHelpDialog(accentColor),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Icon(Icons.help_outline, color: accentColor.withOpacity(0.7), size: 22),
+                  ),
+                ),
+            ],
           ),
         ),
         Container(
