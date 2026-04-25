@@ -9,6 +9,22 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import '../services/firebase_settings_service.dart';
 
+// shared_design.dart 파일 내부에 추가
+
+// 뽀모도로 활성화 여부
+ValueNotifier<bool> globalPomodoroMode = ValueNotifier<bool>(false);
+
+// 뽀모도로 시간 및 사이클 설정
+ValueNotifier<String> globalPomodoroWorkTime = ValueNotifier<String>("25분");
+ValueNotifier<String> globalPomodoroShortBreak = ValueNotifier<String>("5분");
+ValueNotifier<String> globalPomodoroLongBreak = ValueNotifier<String>("15분");
+ValueNotifier<String> globalPomodoroCycleCount = ValueNotifier<String>("4번");
+ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>("제한 없음");
+
+// 뽀모도로 자동 시작 설정
+ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(false); // 집중 모드 자동 시작
+ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(true); // 휴식 모드 자동 시작
+
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
 // =========================================================
@@ -1338,4 +1354,32 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       ],
     );
   }
+}
+
+// shared_design.dart 파일 하단에 추가
+enum PomodoroState { work, shortBreak, longBreak }
+ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(PomodoroState.work);
+ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0); // 완료된 뽀모도로 횟수
+
+// shared_design.dart 파일 하단에 추가
+
+/// 뽀모도로 상태를 처음부터 다시 시작하도록 초기화하는 함수
+void resetPomodoroStatus() {
+  globalPomodoroState.value = PomodoroState.work;      // 다시 '집중 모드'로
+  globalCompletedCycles.value = 0;                     // 완료 횟수 0으로
+  
+  // 현재 설정된 '집중 시간'을 파싱해서 타이머 시간도 리셋 (옵션)
+  // 예: "25분" -> 25 * 60 초로 세팅하는 로직을 호출하거나 변수 직접 수정
+}
+// shared_design.dart 파일 내 변수 선언 아래쪽에 추가
+
+void initPomodoroResetListener() {
+  globalPomodoroMode.addListener(() {
+    if (globalPomodoroMode.value == false) {
+      // 뽀모도로가 꺼지면 묻지도 따지지도 않고 초기화!
+      globalPomodoroState.value = PomodoroState.work;
+      globalCompletedCycles.value = 0;
+      debugPrint("🍅 뽀모도로 상태가 초기화되었습니다.");
+    }
+  });
 }
