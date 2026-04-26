@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:video_player/video_player.dart'; // 🌟 1. 비디오 플레이어 추가
 
 class ThemeItem {
   final String name;
@@ -168,6 +169,59 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isAdReady = false;
   bool _isLoadingAd = false;
   User? _user;
+
+  // =========================================================
+  // 🌟 2. 미리보기 오버레이 제어 변수 및 함수 추가
+  // =========================================================
+  OverlayEntry? _previewOverlay;
+
+  void _showPreview(BuildContext context, String videoName) {
+    if (_previewOverlay != null) return; // 이미 띄워져 있으면 무시
+
+    _previewOverlay = OverlayEntry(
+      builder: (context) {
+        return Positioned.fill(
+          child: Material(
+            color: Colors.black.withOpacity(0.6), // 반투명 검정 배경
+            child: SafeArea(
+              child: Center(
+                child: Container(
+                  width: MediaQuery.of(context).size.width * 0.85,
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  decoration: BoxDecoration(
+                    color: Colors.black,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.5), width: 1.5),
+                    boxShadow: const [
+                      BoxShadow(
+                          color: Colors.black54, blurRadius: 15, spreadRadius: 5),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: MediaPreviewWidget(videoName: videoName),
+                      ),
+                      
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+// 다이얼로그(팝업창) 안에서도 무조건 최상단에 미리보기를 강제로 띄워줍니다.
+    Navigator.of(context, rootNavigator: true).overlay?.insert(_previewOverlay!);  }
+
+  void _hidePreview() {
+    _previewOverlay?.remove();
+    _previewOverlay = null;
+  }
+  // =========================================================
 
   Widget _buildAdRewardBox(Color accentColor) {
     return Container(
@@ -508,6 +562,9 @@ class _SettingsPageState extends State<SettingsPage> {
     // 🔥 추가 (미리듣기 소리 정지)
     GlobalBgmManager.stopAllSound();
 
+    // 🌟 화면 나갈 때 미리보기 창 확실히 정리 (에러 방지)
+    _hidePreview();
+
     super.dispose();
   }
 
@@ -765,6 +822,19 @@ class _SettingsPageState extends State<SettingsPage> {
 
                           Navigator.pop(context);
                         },
+                        // 🌟 3. 미리보기(롱프레스) 이벤트 추가!
+                        onLongPressStart: (details) {
+                          if (item.video != null) {
+                            _showPreview(context, item.video!);
+                          }
+                        },
+                        onLongPressEnd: (details) {
+                          _hidePreview(); // 손가락 떼면 닫힘
+                        },
+                        onLongPressCancel: () {
+                          _hidePreview(); // 취소되어도 닫힘
+                        },
+                        // ----------------------------------------
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
@@ -849,9 +919,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // =========================================================
-  // 🌟 [새로 추가할 함수 2개] 알림음/BGM 전용 팝업 및 버튼 UI
-  // =========================================================
   void _showAudioPickerDialog(
     String title,
     List<String> options,
@@ -1872,7 +1939,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 4),
                 CustomWheelPicker(
                   title: "최대 뽀모도로 횟수", 
-                  // "제한 없음"을 맨 앞에 넣고, 뒤에 1번~20번을 이어붙입니다. 괄호 내용 삭제!
                   options: ["제한 없음", ...List.generate(20, (i) => "${i + 1}세션")], 
                   notifier: globalPomodoroMaxSessions, 
                   accentColor: accentColor
@@ -1902,7 +1968,6 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          // 💡 CustomWheelPicker를 지우고 기존 로직을 그대로 살린 audioPickerRow!
           audioPickerRow(
             "알림 방식",
             alarmOptions,
@@ -1924,7 +1989,6 @@ class _SettingsPageState extends State<SettingsPage> {
             accentColor,
           ),
           Divider(color: Colors.grey.shade200, height: 16, thickness: 1),
-          // 💡 CustomWheelPicker를 지우고 기존 로직을 그대로 살린 audioPickerRow!
           audioPickerRow(
             "트랙 선택",
             bgmOptions,
@@ -1947,7 +2011,6 @@ class _SettingsPageState extends State<SettingsPage> {
       children: [
         Padding(
           padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
-// 🌟 타이틀 옆에 물음표 아이콘 추가
           child: Row(
             children: [
               Text(
@@ -2043,7 +2106,6 @@ class _SignUpPageState extends State<SignUpPage> {
                 );
 
                 if (user != null) {
-                  // 🔥 1. 성공 팝업
                   showDialog(
                     context: context,
                     builder: (_) => AlertDialog(
@@ -2061,7 +2123,6 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   );
                 } else {
-                  // 🔥 실패 처리
                   ScaffoldMessenger.of(
                     context,
                   ).showSnackBar(const SnackBar(content: Text("회원가입 실패")));
@@ -2111,7 +2172,6 @@ class _EmailLoginPageState extends State<EmailLoginPage> {
                   email.text.trim(),
                   pw.text.trim(),
                 );
-
                 print("로그인 결과: $user");
               },
               child: const Text("로그인"),
@@ -2175,7 +2235,6 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
   @override
   void dispose() {
     _controller.dispose();
-
     super.dispose();
   }
 
@@ -2273,6 +2332,88 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
           ),
         ],
       ),
+    );
+  }
+}
+
+// =========================================================
+// 🌟 4. [미리보기 전용 위젯] 영상/사진을 띄워주는 역할
+// =========================================================
+class MediaPreviewWidget extends StatefulWidget {
+  final String videoName;
+  const MediaPreviewWidget({super.key, required this.videoName});
+
+  @override
+  State<MediaPreviewWidget> createState() => _MediaPreviewWidgetState();
+}
+
+class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
+  VideoPlayerController? _controller;
+  bool _isVideo = false;
+  String _assetPath = "";
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.videoName == "비 오는 밤 (Rain)") {
+      _assetPath = 'assets/video/rainwindow.mp4';
+      _isVideo = true; 
+    } 
+    else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
+      _assetPath = 'assets/video/sakura.mp4';
+      _isVideo = true;
+    }
+    
+    // 영상일 경우에만 컨트롤러 준비
+    if (_isVideo && _assetPath.isNotEmpty) {
+      _controller = VideoPlayerController.asset(_assetPath)
+        ..initialize().then((_) {
+          _controller!.setVolume(0.0); // 🌟 에러가 안나게 0.0 으로 명확하게 처리
+          _controller!.setLooping(true);
+          _controller!.play();
+          if (mounted) setState(() {});
+        });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_assetPath.isEmpty) {
+      return const Center(child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)));
+    }
+
+    bool isCherryBlossom = widget.videoName.contains("벚꽃");
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: _isVideo
+              ? (_controller != null && _controller!.value.isInitialized)
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _controller!.value.size.width,
+                        height: _controller!.value.size.height,
+                        child: VideoPlayer(_controller!),
+                      ),
+                    )
+                  : const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Image.asset(_assetPath, fit: BoxFit.cover), 
+        ),
+
+        // 벚꽃 효과 덧씌우기
+        if (isCherryBlossom)
+          const Positioned.fill(
+            child: IgnorePointer(child: CherryBlossomOverlay()),
+          ),
+      ],
     );
   }
 }
