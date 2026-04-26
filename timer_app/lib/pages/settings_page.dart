@@ -11,10 +11,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:video_player/video_player.dart';
-import 'package:flutter/foundation.dart';
-import 'package:url_launcher/url_launcher.dart'; // ✅ 메일 보내기 기능을 위해 추가
-import 'package:timer_app/pages/notice_page.dart';
-import 'package:timer_app/pages/faq_page.dart';
+import 'package:flutter/foundation.dart'; // ✅ kIsWeb 사용을 위해 꼭 필요
+
+// ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
+import 'notice_page.dart'; 
+import 'faq_page.dart';
 
 class ThemeItem {
   final String name;
@@ -143,6 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showPreview(BuildContext context, String videoName) {
     if (_previewOverlay != null) return;
+
     _previewOverlay = OverlayEntry(
       builder: (context) {
         return Positioned.fill(
@@ -183,107 +185,8 @@ class _SettingsPageState extends State<SettingsPage> {
     _previewOverlay?.remove();
     _previewOverlay = null;
   }
-void _showFeedbackDialog(Color accentColor) {
-  final TextEditingController feedbackController = TextEditingController();
 
-  showDialog(
-    context: context,
-    builder: (context) => AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Text("피드백 및 버그 제보", 
-        style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text("보내주신 소중한 의견은 앱 업데이트에 적극 반영됩니다. 😊", 
-            style: TextStyle(fontSize: 13, color: Colors.grey)),
-          const SizedBox(height: 16),
-          TextField(
-            controller: feedbackController,
-            maxLines: 5,
-            decoration: InputDecoration(
-              hintText: "내용을 작성해 주세요...",
-              filled: true,
-              fillColor: Colors.grey.shade100,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context), 
-          child: const Text("취소", style: TextStyle(color: Colors.grey))
-        ),
-        TextButton(
-          onPressed: () async {
-            if (feedbackController.text.trim().isEmpty) return;
-
-            try {
-              // ✅ 메일 앱 실행 대신 Firestore에 직접 저장
-              await FirebaseFirestore.instance.collection('feedbacks').add({
-                'content': feedbackController.text.trim(),
-                'userEmail': FirebaseAuth.instance.currentUser?.email ?? "익명",
-                'timestamp': FieldValue.serverTimestamp(),
-              });
-
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("소중한 의견 감사합니다! 전송이 완료되었습니다."))
-              );
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("전송 실패. 네트워크를 확인해 주세요."))
-              );
-            }
-          },
-          child: Text("전송하기", 
-            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-        ),
-      ],
-    ),
-  );
-}
-
-  // ✅ [추가] 자주 묻는 질문(FAQ) 팝업 함수
-  void _showFAQDialog(Color accentColor) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("자주 묻는 질문", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              _buildFAQItem("광고가 나오지 않아요.", "네트워크 상태가 불안정하거나 광고 물량이 일시적으로 부족할 수 있습니다. 잠시 후 다시 시도해 주세요."),
-              _buildFAQItem("포인트는 어디에 쓰나요?", "포인트는 추후 프리미엄 테마나 BGM 잠금을 해제하는 용도로 사용될 예정입니다."),
-              _buildFAQItem("데이터가 초기화되었어요.", "로그인 상태를 확인해 주세요. 게스트 모드일 경우 앱 삭제 시 데이터가 사라질 수 있습니다."),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("닫기", style: TextStyle(color: accentColor))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFAQItem(String question, String answer) {
-    return ExpansionTile(
-      title: Text(question, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Text(answer, style: const TextStyle(fontSize: 13, height: 1.4)),
-        ),
-      ],
-    );
-  }
-
+  // ✅ [복구] 광고 보상 박스
   Widget _buildAdRewardBox(Color accentColor) {
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -294,11 +197,65 @@ void _showFeedbackDialog(Color accentColor) {
       ),
       child: Column(
         children: [
-          Text("광고 보고 포인트 받기", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+          Text(
+            "광고 보고 포인트 받기",
+            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 8),
           ElevatedButton(
             onPressed: _isAdReady ? _showRewardAd : null,
-            child: Text(_isAdReady ? "+15 포인트" : (_isLoadingAd ? "광고 로딩중..." : "광고 준비중")),
+            child: Text(
+              _isAdReady ? "+15 포인트" : (_isLoadingAd ? "광고 로딩중..." : "광고 준비중"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ [고객센터 용] 인앱 피드백 전송 함수
+  void _showFeedbackDialog(Color accentColor) {
+    final TextEditingController feedbackController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text("피드백 및 버그 제보", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("내용을 입력하고 전송을 누르면 개발자에게 전달됩니다.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const SizedBox(height: 16),
+            TextField(
+              controller: feedbackController,
+              maxLines: 5,
+              decoration: InputDecoration(
+                hintText: "여기에 내용을 입력하세요...",
+                filled: true,
+                fillColor: Colors.grey.shade100,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () async {
+              if (feedbackController.text.trim().isEmpty) return;
+              try {
+                await FirebaseFirestore.instance.collection('feedbacks').add({
+                  'content': feedbackController.text.trim(),
+                  'userEmail': FirebaseAuth.instance.currentUser?.email ?? "익명",
+                  'timestamp': FieldValue.serverTimestamp(),
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("소중한 의견 감사합니다!")));
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("전송 실패. 네트워크를 확인하세요.")));
+              }
+            },
+            child: Text("전송", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -423,7 +380,7 @@ void _showFeedbackDialog(Color accentColor) {
   List<Map<String, dynamic>> _favorites = [];
 
   void _loadRewardedAd() {
-    if (kIsWeb) return;
+    if (kIsWeb) return; // ✅ [에러 해결] 웹 브라우저에서 광고 로드 명령 실행을 아예 막음
     if (_isLoadingAd) return;
     _isLoadingAd = true;
     RewardedAd.load(
@@ -443,6 +400,13 @@ void _showFeedbackDialog(Color accentColor) {
     );
   }
 
+  Future<void> _addPoint(int amount) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    await ref.set({'point': FieldValue.increment(amount)}, SetOptions(merge: true));
+  }
+
   Future<void> _rewardPoint(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -456,6 +420,10 @@ void _showFeedbackDialog(Color accentColor) {
   }
 
   void _showRewardAd() {
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("웹 버전에서는 광고가 지원되지 않습니다.")));
+      return;
+    }
     if (!_isAdReady || _rewardedAd == null) {
       _loadRewardedAd();
       return;
@@ -646,12 +614,17 @@ void _showFeedbackDialog(Color accentColor) {
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
         final screenHeight = MediaQuery.of(context).size.height;
+        final double popupWidth = screenWidth * 0.85;
+        final double popupHeight = screenHeight * 0.5;
+        final int columns = 6;
+        final double spacing = 12.0;
+
         return Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: screenWidth * 0.85,
-            height: screenHeight * 0.5,
+            width: popupWidth,
+            height: popupHeight,
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
@@ -661,8 +634,8 @@ void _showFeedbackDialog(Color accentColor) {
                 ),
                 Expanded(
                   child: GridView.builder(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 6, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.0,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
                     ),
                     itemCount: _backgroundOptions.length,
                     itemBuilder: (context, index) {
@@ -683,25 +656,55 @@ void _showFeedbackDialog(Color accentColor) {
 
                       return GestureDetector(
                         onTap: () {
+                          if (item.isLocked) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')));
+                            return;
+                          }
                           if (item.color != null) colorNotifier.value = item.color!;
-                          if (title == "배경색") globalBgVideoName.value = item.video ?? "사용 안 함";
+                          if (title == "배경색") {
+                            globalBgVideoName.value = item.video ?? "사용 안 함";
+                          }
                           Navigator.pop(context);
                         },
-                        onLongPressStart: (details) { if (item.video != null) _showPreview(context, item.video!); },
+                        onLongPressStart: (details) {
+                          if (item.video != null) _showPreview(context, item.video!);
+                        },
                         onLongPressEnd: (details) => _hidePreview(),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: item.color,
-                            borderRadius: BorderRadius.circular(12.0),
-                            border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
-                          ),
-                          child: item.color == Colors.transparent ? const Center(child: Icon(Icons.format_color_reset, color: Colors.grey, size: 20)) : (item.video != null ? const Icon(Icons.wallpaper, color: Colors.white, size: 20) : null),
+                        onLongPressCancel: () => _hidePreview(),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                color: item.color,
+                                borderRadius: BorderRadius.circular(12.0),
+                                border: Border.all(
+                                  color: isSelected ? accentColor : (item.color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
+                                  width: isSelected ? 3.0 : 1.0,
+                                ),
+                                boxShadow: [
+                                  if (isSelected) BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2),
+                                ],
+                              ),
+                              child: item.color == Colors.transparent ? const Center(child: Icon(Icons.format_color_reset, color: Colors.grey, size: 20)) : null,
+                            ),
+                            if (item.video != null) const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                            if (item.isLocked)
+                              Container(
+                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(12.0)),
+                                child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
+                              ),
+                          ],
                         ),
                       );
                     },
                   ),
                 ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
           ),
@@ -714,39 +717,66 @@ void _showFeedbackDialog(Color accentColor) {
     showDialog(
       context: context,
       builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final double popupWidth = screenWidth * 0.85;
+        final double popupHeight = screenHeight * 0.6;
+
         return Dialog(
           backgroundColor: Colors.white,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: MediaQuery.of(context).size.width * 0.85,
-            height: MediaQuery.of(context).size.height * 0.6,
-            padding: const EdgeInsets.all(16.0),
+            width: popupWidth,
+            height: popupHeight,
+            padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0, bottom: 12.0),
             child: Column(
               children: [
-                Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
-                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16.0),
+                  child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                ),
                 Expanded(
                   child: ValueListenableBuilder<String>(
                     valueListenable: notifier,
                     builder: (context, currentValue, _) {
                       return ListView.separated(
+                        physics: const BouncingScrollPhysics(),
                         itemCount: options.length,
+                        // 🌟 내부 구분선 색상 동기화
                         separatorBuilder: (context, index) => Divider(color: accentColor.withOpacity(0.2), height: 1),
                         itemBuilder: (context, index) {
                           final option = options[index];
                           final isSelected = option == currentValue;
+
                           return ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             tileColor: isSelected ? accentColor.withOpacity(0.1) : Colors.transparent,
-                            title: Text(option, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal, color: isSelected ? accentColor : Colors.black87)),
+                            leading: Icon(title.contains("BGM") ? Icons.music_note : Icons.notifications_active, color: isSelected ? accentColor : Colors.grey.shade400),
+                            title: Text(
+                              option,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                                color: isSelected ? accentColor : Colors.black87,
+                              ),
+                            ),
                             trailing: isSelected ? Icon(Icons.check_circle, color: accentColor) : null,
-                            onTap: () { notifier.value = option; onPreview(option); },
+                            onTap: () {
+                              notifier.value = option;
+                              onPreview(option);
+                            },
                           );
                         },
                       );
                     },
                   ),
                 ),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+                ),
               ],
             ),
           ),
@@ -765,15 +795,27 @@ void _showFeedbackDialog(Color accentColor) {
           GestureDetector(
             onTap: () => _showAudioPickerDialog("$title 선택", options, notifier, accentColor, onPreview),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey.shade300)),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   ValueListenableBuilder<String>(
                     valueListenable: notifier,
-                    builder: (context, val, _) => Text(val, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    builder: (context, val, _) {
+                      return ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.35),
+                        child: Text(val, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                      );
+                    },
                   ),
-                  const Icon(Icons.keyboard_arrow_down, size: 20),
+                  const SizedBox(width: 8),
+                  Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 20),
                 ],
               ),
             ),
@@ -797,8 +839,16 @@ void _showFeedbackDialog(Color accentColor) {
                 onTap: () => _showCustomPicker(title, notifier, accentColor),
                 child: Container(
                   width: 36, height: 36,
-                  decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
-                  child: color == Colors.transparent ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20) : (title == "배경색" && globalBgVideoName.value != "사용 안 함" ? const Icon(Icons.wallpaper, color: Colors.white, size: 20) : null),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
+                  ),
+                  child: color == Colors.transparent
+                      ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20)
+                      : (title == "배경색" && globalBgVideoName.value != "사용 안 함")
+                          ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
+                          : null,
                 ),
               ),
             ],
@@ -818,14 +868,35 @@ void _showFeedbackDialog(Color accentColor) {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
-              CupertinoSlidingSegmentedControl<bool>(
-                groupValue: isTrue,
-                thumbColor: Colors.white,
-                children: {
-                  true: Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(opt1, style: TextStyle(color: isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold))),
-                  false: Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: Text(opt2, style: TextStyle(color: !isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold))),
-                },
-                onValueChanged: (val) { if (val != null) notifier.value = val; },
+              const SizedBox(width: 8),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: CupertinoSlidingSegmentedControl<bool>(
+                        groupValue: isTrue,
+                        thumbColor: Colors.white,
+                        backgroundColor: Colors.grey.shade200,
+                        children: {
+                          true: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(opt1, style: TextStyle(color: isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                          ),
+                          false: Container(
+                            alignment: Alignment.center,
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(opt2, style: TextStyle(color: !isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                          ),
+                        },
+                        onValueChanged: (val) { if (val != null) notifier.value = val; },
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -836,206 +907,457 @@ void _showFeedbackDialog(Color accentColor) {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: globalClockColor,
-      builder: (context, rawAccentColor, child) {
-        Color uiAccentColor = rawAccentColor == Colors.transparent ? Colors.grey.shade800 : rawAccentColor;
-        return Scaffold(
-          backgroundColor: const Color(0xFFF9F9F9),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Container(
-                  color: const Color(0xFFF9F9F9),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Align(alignment: Alignment.centerLeft, child: IconButton(icon: Icon(Icons.arrow_back_ios_new, color: uiAccentColor), onPressed: () => Navigator.pop(context))),
-                            Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: uiAccentColor)),
-                          ],
-                        ),
-                      ),
-                      SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: List.generate(_tabTitles.length, (index) {
-                            bool isActive = _selectedIndex == index;
-                            return GestureDetector(
-                              onTap: () => _scrollToSection(index),
-                              child: Container(
-                                key: _tabKeys[index],
-                                margin: const EdgeInsets.only(right: 20, bottom: 8),
-                                child: Text(_tabTitles[index], style: TextStyle(fontSize: 16, fontWeight: isActive ? FontWeight.bold : FontWeight.w600, color: isActive ? uiAccentColor : Colors.grey.shade400)),
-                              ),
-                            );
-                          }),
-                        ),
-                      ),
-                      Divider(height: 1, color: uiAccentColor.withOpacity(0.3)),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: SingleChildScrollView(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) => _stopPreview(),
+      child: ValueListenableBuilder<Color>(
+        valueListenable: globalClockColor,
+        builder: (context, rawAccentColor, child) {
+          Color uiAccentColor = rawAccentColor == Colors.transparent ? Colors.grey.shade800 : rawAccentColor;
+
+          return Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
+            body: SafeArea(
+              child: Column(
+                children: [
+                  Container(
+                    color: const Color(0xFFF9F9F9),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ...List.generate(_tabTitles.length, (index) => _buildSectionBox(index, uiAccentColor)),
-                        _buildAdRewardBox(uiAccentColor),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: IconButton(
+                                  icon: Icon(Icons.arrow_back_ios_new, color: uiAccentColor),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                              ),
+                              Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: uiAccentColor)),
+                            ],
+                          ),
+                        ),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: Row(
+                            children: List.generate(_tabTitles.length, (index) {
+                              bool isActive = _selectedIndex == index;
+                              return GestureDetector(
+                                onTap: () => _scrollToSection(index),
+                                child: Container(
+                                  key: _tabKeys[index],
+                                  margin: const EdgeInsets.only(right: 20.0),
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Text(
+                                    _tabTitles[index],
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
+                                      color: isActive ? uiAccentColor : Colors.grey.shade400,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                        Divider(height: 1, color: uiAccentColor.withOpacity(0.3)),
                       ],
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Column(
+                        children: [
+                          ...List.generate(_tabTitles.length, (index) {
+                            return _buildSectionBox(index, uiAccentColor);
+                          }),
+                          _buildAdRewardBox(uiAccentColor),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          );
+        },
+      ),
+    );
+  }
+
+    Widget _loginButton(String text, IconData icon, Color color, VoidCallback onTap) {
+    final size = MediaQuery.of(context).size;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.015, horizontal: size.width * 0.03),
+        child: Row(
+          children: [
+            Icon(icon, color: color, size: size.width * 0.06),
+            SizedBox(width: size.width * 0.03),
+            Expanded(child: Text(text, style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w600, color: color))),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _actionButton(String text, Color color, VoidCallback onTap) {
+    final size = MediaQuery.of(context).size;
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.012),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        elevation: 0,
+      ),
+      onPressed: onTap,
+      child: Text(text, style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.bold)),
+    );
+  }
+
+    Future<Map<String, String>?> _showEmailDialog() {
+    final email = TextEditingController();
+    final pw = TextEditingController();
+    return showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text("이메일 로그인"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: email, decoration: const InputDecoration(labelText: "이메일")),
+              TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호")),
+            ],
           ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, {"email": email.text.trim(), "pw": pw.text.trim(), "type": "login"}), child: const Text("로그인")),
+            TextButton(onPressed: () => Navigator.pop(context, {"email": email.text.trim(), "pw": pw.text.trim(), "type": "signup"}), child: const Text("회원가입")),
+          ],
         );
       },
     );
   }
-
+  // ✅ [복구] 계정 섹션 위젯
   Widget _buildAccountSection(Color accentColor) {
+    final size = MediaQuery.of(context).size;
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final user = snapshot.data;
-        if (user == null) {
-          return Column(
-            children: [
-              _loginButton("Google 로그인", Icons.g_mobiledata, accentColor, () => AuthService.signInWithGoogle()),
-              const SizedBox(height: 8),
-              _loginButton("이메일 로그인", Icons.email, accentColor, () async {
-                final email = TextEditingController();
-                final pw = TextEditingController();
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text("이메일 로그인"),
-                    content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: email, decoration: const InputDecoration(labelText: "이메일")), TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호"))]),
-                    actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소")), TextButton(onPressed: () async { await AuthService.signInWithEmail(email.text.trim(), pw.text.trim()); Navigator.pop(context); }, child: const Text("로그인"))],
-                  ),
-                );
-              }),
-            ],
-          );
-        }
         return Column(
           children: [
-            ListTile(leading: Icon(Icons.person, color: accentColor), title: Text(user.email ?? "사용자", style: TextStyle(fontWeight: FontWeight.bold, color: accentColor))),
-            Row(children: [Expanded(child: ElevatedButton(onPressed: () => AuthService.signOut(), child: const Text("로그아웃"))), const SizedBox(width: 8), Expanded(child: ElevatedButton(onPressed: () => AuthService.deleteAccount(), style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade50), child: const Text("탈퇴", style: TextStyle(color: Colors.red))))]),
+            if (user == null) ...[
+              _loginButton("Google로 로그인", Icons.g_mobiledata, accentColor, () async {
+                final result = await AuthService.signInWithGoogle();
+                if (result != null) await FirebaseSettingsService.loadSettingsFromCloud();
+              }),
+              SizedBox(height: size.height * 0.01),
+              _loginButton("이메일 로그인", Icons.email, accentColor, () async {
+                final result = await _showEmailDialog();
+                if (result == null) return;
+                final email = result["email"]!;
+                final pw = result["pw"]!;
+                final type = result["type"];
+                if (type == "login" && (email.isEmpty || pw.isEmpty)) return;
+                if (type == "signup") {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => SignUpPage()));
+                } else {
+                  await AuthService.signInWithEmail(email, pw);
+                }
+              }),
+            ] else ...[
+              Row(
+                children: [
+                  Icon(Icons.person, color: accentColor),
+                  SizedBox(width: size.width * 0.03),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(user.email ?? "사용자", style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.bold, color: accentColor)),
+                        if (!user.emailVerified) ...[
+                          Text("이메일 인증 필요", style: TextStyle(color: Colors.red, fontSize: size.width * 0.03)),
+                          const SizedBox(height: 6),
+                          TextButton(
+                            onPressed: () async {
+                              final user = FirebaseAuth.instance.currentUser;
+                              await user?.reload();
+                              final refreshedUser = FirebaseAuth.instance.currentUser;
+                              setState(() { _user = refreshedUser; });
+                              if (refreshedUser?.emailVerified == true) {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("인증 완료!")));
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("아직 인증 안됨")));
+                              }
+                            },
+                            child: const Text("인증 확인"),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: size.height * 0.015),
+              Row(
+                children: [
+                  Expanded(child: _actionButton("로그아웃", accentColor, () async {
+                    await FirebaseSettingsService.saveSettingsToCloud();
+                    await AuthService.signOut();
+                  })),
+                  SizedBox(width: size.width * 0.02),
+                  Expanded(child: _actionButton("탈퇴", Colors.red, () async {
+                    await AuthService.deleteAccount();
+                  })),
+                ],
+              ),
+            ],
           ],
         );
       },
     );
   }
 
-  Widget _loginButton(String text, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(width: double.infinity, padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16), decoration: BoxDecoration(border: Border.all(color: color.withOpacity(0.3)), borderRadius: BorderRadius.circular(12)), child: Row(children: [Icon(icon, color: color), const SizedBox(width: 12), Text(text, style: TextStyle(fontWeight: FontWeight.bold, color: color))])),
-    );
-  }
-
   Widget _buildSectionBox(int index, Color accentColor) {
+    bool isLastItem = index == _tabTitles.length - 1;
     Widget sectionContent;
+
     if (index == 0) {
       sectionContent = _buildAccountSection(accentColor);
     } else if (index == 1) {
-      sectionContent = _favorites.isEmpty
-          ? const Center(child: Padding(padding: EdgeInsets.all(20), child: Text("저장된 즐겨찾기가 없습니다.")))
-          : ListView.builder(shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _favorites.length, itemBuilder: (context, i) => ListTile(title: Text(_favorites[i]["name"]), trailing: IconButton(icon: const Icon(Icons.delete_outline, color: Colors.red), onPressed: () { setState(() { _favorites.removeAt(i); _saveFavorites(); }); }), onTap: () => _applyFavorite(_favorites[i])));
-    } else if (index == 2) {
       sectionContent = Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("프리셋 선택", style: TextStyle(fontWeight: FontWeight.bold, color: accentColor)),
+          if (_favorites.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Text("현재 저장된 즐겨찾기가 없습니다.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500, height: 1.5)),
+            )
+          else
+            ListView.builder(
+              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _favorites.length,
+              itemBuilder: (context, i) {
+                final fav = _favorites[i];
+                return ListTile(
+                  contentPadding: EdgeInsets.zero, leading: Icon(Icons.star, color: accentColor),
+                  title: Text(fav["name"], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            backgroundColor: Colors.white,
+                            title: Text("즐겨찾기 삭제", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 18)),
+                            content: const Text("해당 즐겨찾기를 제거하시겠습니까?", style: TextStyle(fontSize: 15)),
+                            actions: [
+                              TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.grey))),
+                              TextButton(
+                                onPressed: () { setState(() { _favorites.removeAt(i); }); _saveFavorites(); Navigator.pop(context); },
+                                child: const Text("제거", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
+                  onTap: () => _applyFavorite(fav),
+                );
+              },
+            ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 12, runSpacing: 12,
-            children: _themePresets.map((theme) => GestureDetector(
-              onTap: () { globalBgColor.value = theme.bg; globalClockColor.value = theme.clock; globalDigitalColor.value = theme.digital; globalIndicatorColor.value = theme.indicator; globalBgVideoName.value = theme.bgVideo; },
-              onLongPressStart: (d) { if (theme.bgVideo != "사용 안 함") _showPreview(context, theme.bgVideo); },
-              onLongPressEnd: (d) => _hidePreview(),
-              child: Container(width: 50, height: 50, decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: Colors.grey.shade300), color: theme.bg)),
-            )).toList(),
-          ),
-          Divider(height: 32, color: accentColor.withOpacity(0.2)),
-          colorPicker("배경색", globalBgColor, accentColor),
-          colorPicker("시계색", globalClockColor, accentColor),
-          colorPicker("디지털 시계", globalDigitalColor, accentColor),
-        ],
-      );
-    } else if (index == 3) {
-      sectionContent = Column(children: [buildTwoOptionToggle("모드 선택", "TMR", "SW", globalIsTimerMode, accentColor), CustomWheelPicker(title: "타이머 최대", options: const ["30초", "60초", "120초", "60분"], notifier: globalTimerMaxString, accentColor: accentColor)]);
-    } else if (index == 4) {
-      sectionContent = ValueListenableBuilder<bool>(
-        valueListenable: globalPomodoroMode,
-        builder: (context, isOn, _) => Column(children: [buildTwoOptionToggle("뽀모도로 모드", "ON", "OFF", globalPomodoroMode, accentColor), if (isOn) const Text("뽀모도로 상세 설정이 여기에 위치합니다.")]),
-      );
-    } else if (index == 5) {
-      sectionContent = Column(children: [buildTwoOptionToggle("종료 알림", "ON", "OFF", globalAlarmEnabled, accentColor), audioPickerRow("알림음", alarmOptions, globalAlarmSound, accentColor, (v) => GlobalBgmManager.previewAlarmSound(v))]);
-    } else if (index == 6) {
-      sectionContent = Column(children: [buildTwoOptionToggle("BGM 재생", "ON", "OFF", globalBgmEnabled, accentColor), audioPickerRow("트랙", bgmOptions, globalBgmTrack, accentColor, (v) => GlobalBgmManager.previewBgm(v))]);
-    } 
-    // ✅ [수정] 고객 센터 섹션 완성 (괄호 닫기 에러 해결)
-    else if (index == 7) {
-      sectionContent = Column(
-        children: [
-          ListTile(
-            leading: Icon(Icons.campaign, color: accentColor),
-            title: const Text("공지사항"),
-            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () {
-              // notice_page.dart가 따로 있다면 아래 주석을 해제하세요.
-              Navigator.push(context, MaterialPageRoute(builder: (_) => NoticePage(accentColor: accentColor)));
-              //ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("공지사항 페이지 준비 중입니다.")));
-            },
-          ),
-          Divider(color: accentColor.withOpacity(0.2)),
-          ListTile(
-            leading: Icon(Icons.mail_outline, color: accentColor),
-            title: const Text("버그 제보 및 기능 요청"),
-            onTap: () => _showFeedbackDialog(accentColor),
-          ),
-          Divider(color: accentColor.withOpacity(0.2)),
-// SettingsPage 내 고객센터 섹션 부분 수정
-ListTile(
-  leading: Icon(Icons.quiz_outlined, color: accentColor),
-  title: const Text("자주 묻는 질문 (FAQ)"),
-  onTap: () {
-    Navigator.push(
-      context, 
-      MaterialPageRoute(builder: (_) => FAQPage(accentColor: accentColor))
-    );
-  },
-),
-          Divider(color: accentColor.withOpacity(0.2)),
-          ListTile(
-            leading: Icon(Icons.info_outline, color: accentColor),
-            title: const Text("오픈소스 라이선스"),
-            onTap: () => showLicensePage(context: context),
-          ),
-          Divider(color: accentColor.withOpacity(0.2)),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("버전 정보", style: TextStyle(fontWeight: FontWeight.w500)),
-                Text("1.0.0", style: TextStyle(color: Colors.grey.shade500)),
-              ],
+          GestureDetector(
+            onTap: () => _showAddFavoriteDialog(accentColor),
+            child: Container(
+              padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: accentColor.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(Icons.add, size: 32, color: accentColor),
             ),
           ),
         ],
       );
-    } else {
+    } 
+    else if (index == 2) {
+      sectionContent = AnimatedBuilder(
+        animation: Listenable.merge([
+          globalBgColor, globalClockColor, globalDigitalColor, globalIndicatorColor, globalBgVideoName,
+        ]),
+        builder: (context, child) {
+          final solidPresets = _themePresets.where((t) => t.bgVideo == "사용 안 함").toList();
+          final mediaPresets = _themePresets.where((t) => t.bgVideo != "사용 안 함").toList();
+
+          Widget buildPresetWrap(List<AppThemePreset> presets) {
+            return Wrap(
+              spacing: 12.0, runSpacing: 12.0,
+              children: presets.map((theme) {
+                bool isSelected = globalBgColor.value == theme.bg && globalClockColor.value == theme.clock && globalDigitalColor.value == theme.digital && globalIndicatorColor.value == theme.indicator && globalBgVideoName.value == theme.bgVideo;
+                bool isVideoPreset = theme.bgVideo != "사용 안 함";
+
+                return GestureDetector(
+                  onTap: () {
+                    globalBgColor.value = theme.bg; globalClockColor.value = theme.clock; globalDigitalColor.value = theme.digital; globalIndicatorColor.value = theme.indicator; globalBgVideoName.value = theme.bgVideo;
+                  },
+                  onLongPressStart: (details) { if (isVideoPreset) _showPreview(context, theme.bgVideo); },
+                  onLongPressEnd: (details) => _hidePreview(),
+                  onLongPressCancel: () => _hidePreview(),
+                  child: Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, stops: const [0.5, 0.5], colors: [theme.bg, theme.clock]),
+                    ),
+                    child: isVideoPreset ? const Icon(Icons.wallpaper, color: Colors.white, size: 20) : null,
+                  ),
+                );
+              }).toList(),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("프리셋 선택", style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Text("단색 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              buildPresetWrap(solidPresets),
+              const SizedBox(height: 20),
+              Text("스페셜 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              buildPresetWrap(mediaPresets),
+              const SizedBox(height: 24),
+              Divider(height: 1, color: accentColor.withOpacity(0.2)),
+              const SizedBox(height: 16),
+              Text("세부 색상 커스텀", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              colorPicker("배경색", globalBgColor, accentColor),
+              colorPicker("시계색", globalClockColor, accentColor),
+              colorPicker("디지털 시계", globalDigitalColor, accentColor),
+              colorPicker("테두리/시간", globalIndicatorColor, accentColor),
+            ],
+          );
+        },
+      );
+    } else if (index == 3) {
+      sectionContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildTwoOptionToggle("모드 선택", "TMR", "SW", globalIsTimerMode, accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "타이머 최대 눈금", options: const ["30초", "60초 (1분)", "120초 (2분)", "30분", "60분", "120분"], notifier: globalTimerMaxString, accentColor: accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "시계 표시", options: const ["BOTH", "ANALOG", "DIGITAL"], notifier: globalDisplayMode, accentColor: accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "숫자 표시", options: const ["NUMBER", "DOT", "NONE"], notifier: globalIndicatorMode, accentColor: accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "디지털 스타일", options: const ["DEFAULT", "SEGMENT", "FLIP"], notifier: globalDigitalStyle, accentColor: accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "폰트 크기", options: const ["SMALL", "MEDIUM", "LARGE"], notifier: globalDigitalFontSize, accentColor: accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          CustomWheelPicker(title: "햅틱 진동", options: const ["NONE", "SOFT", "MEDIUM", "STRONG"], notifier: globalHapticIntensity, accentColor: accentColor),
+        ],
+      );
+    } else if (index == 4) {
+      sectionContent = ValueListenableBuilder<bool>(
+        valueListenable: globalPomodoroMode,
+        builder: (context, isPomodoroOn, child) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              buildTwoOptionToggle("뽀모도로 모드", "ON", "OFF", globalPomodoroMode, accentColor),
+              if (isPomodoroOn) ...[
+                Divider(color: accentColor.withOpacity(0.2), height: 24, thickness: 1),
+                Text("시간 및 횟수 설정", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                CustomWheelPicker(title: "집중 시간", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroWorkTime, accentColor: accentColor),
+                const SizedBox(height: 4),
+                CustomWheelPicker(title: "짧은 휴식", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroShortBreak, accentColor: accentColor),
+                const SizedBox(height: 4),
+                CustomWheelPicker(title: "긴 휴식", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroLongBreak, accentColor: accentColor),
+                const SizedBox(height: 4),
+                CustomWheelPicker(title: "긴 휴식 주기", options: List.generate(10, (i) => "${i + 1}번"), notifier: globalPomodoroCycleCount, accentColor: accentColor),
+                const SizedBox(height: 4),
+                CustomWheelPicker(title: "최대 뽀모도로 횟수", options: ["제한 없음", ...List.generate(20, (i) => "${i + 1}세션")], notifier: globalPomodoroMaxSessions, accentColor: accentColor),
+                Divider(color: accentColor.withOpacity(0.2), height: 24, thickness: 1),
+                Text("자동 시작 옵션", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                buildTwoOptionToggle("집중 모드 자동시작", "ON", "OFF", globalPomodoroAutoWork, accentColor),
+                buildTwoOptionToggle("휴식 모드 자동시작", "ON", "OFF", globalPomodoroAutoBreak, accentColor),
+              ],
+            ],
+          );
+        },
+      );
+    } else if (index == 5) {
+      sectionContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildTwoOptionToggle("타이머 종료 알림", "ON", "OFF", globalAlarmEnabled, accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          audioPickerRow("알림 방식", alarmOptions, globalAlarmSound, accentColor, (val) => GlobalBgmManager.previewAlarmSound(val)),
+        ],
+      );
+    } else if (index == 6) {
+      sectionContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildTwoOptionToggle("배경 음악 재생", "ON", "OFF", globalBgmEnabled, accentColor),
+          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
+          audioPickerRow("트랙 선택", bgmOptions, globalBgmTrack, accentColor, (val) => GlobalBgmManager.previewBgm(val)),
+        ],
+      );
+    } 
+    // ✅ [고객 센터] 섹션 완성
+    else if (index == 7) {
+      sectionContent = Column(
+        children: [
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.campaign, color: accentColor),
+            title: const Text("공지사항"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoticePage(accentColor: accentColor))),
+          ),
+          Divider(color: accentColor.withOpacity(0.1), height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.mail_outline, color: accentColor),
+            title: const Text("피드백 및 버그 제보"),
+            onTap: () => _showFeedbackDialog(accentColor),
+          ),
+          Divider(color: accentColor.withOpacity(0.1), height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.quiz_outlined, color: accentColor),
+            title: const Text("자주 묻는 질문 (FAQ)"),
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FAQPage(accentColor: accentColor))),
+          ),
+          Divider(color: accentColor.withOpacity(0.1), height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.info_outline, color: accentColor),
+            title: const Text("오픈소스 라이선스"),
+            onTap: () => showLicensePage(context: context, applicationName: "타이머"),
+          ),
+          const SizedBox(height: 8),
+          Text("버전 정보 1.0.0", style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+        ],
+      );
+    }
+    else {
       sectionContent = const SizedBox();
     }
 
@@ -1044,17 +1366,99 @@ ListTile(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Text(_tabTitles[index], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+          padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
+          child: Row(
+            children: [
+              Text(_tabTitles[index], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+              if (_tabTitles[index] == "뽀모도로")
+                Padding(
+                  padding: const EdgeInsets.only(left: 6.0),
+                  child: InkWell(
+                    onTap: () => _showPomodoroHelpDialog(accentColor),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Icon(Icons.help_outline, color: accentColor.withOpacity(0.7), size: 22),
+                  ),
+                ),
+            ],
+          ),
         ),
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: accentColor.withOpacity(0.5))),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor, width: 1.2),
+          ),
           child: sectionContent,
         ),
-        const SizedBox(height: 16),
+        if (!isLastItem)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: Divider(
+              color: accentColor.withOpacity(0.2),
+              thickness: 1.2,
+              indent: 30.0,
+              endIndent: 30.0,
+            ),
+          ),
       ],
+    );
+  }
+}
+
+class SignUpPage extends StatefulWidget {
+  @override
+  State<SignUpPage> createState() => _SignUpPageState();
+}
+
+class _SignUpPageState extends State<SignUpPage> {
+  final email = TextEditingController();
+  final pw = TextEditingController();
+  final pwConfirm = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("회원가입")),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            TextField(controller: email, decoration: const InputDecoration(labelText: "이메일")),
+            TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호")),
+            TextField(controller: pwConfirm, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호 확인")),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () async {
+                if (pw.text != pwConfirm.text) return;
+                final user = await AuthService.signUpWithEmail(email.text.trim(), pw.text.trim());
+                if (user != null) {
+                  showDialog(
+                    context: context,
+                    builder: (_) => AlertDialog(
+                      title: const Text("회원가입 완료"),
+                      content: const Text("회원가입에 성공했습니다"),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            Navigator.pop(context);
+                          },
+                          child: const Text("확인"),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("회원가입 실패")));
+                }
+              },
+              child: const Text("회원가입"),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -1064,7 +1468,10 @@ class CustomWheelPicker extends StatefulWidget {
   final List<String> options;
   final ValueNotifier<String> notifier;
   final Color accentColor;
-  const CustomWheelPicker({super.key, required this.title, required this.options, required this.notifier, required this.accentColor});
+  final Function(String)? onSelected;
+  const CustomWheelPicker({
+    super.key, required this.title, required this.options, required this.notifier, required this.accentColor, this.onSelected,
+  });
   @override
   State<CustomWheelPicker> createState() => _CustomWheelPickerState();
 }
@@ -1074,24 +1481,84 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
   @override
   void initState() {
     super.initState();
-    int idx = widget.options.indexOf(widget.notifier.value);
-    _controller = FixedExtentScrollController(initialItem: idx == -1 ? 0 : idx);
+    int initialIndex = widget.options.indexOf(widget.notifier.value);
+    if (initialIndex == -1) initialIndex = 0;
+    _controller = FixedExtentScrollController(initialItem: initialIndex);
+  }
+  @override
+  void didUpdateWidget(covariant CustomWheelPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    int targetIndex = widget.options.indexOf(widget.notifier.value);
+    if (targetIndex != -1 && _controller.hasClients && _controller.selectedItem != targetIndex) {
+      _controller.jumpToItem(targetIndex);
+    }
+  }
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(widget.title, style: TextStyle(fontWeight: FontWeight.bold, color: widget.accentColor)),
-        SizedBox(
-          width: 120, height: 80,
-          child: CupertinoPicker(
-            scrollController: _controller, itemExtent: 32,
-            onSelectedItemChanged: (i) => widget.notifier.value = widget.options[i],
-            children: widget.options.map((o) => Center(child: Text(o, style: const TextStyle(fontSize: 14)))).toList(),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(widget.title, style: TextStyle(fontSize: 16, color: widget.accentColor, fontWeight: FontWeight.bold)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
+                child: SizedBox(
+                  height: 90,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Container(width: double.infinity, height: 32, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10))),
+                      ScrollConfiguration(
+                        behavior: ScrollConfiguration.of(context).copyWith(
+                          dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
+                        ),
+                        child: CupertinoPicker(
+                          scrollController: _controller, itemExtent: 32.0, diameterRatio: 1.5, selectionOverlay: const SizedBox(),
+                          onSelectedItemChanged: (index) {
+                            widget.notifier.value = widget.options[index];
+                            if (widget.onSelected != null) widget.onSelected!(widget.options[index]);
+                          },
+                          children: List<Widget>.generate(
+                            widget.options.length,
+                            (index) {
+                              return Center(
+                                child: ValueListenableBuilder<String>(
+                                  valueListenable: widget.notifier,
+                                  builder: (context, currentValue, child) {
+                                    bool isSelected = widget.options[index] == currentValue;
+                                    return Text(
+                                      widget.options[index], textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: isSelected ? 15 : 13,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                        color: isSelected ? widget.accentColor : widget.accentColor.withOpacity(0.4),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1099,22 +1566,69 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
 class MediaPreviewWidget extends StatefulWidget {
   final String videoName;
   const MediaPreviewWidget({super.key, required this.videoName});
+
   @override
   State<MediaPreviewWidget> createState() => _MediaPreviewWidgetState();
 }
 
 class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
   VideoPlayerController? _controller;
+  bool _isVideo = false;
+  String _assetPath = "";
+
   @override
   void initState() {
     super.initState();
-    String path = widget.videoName.contains("Rain") ? 'assets/video/rainwindow.mp4' : 'assets/video/sakura.mp4';
-    _controller = VideoPlayerController.asset(path)..initialize().then((_) { _controller!.setLooping(true); _controller!.play(); setState(() {}); });
+
+    if (widget.videoName == "비 오는 밤 (Rain)") {
+      _assetPath = 'assets/video/rainwindow.mp4';
+      _isVideo = true; 
+    } 
+    else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
+      _assetPath = 'assets/video/sakura.mp4';
+      _isVideo = true;
+    }
+    
+    if (_isVideo && _assetPath.isNotEmpty) {
+      _controller = VideoPlayerController.asset(_assetPath)
+        ..initialize().then((_) {
+          _controller!.setVolume(0.0);
+          _controller!.setLooping(true);
+          _controller!.play();
+          if (mounted) setState(() {});
+        });
+    }
   }
+
   @override
-  void dispose() { _controller?.dispose(); super.dispose(); }
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _controller != null && _controller!.value.isInitialized ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _controller!.value.size.width, height: _controller!.value.size.height, child: VideoPlayer(_controller!))) : const Center(child: CircularProgressIndicator());
+    if (_assetPath.isEmpty) {
+      return const Center(child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)));
+    }
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: _isVideo
+              ? (_controller != null && _controller!.value.isInitialized)
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      child: SizedBox(
+                        width: _controller!.value.size.width,
+                        height: _controller!.value.size.height,
+                        child: VideoPlayer(_controller!),
+                      ),
+                    )
+                  : const Center(child: CircularProgressIndicator(color: Colors.white))
+              : Image.asset(_assetPath, fit: BoxFit.cover), 
+        ),
+      ],
+    );
   }
 }
