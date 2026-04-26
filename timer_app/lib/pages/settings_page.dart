@@ -2092,6 +2092,14 @@ class _SettingsPageState extends State<SettingsPage> {
             globalAlarmEnabled,
             accentColor,
           ),
+          // 🔥 여기 추가
+          buildTwoOptionToggle(
+            "진동",
+            "ON",
+            "OFF",
+            globalVibrationEnabled,
+            accentColor,
+          ),
           Divider(
             color: accentColor.withOpacity(0.2),
             height: 16,
