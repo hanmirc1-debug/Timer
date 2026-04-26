@@ -19,11 +19,17 @@ ValueNotifier<String> globalPomodoroWorkTime = ValueNotifier<String>("25분");
 ValueNotifier<String> globalPomodoroShortBreak = ValueNotifier<String>("5분");
 ValueNotifier<String> globalPomodoroLongBreak = ValueNotifier<String>("15분");
 ValueNotifier<String> globalPomodoroCycleCount = ValueNotifier<String>("4번");
-ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>("제한 없음");
+ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>(
+  "제한 없음",
+);
 
 // 뽀모도로 자동 시작 설정
-ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(false); // 집중 모드 자동 시작
-ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(true); // 휴식 모드 자동 시작
+ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(
+  false,
+); // 집중 모드 자동 시작
+ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(
+  true,
+); // 휴식 모드 자동 시작
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
@@ -94,6 +100,14 @@ Future<void> saveSettings() async {
   await prefs.setString("alarmSound", globalAlarmSound.value);
   await prefs.setBool("bgmEnabled", globalBgmEnabled.value);
   await prefs.setString("bgmTrack", globalBgmTrack.value);
+  await prefs.setBool("pomodoroMode", globalPomodoroMode.value);
+  await prefs.setString("pomodoroWork", globalPomodoroWorkTime.value);
+  await prefs.setString("pomodoroShortBreak", globalPomodoroShortBreak.value);
+  await prefs.setString("pomodoroLongBreak", globalPomodoroLongBreak.value);
+  await prefs.setString("pomodoroCycle", globalPomodoroCycleCount.value);
+  await prefs.setString("pomodoroMax", globalPomodoroMaxSessions.value);
+  await prefs.setBool("pomodoroAutoWork", globalPomodoroAutoWork.value);
+  await prefs.setBool("pomodoroAutoBreak", globalPomodoroAutoBreak.value);
 }
 
 Future<void> loadSettings() async {
@@ -117,9 +131,19 @@ Future<void> loadSettings() async {
   );
 
   globalAlarmEnabled.value = prefs.getBool("alarmEnabled") ?? true;
-  globalAlarmSound.value = prefs.getString("alarmSound") ?? "기본음 (Bell)";
+  globalAlarmSound.value = prefs.getString("alarmSound") ?? alarmOptions.first;
   globalBgmEnabled.value = prefs.getBool("bgmEnabled") ?? false;
-  globalBgmTrack.value = prefs.getString("bgmTrack") ?? "백색소음 (White Noise)";
+  globalBgmTrack.value = prefs.getString("bgmTrack") ?? bgmOptions.first;
+  globalPomodoroMode.value = prefs.getBool("pomodoroMode") ?? false;
+  globalPomodoroWorkTime.value = prefs.getString("pomodoroWork") ?? "25분";
+
+  globalPomodoroShortBreak.value =
+      prefs.getString("pomodoroShortBreak") ?? "5분";
+  globalPomodoroLongBreak.value = prefs.getString("pomodoroLongBreak") ?? "15분";
+  globalPomodoroCycleCount.value = prefs.getString("pomodoroCycle") ?? "4번";
+  globalPomodoroMaxSessions.value = prefs.getString("pomodoroMax") ?? "제한 없음";
+  globalPomodoroAutoWork.value = prefs.getBool("pomodoroAutoWork") ?? false;
+  globalPomodoroAutoBreak.value = prefs.getBool("pomodoroAutoBreak") ?? true;
 }
 
 void initSettingsListener() {
@@ -199,6 +223,45 @@ void initSettingsListener() {
     FirebaseSettingsService.saveSettingsDebounced();
   });
   globalBgmTrack.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+  globalPomodoroMode.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroWorkTime.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroShortBreak.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroLongBreak.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroCycleCount.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroMaxSessions.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroAutoWork.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroAutoBreak.addListener(() {
     saveSettings();
     FirebaseSettingsService.saveSettingsDebounced();
   });
@@ -1358,16 +1421,19 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
 
 // shared_design.dart 파일 하단에 추가
 enum PomodoroState { work, shortBreak, longBreak }
-ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(PomodoroState.work);
+
+ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(
+  PomodoroState.work,
+);
 ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0); // 완료된 뽀모도로 횟수
 
 // shared_design.dart 파일 하단에 추가
 
 /// 뽀모도로 상태를 처음부터 다시 시작하도록 초기화하는 함수
 void resetPomodoroStatus() {
-  globalPomodoroState.value = PomodoroState.work;      // 다시 '집중 모드'로
-  globalCompletedCycles.value = 0;                     // 완료 횟수 0으로
-  
+  globalPomodoroState.value = PomodoroState.work; // 다시 '집중 모드'로
+  globalCompletedCycles.value = 0; // 완료 횟수 0으로
+
   // 현재 설정된 '집중 시간'을 파싱해서 타이머 시간도 리셋 (옵션)
   // 예: "25분" -> 25 * 60 초로 세팅하는 로직을 호출하거나 변수 직접 수정
 }
