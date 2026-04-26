@@ -312,7 +312,7 @@ class _SettingsPageState extends State<SettingsPage> {
     const ThemeItem(name: "모카", color: Color(0xFFD1C2A5)),
     const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
     const ThemeItem(name: "투명", color: Colors.transparent),
-    const ThemeItem(name: "비 오는 밤", color: Colors.grey, video: "비 오는 밤 (Rain)"),
+    const ThemeItem(name: "비 오는 밤", color: Color.fromARGB(255, 111, 184, 212), video: "비 오는 밤 (Rain)"),
     const ThemeItem(name: "벚꽃", color: Color(0xFFFFB7C5), video: "벚꽃 (Cherry Blossom)"),
   ];
 
