@@ -8,12 +8,14 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/firebase_settings_service.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-
+  // 🔥 광고 초기화 (여기 추가)
+  await MobileAds.instance.initialize();
   final user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {

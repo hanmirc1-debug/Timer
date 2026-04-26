@@ -8,6 +8,8 @@ import '../services/firebase_settings_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ThemeItem {
   final String name;
@@ -162,7 +164,37 @@ class _SettingsPageState extends State<SettingsPage> {
     "BGM",
     "고객 센터",
   ];
+  RewardedAd? _rewardedAd;
+  bool _isAdReady = false;
+  bool _isLoadingAd = false;
   User? _user;
+
+  Widget _buildAdRewardBox(Color accentColor) {
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        color: Colors.white.withOpacity(0.05),
+      ),
+      child: Column(
+        children: [
+          Text(
+            "광고 보고 포인트 받기",
+            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          ElevatedButton(
+            onPressed: _isAdReady ? _showRewardAd : null,
+            child: Text(
+              _isAdReady ? "+15 포인트" : (_isLoadingAd ? "광고 로딩중..." : "광고 준비중"),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   final List<AppThemePreset> _themePresets = [
     const AppThemePreset(
       bg: Color(0xFF252528),
@@ -359,10 +391,95 @@ class _SettingsPageState extends State<SettingsPage> {
   void _stopPreview() {}
 
   List<Map<String, dynamic>> _favorites = [];
+  void _loadRewardedAd() {
+    if (_isLoadingAd) return;
+
+    _isLoadingAd = true;
+
+    RewardedAd.load(
+      adUnitId: 'ca-app-pub-3940256099942544/5224354917', // 테스트 광고
+      request: const AdRequest(),
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) {
+          _rewardedAd = ad;
+          _isAdReady = true;
+          _isLoadingAd = false;
+        },
+        onAdFailedToLoad: (error) {
+          print("🔥 광고 로드 실패: $error"); // 🔥 이거 추가
+          _isAdReady = false;
+          _isLoadingAd = false;
+        },
+      ),
+    );
+  }
+
+  Future<void> _addPoint(int amount) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    await ref.set({
+      'point': FieldValue.increment(amount),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> _rewardPoint(int amount) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      // 🔥 로그인 유저 → Firebase 저장
+      final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+      await ref.set({
+        'point': FieldValue.increment(amount),
+      }, SetOptions(merge: true));
+    } else {
+      // 🔥 게스트 → 로컬 저장
+      final prefs = await SharedPreferences.getInstance();
+      int current = prefs.getInt('point') ?? 0;
+
+      await prefs.setInt('point', current + amount);
+    }
+  }
+
+  void _showRewardAd() {
+    if (!_isAdReady || _rewardedAd == null) {
+      print("광고 준비 안됨");
+      _loadRewardedAd();
+      return;
+    }
+
+    final ad = _rewardedAd!;
+
+    // 🔥 광고 lifecycle 처리 (핵심)
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        _loadRewardedAd(); // 광고 닫힌 후 다시 로드
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        _loadRewardedAd();
+      },
+    );
+
+    // 🔥 광고 실행
+    ad.show(
+      onUserEarnedReward: (ad, reward) async {
+        await _rewardPoint(15);
+      },
+    );
+
+    // 🔥 참조만 끊기
+    _rewardedAd = null;
+    _isAdReady = false;
+  }
 
   @override
   void initState() {
     super.initState();
+
+    _loadRewardedAd();
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _scrollController.addListener(_onScroll);
@@ -385,6 +502,8 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+
+    _rewardedAd?.dispose(); // 🔥 이거 추가
 
     // 🔥 추가 (미리듣기 소리 정지)
     GlobalBgmManager.stopAllSound();
@@ -1160,9 +1279,14 @@ class _SettingsPageState extends State<SettingsPage> {
                         vertical: 8.0,
                       ),
                       child: Column(
-                        children: List.generate(_tabTitles.length, (index) {
-                          return _buildSectionBox(index, uiAccentColor);
-                        }),
+                        children: [
+                          ...List.generate(_tabTitles.length, (index) {
+                            return _buildSectionBox(index, uiAccentColor);
+                          }),
+
+                          // 🔥🔥🔥 여기 추가
+                          _buildAdRewardBox(uiAccentColor),
+                        ],
                       ),
                     ),
                   ),
@@ -2051,6 +2175,7 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
   @override
   void dispose() {
     _controller.dispose();
+
     super.dispose();
   }
 
