@@ -14,7 +14,7 @@ import 'package:video_player/video_player.dart';
 import 'package:flutter/foundation.dart'; // ✅ kIsWeb 사용을 위해 꼭 필요
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
-import 'notice_page.dart'; 
+import 'notice_page.dart';
 import 'faq_page.dart';
 
 class ThemeItem {
@@ -158,9 +158,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.5),
+                      width: 1.5,
+                    ),
                     boxShadow: const [
-                      BoxShadow(color: Colors.black54, blurRadius: 15, spreadRadius: 5),
+                      BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 15,
+                        spreadRadius: 5,
+                      ),
                     ],
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -178,7 +185,10 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       },
     );
-    Navigator.of(context, rootNavigator: true).overlay?.insert(_previewOverlay!);
+    Navigator.of(
+      context,
+      rootNavigator: true,
+    ).overlay?.insert(_previewOverlay!);
   }
 
   void _hidePreview() {
@@ -220,11 +230,17 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text("피드백 및 버그 제보", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+        title: Text(
+          "피드백 및 버그 제보",
+          style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text("내용을 입력하고 전송을 누르면 개발자에게 전달됩니다.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+            const Text(
+              "내용을 입력하고 전송을 누르면 개발자에게 전달됩니다.",
+              style: TextStyle(fontSize: 13, color: Colors.grey),
+            ),
             const SizedBox(height: 16),
             TextField(
               controller: feedbackController,
@@ -233,13 +249,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 hintText: "여기에 내용을 입력하세요...",
                 filled: true,
                 fillColor: Colors.grey.shade100,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.grey))),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("취소", style: TextStyle(color: Colors.grey)),
+          ),
           TextButton(
             onPressed: () async {
               if (feedbackController.text.trim().isEmpty) return;
@@ -250,12 +272,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   'timestamp': FieldValue.serverTimestamp(),
                 });
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("소중한 의견 감사합니다!")));
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text("소중한 의견 감사합니다!")));
               } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("전송 실패. 네트워크를 확인하세요.")));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("전송 실패. 네트워크를 확인하세요.")),
+                );
               }
             },
-            child: Text("전송", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+            child: Text(
+              "전송",
+              style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -263,18 +292,80 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   final List<AppThemePreset> _themePresets = [
-    const AppThemePreset(bg: Color(0xFF252528), clock: Color.fromARGB(255, 185, 70, 70), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
-    const AppThemePreset(bg: Color(0xFF252528), clock: Color(0xFF4A4A4D), digital: Color(0xFFE5E5EA), indicator: Color(0xFF8E8E93)),
-    const AppThemePreset(bg: Color(0xFFF9F9F9), clock: Color(0xFFD32F2F), digital: Color(0xFF1C1C1E), indicator: Color(0xFFD32F2F)),
-    const AppThemePreset(bg: Color(0xFF1C2536), clock: Color(0xFF2D3C5A), digital: Color(0xFFFFFFFF), indicator: Color(0xFF8B9BB4)),
-    const AppThemePreset(bg: Color(0xFF1E2E26), clock: Color(0xFF334A3E), digital: Color(0xFFE2E8E4), indicator: Color(0xFF88A094)),
-    const AppThemePreset(bg: Color(0xFFF4EFE6), clock: Color(0xFFD1C2A5), digital: Color(0xFF5C4E3A), indicator: Color(0xFF9E8E76)),
-    const AppThemePreset(bg: Color(0xFFE8F5E9), clock: Color(0xFF81C784), digital: Color(0xFF2E7D32), indicator: Color(0xFF388E3C)),
-    const AppThemePreset(bg: Color(0xFF2A2344), clock: Color(0xFF524582), digital: Color(0xFFE6E2F1), indicator: Color(0xFFA197C4)),
-    const AppThemePreset(bg: Color(0xFFFFF0E5), clock: Color(0xFFFF8A65), digital: Color(0xFF5D4037), indicator: Color(0xFF8D6E63)),
-    const AppThemePreset(bg: Color(0xFF0F172A), clock: Color(0xFF38BDF8), digital: Color(0xFFF8FAFC), indicator: Color(0xFF94A3B8)),
-    const AppThemePreset(bg: Color.fromARGB(255, 111, 184, 212), clock: Colors.transparent, digital: Color(0xFF9E9E9E), indicator: Colors.white70, bgVideo: "비 오는 밤 (Rain)"),
-    const AppThemePreset(bg: Color(0xFFFFB7C5), clock: Colors.transparent, digital: Color(0xFFFFB7C5), indicator: Colors.white70, bgVideo: "벚꽃 (Cherry Blossom)"),
+    const AppThemePreset(
+      bg: Color(0xFF252528),
+      clock: Color.fromARGB(255, 185, 70, 70),
+      digital: Color(0xFFE5E5EA),
+      indicator: Color(0xFF8E8E93),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFF252528),
+      clock: Color(0xFF4A4A4D),
+      digital: Color(0xFFE5E5EA),
+      indicator: Color(0xFF8E8E93),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFFF9F9F9),
+      clock: Color(0xFFD32F2F),
+      digital: Color(0xFF1C1C1E),
+      indicator: Color(0xFFD32F2F),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFF1C2536),
+      clock: Color(0xFF2D3C5A),
+      digital: Color(0xFFFFFFFF),
+      indicator: Color(0xFF8B9BB4),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFF1E2E26),
+      clock: Color(0xFF334A3E),
+      digital: Color(0xFFE2E8E4),
+      indicator: Color(0xFF88A094),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFFF4EFE6),
+      clock: Color(0xFFD1C2A5),
+      digital: Color(0xFF5C4E3A),
+      indicator: Color(0xFF9E8E76),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFFE8F5E9),
+      clock: Color(0xFF81C784),
+      digital: Color(0xFF2E7D32),
+      indicator: Color(0xFF388E3C),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFF2A2344),
+      clock: Color(0xFF524582),
+      digital: Color(0xFFE6E2F1),
+      indicator: Color(0xFFA197C4),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFFFFF0E5),
+      clock: Color(0xFFFF8A65),
+      digital: Color(0xFF5D4037),
+      indicator: Color(0xFF8D6E63),
+    ),
+    const AppThemePreset(
+      bg: Color(0xFF0F172A),
+      clock: Color(0xFF38BDF8),
+      digital: Color(0xFFF8FAFC),
+      indicator: Color(0xFF94A3B8),
+    ),
+    const AppThemePreset(
+      bg: Color.fromARGB(255, 111, 184, 212),
+      clock: Colors.transparent,
+      digital: Color(0xFF9E9E9E),
+      indicator: Colors.white70,
+      bgVideo: "비 오는 밤 (Rain)",
+    ),
+    const AppThemePreset(
+      bg: Color(0xFFFFB7C5),
+      clock: Colors.transparent,
+      digital: Color(0xFFFFB7C5),
+      indicator: Colors.white70,
+      bgVideo: "벚꽃 (Cherry Blossom)",
+    ),
   ];
 
   final List<ThemeItem> _backgroundOptions = [
@@ -312,8 +403,16 @@ class _SettingsPageState extends State<SettingsPage> {
     const ThemeItem(name: "모카", color: Color(0xFFD1C2A5)),
     const ThemeItem(name: "커피", color: Color(0xFF5C4E3A)),
     const ThemeItem(name: "투명", color: Colors.transparent),
-    const ThemeItem(name: "비 오는 밤", color: Color.fromARGB(255, 111, 184, 212), video: "비 오는 밤 (Rain)"),
-    const ThemeItem(name: "벚꽃", color: Color(0xFFFFB7C5), video: "벚꽃 (Cherry Blossom)"),
+    const ThemeItem(
+      name: "비 오는 밤",
+      color: Color.fromARGB(255, 111, 184, 212),
+      video: "비 오는 밤 (Rain)",
+    ),
+    const ThemeItem(
+      name: "벚꽃",
+      color: Color(0xFFFFB7C5),
+      video: "벚꽃 (Cherry Blossom)",
+    ),
   ];
 
   void _showPomodoroHelpDialog(Color accentColor) {
@@ -322,12 +421,21 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: [
               Icon(Icons.timer, color: accentColor),
               const SizedBox(width: 8),
-              Text("뽀모도로 모드란?", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 18)),
+              Text(
+                "뽀모도로 모드란?",
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
             ],
           ),
           content: SingleChildScrollView(
@@ -335,9 +443,15 @@ class _SettingsPageState extends State<SettingsPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text("짧은 집중과 휴식을 반복하여 뇌의 집중력을 극대화하는 시간 관리 기법입니다. 🍅", style: TextStyle(fontSize: 14, height: 1.4)),
+                const Text(
+                  "짧은 집중과 휴식을 반복하여 뇌의 집중력을 극대화하는 시간 관리 기법입니다. 🍅",
+                  style: TextStyle(fontSize: 14, height: 1.4),
+                ),
                 const SizedBox(height: 16),
-                const Text("⚙️ 동작 설정", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const Text(
+                  "⚙️ 동작 설정",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
                 const SizedBox(height: 4),
                 const Text(
                   "• 집중 시간: 목표에만 몰두하는 시간\n"
@@ -348,7 +462,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   style: TextStyle(fontSize: 13, height: 1.4),
                 ),
                 const SizedBox(height: 16),
-                const Text("⚙️ 자동 시작 옵션", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                const Text(
+                  "⚙️ 자동 시작 옵션",
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                ),
                 const SizedBox(height: 4),
                 const Text(
                   "• 켜짐(ON): 이전 모드가 끝나면 화면 터치 없이 즉시 다음 타이머가 시작됩니다.\n"
@@ -361,8 +478,15 @@ class _SettingsPageState extends State<SettingsPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text("확인", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 16)),
-            )
+              child: Text(
+                "확인",
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
           ],
         );
       },
@@ -404,14 +528,18 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
     final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-    await ref.set({'point': FieldValue.increment(amount)}, SetOptions(merge: true));
+    await ref.set({
+      'point': FieldValue.increment(amount),
+    }, SetOptions(merge: true));
   }
 
   Future<void> _rewardPoint(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      await ref.set({'point': FieldValue.increment(amount)}, SetOptions(merge: true));
+      await ref.set({
+        'point': FieldValue.increment(amount),
+      }, SetOptions(merge: true));
     } else {
       final prefs = await SharedPreferences.getInstance();
       int current = prefs.getInt('point') ?? 0;
@@ -421,7 +549,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   void _showRewardAd() {
     if (kIsWeb) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("웹 버전에서는 광고가 지원되지 않습니다.")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("웹 버전에서는 광고가 지원되지 않습니다.")));
       return;
     }
     if (!_isAdReady || _rewardedAd == null) {
@@ -439,9 +569,11 @@ class _SettingsPageState extends State<SettingsPage> {
         _loadRewardedAd();
       },
     );
-    ad.show(onUserEarnedReward: (ad, reward) async {
-      await _rewardPoint(15);
-    });
+    ad.show(
+      onUserEarnedReward: (ad, reward) async {
+        await _rewardPoint(15);
+      },
+    );
     _rewardedAd = null;
     _isAdReady = false;
   }
@@ -455,7 +587,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _scrollController.addListener(_onScroll);
     _user = FirebaseAuth.instance.currentUser;
     _refreshUser();
-    _loadFavorites();
+    _loadFavorites(); // 🔥 추가
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      _loadFavorites();
+    });
   }
 
   void _refreshUser() async {
@@ -476,13 +611,50 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _loadFavorites() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? favsJson = prefs.getString('my_favorites');
-    if (favsJson != null) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .get();
+
       setState(() {
-        _favorites = List<Map<String, dynamic>>.from(jsonDecode(favsJson));
+        _favorites = snapshot.docs
+            .map((doc) => {...doc.data(), "docId": doc.id})
+            .toList();
       });
+    } else {
+      final prefs = await SharedPreferences.getInstance();
+      final String? favsJson = prefs.getString('my_favorites');
+
+      if (favsJson != null) {
+        setState(() {
+          _favorites = List<Map<String, dynamic>>.from(jsonDecode(favsJson));
+        });
+      }
     }
+  }
+
+  Future<void> _deleteFavorite(int index) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      final docId = _favorites[index]["docId"];
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(docId)
+          .delete();
+    }
+
+    setState(() {
+      _favorites.removeAt(index);
+    });
+    await _saveFavorites();
   }
 
   Future<void> _saveFavorites() async {
@@ -490,7 +662,8 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setString('my_favorites', jsonEncode(_favorites));
   }
 
-  void _addFavorite(String name) {
+  Future<void> _addFavorite(String name) async {
+    final user = FirebaseAuth.instance.currentUser;
     final newFav = {
       "name": name,
       "bgColor": globalBgColor.value.value,
@@ -510,10 +683,23 @@ class _SettingsPageState extends State<SettingsPage> {
       "bgmEnabled": globalBgmEnabled.value,
       "bgmTrack": globalBgmTrack.value,
     };
-    setState(() {
+    if (user != null) {
+      final docRef = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .add(newFav);
+      _favorites.add({
+        ...newFav,
+        "docId": docRef.id, // 🔥 추가
+      });
+    } else {
+      // 비로그인 fallback
       _favorites.add(newFav);
-    });
-    _saveFavorites();
+      _saveFavorites();
+    }
+
+    setState(() {});
   }
 
   void _applyFavorite(Map<String, dynamic> fav) {
@@ -537,7 +723,10 @@ class _SettingsPageState extends State<SettingsPage> {
     });
     FirebaseSettingsService.saveSettingsDebounced();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('"${fav["name"]}" 테마가 적용되었습니다!'), duration: const Duration(seconds: 1)),
+      SnackBar(
+        content: Text('"${fav["name"]}" 테마가 적용되었습니다!'),
+        duration: const Duration(seconds: 1),
+      ),
     );
   }
 
@@ -548,21 +737,33 @@ class _SettingsPageState extends State<SettingsPage> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: Text("즐겨찾기 추가", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+          title: Text(
+            "즐겨찾기 추가",
+            style: TextStyle(color: accentColor, fontWeight: FontWeight.bold),
+          ),
           content: TextField(
             controller: nameController,
             decoration: const InputDecoration(hintText: "예: 집중 모드, 벚꽃 테마 등"),
             maxLength: 15,
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.grey))),
             TextButton(
-              onPressed: () {
+              onPressed: () => Navigator.pop(context),
+              child: const Text("취소", style: TextStyle(color: Colors.grey)),
+            ),
+            TextButton(
+              onPressed: () async {
                 if (nameController.text.trim().isEmpty) return;
-                _addFavorite(nameController.text.trim());
+                await _addFavorite(nameController.text.trim());
                 Navigator.pop(context);
               },
-              child: Text("저장", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold)),
+              child: Text(
+                "저장",
+                style: TextStyle(
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -595,7 +796,12 @@ class _SettingsPageState extends State<SettingsPage> {
     _scrollToTabCenter(index);
     final context = _sectionKeys[index].currentContext;
     if (context != null) {
-      await Scrollable.ensureVisible(context, duration: const Duration(milliseconds: 400), curve: Curves.easeInOutCubic, alignment: 0.0);
+      await Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.0,
+      );
     }
     await Future.delayed(const Duration(milliseconds: 50));
     _isTappingTab = false;
@@ -604,11 +810,20 @@ class _SettingsPageState extends State<SettingsPage> {
   void _scrollToTabCenter(int index) {
     final context = _tabKeys[index].currentContext;
     if (context != null) {
-      Scrollable.ensureVisible(context, alignment: 0.5, duration: const Duration(milliseconds: 300), curve: Curves.easeInOutCubic);
+      Scrollable.ensureVisible(
+        context,
+        alignment: 0.5,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOutCubic,
+      );
     }
   }
 
-  void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
+  void _showCustomPicker(
+    String title,
+    ValueNotifier<Color> colorNotifier,
+    Color accentColor,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -621,7 +836,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: popupWidth,
             height: popupHeight,
@@ -630,12 +847,22 @@ class _SettingsPageState extends State<SettingsPage> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                  child: Text(
+                    "$title 선택",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
                 ),
                 Expanded(
                   child: GridView.builder(
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
+                      crossAxisCount: columns,
+                      crossAxisSpacing: spacing,
+                      mainAxisSpacing: spacing,
+                      childAspectRatio: 1.0,
                     ),
                     itemCount: _backgroundOptions.length,
                     itemBuilder: (context, index) {
@@ -645,29 +872,39 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (item.video != null) {
                           isSelected = globalBgVideoName.value == item.video;
                         } else {
-                          isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함";
+                          isSelected =
+                              colorNotifier.value == item.color &&
+                              globalBgVideoName.value == "사용 안 함";
                         }
                       } else {
                         isSelected = colorNotifier.value == item.color;
                       }
 
-                      if (title != "배경색" && item.video != null) return const SizedBox.shrink();
-                      if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
+                      if (title != "배경색" && item.video != null)
+                        return const SizedBox.shrink();
+                      if (item.color == Colors.transparent && title != "시계색")
+                        return const SizedBox.shrink();
 
                       return GestureDetector(
                         onTap: () {
                           if (item.isLocked) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)')));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)'),
+                              ),
+                            );
                             return;
                           }
-                          if (item.color != null) colorNotifier.value = item.color!;
+                          if (item.color != null)
+                            colorNotifier.value = item.color!;
                           if (title == "배경색") {
                             globalBgVideoName.value = item.video ?? "사용 안 함";
                           }
                           Navigator.pop(context);
                         },
                         onLongPressStart: (details) {
-                          if (item.video != null) _showPreview(context, item.video!);
+                          if (item.video != null)
+                            _showPreview(context, item.video!);
                         },
                         onLongPressEnd: (details) => _hidePreview(),
                         onLongPressCancel: () => _hidePreview(),
@@ -679,20 +916,51 @@ class _SettingsPageState extends State<SettingsPage> {
                                 color: item.color,
                                 borderRadius: BorderRadius.circular(12.0),
                                 border: Border.all(
-                                  color: isSelected ? accentColor : (item.color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
+                                  color: isSelected
+                                      ? accentColor
+                                      : (item.color == Colors.transparent
+                                            ? Colors.grey.shade400
+                                            : Colors.grey.shade300),
                                   width: isSelected ? 3.0 : 1.0,
                                 ),
                                 boxShadow: [
-                                  if (isSelected) BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2),
+                                  if (isSelected)
+                                    BoxShadow(
+                                      color: accentColor.withOpacity(0.4),
+                                      blurRadius: 8,
+                                      spreadRadius: 2,
+                                    ),
                                 ],
                               ),
-                              child: item.color == Colors.transparent ? const Center(child: Icon(Icons.format_color_reset, color: Colors.grey, size: 20)) : null,
+                              child: item.color == Colors.transparent
+                                  ? const Center(
+                                      child: Icon(
+                                        Icons.format_color_reset,
+                                        color: Colors.grey,
+                                        size: 20,
+                                      ),
+                                    )
+                                  : null,
                             ),
-                            if (item.video != null) const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                            if (item.video != null)
+                              const Icon(
+                                Icons.wallpaper,
+                                color: Colors.white,
+                                size: 20,
+                              ),
                             if (item.isLocked)
                               Container(
-                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.5), borderRadius: BorderRadius.circular(12.0)),
-                                child: const Center(child: Icon(Icons.lock, color: Colors.white, size: 20)),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.5),
+                                  borderRadius: BorderRadius.circular(12.0),
+                                ),
+                                child: const Center(
+                                  child: Icon(
+                                    Icons.lock,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
                               ),
                           ],
                         ),
@@ -703,7 +971,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "닫기",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -713,7 +987,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showAudioPickerDialog(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+  void _showAudioPickerDialog(
+    String title,
+    List<String> options,
+    ValueNotifier<String> notifier,
+    Color accentColor,
+    Function(String) onPreview,
+  ) {
     showDialog(
       context: context,
       builder: (context) {
@@ -724,16 +1004,30 @@ class _SettingsPageState extends State<SettingsPage> {
 
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           child: Container(
             width: popupWidth,
             height: popupHeight,
-            padding: const EdgeInsets.only(top: 20.0, left: 16.0, right: 16.0, bottom: 12.0),
+            padding: const EdgeInsets.only(
+              top: 20.0,
+              left: 16.0,
+              right: 16.0,
+              bottom: 12.0,
+            ),
             child: Column(
               children: [
                 Padding(
                   padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: accentColor,
+                    ),
+                  ),
                 ),
                 Expanded(
                   child: ValueListenableBuilder<String>(
@@ -743,25 +1037,48 @@ class _SettingsPageState extends State<SettingsPage> {
                         physics: const BouncingScrollPhysics(),
                         itemCount: options.length,
                         // 🌟 내부 구분선 색상 동기화
-                        separatorBuilder: (context, index) => Divider(color: accentColor.withOpacity(0.2), height: 1),
+                        separatorBuilder: (context, index) => Divider(
+                          color: accentColor.withOpacity(0.2),
+                          height: 1,
+                        ),
                         itemBuilder: (context, index) {
                           final option = options[index];
                           final isSelected = option == currentValue;
 
                           return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            tileColor: isSelected ? accentColor.withOpacity(0.1) : Colors.transparent,
-                            leading: Icon(title.contains("BGM") ? Icons.music_note : Icons.notifications_active, color: isSelected ? accentColor : Colors.grey.shade400),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12.0,
+                              vertical: 4.0,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            tileColor: isSelected
+                                ? accentColor.withOpacity(0.1)
+                                : Colors.transparent,
+                            leading: Icon(
+                              title.contains("BGM")
+                                  ? Icons.music_note
+                                  : Icons.notifications_active,
+                              color: isSelected
+                                  ? accentColor
+                                  : Colors.grey.shade400,
+                            ),
                             title: Text(
                               option,
                               style: TextStyle(
                                 fontSize: 16,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                                color: isSelected ? accentColor : Colors.black87,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? accentColor
+                                    : Colors.black87,
                               ),
                             ),
-                            trailing: isSelected ? Icon(Icons.check_circle, color: accentColor) : null,
+                            trailing: isSelected
+                                ? Icon(Icons.check_circle, color: accentColor)
+                                : null,
                             onTap: () {
                               notifier.value = option;
                               onPreview(option);
@@ -775,7 +1092,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 8),
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 16)),
+                  child: const Text(
+                    "닫기",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -785,22 +1109,50 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget audioPickerRow(String title, List<String> options, ValueNotifier<String> notifier, Color accentColor, Function(String) onPreview) {
+  Widget audioPickerRow(
+    String title,
+    List<String> options,
+    ValueNotifier<String> notifier,
+    Color accentColor,
+    Function(String) onPreview,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              color: accentColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           GestureDetector(
-            onTap: () => _showAudioPickerDialog("$title 선택", options, notifier, accentColor, onPreview),
+            onTap: () => _showAudioPickerDialog(
+              "$title 선택",
+              options,
+              notifier,
+              accentColor,
+              onPreview,
+            ),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade300),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 4, offset: const Offset(0, 2))],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -809,13 +1161,27 @@ class _SettingsPageState extends State<SettingsPage> {
                     valueListenable: notifier,
                     builder: (context, val, _) {
                       return ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.35),
-                        child: Text(val, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87)),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.35,
+                        ),
+                        child: Text(
+                          val,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
                       );
                     },
                   ),
                   const SizedBox(width: 8),
-                  Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade600, size: 20),
+                  Icon(
+                    Icons.keyboard_arrow_down,
+                    color: Colors.grey.shade600,
+                    size: 20,
+                  ),
                 ],
               ),
             ),
@@ -825,7 +1191,11 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget colorPicker(String title, ValueNotifier<Color> notifier, Color accentColor) {
+  Widget colorPicker(
+    String title,
+    ValueNotifier<Color> notifier,
+    Color accentColor,
+  ) {
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
       builder: (context, color, _) {
@@ -834,21 +1204,41 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               GestureDetector(
                 onTap: () => _showCustomPicker(title, notifier, accentColor),
                 child: Container(
-                  width: 36, height: 36,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     color: color,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: color == Colors.transparent ? Colors.grey.shade400 : Colors.grey.shade300),
+                    border: Border.all(
+                      color: color == Colors.transparent
+                          ? Colors.grey.shade400
+                          : Colors.grey.shade300,
+                    ),
                   ),
                   child: color == Colors.transparent
-                      ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20)
+                      ? const Icon(
+                          Icons.format_color_reset,
+                          color: Colors.grey,
+                          size: 20,
+                        )
                       : (title == "배경색" && globalBgVideoName.value != "사용 안 함")
-                          ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
-                          : null,
+                      ? const Icon(
+                          Icons.wallpaper,
+                          color: Colors.white,
+                          size: 20,
+                        )
+                      : null,
                 ),
               ),
             ],
@@ -858,7 +1248,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget buildTwoOptionToggle(String title, String opt1, String opt2, ValueNotifier<bool> notifier, Color accentColor) {
+  Widget buildTwoOptionToggle(
+    String title,
+    String opt1,
+    String opt2,
+    ValueNotifier<bool> notifier,
+    Color accentColor,
+  ) {
     return ValueListenableBuilder<bool>(
       valueListenable: notifier,
       builder: (context, isTrue, child) {
@@ -867,13 +1263,23 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(width: 8),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(minWidth: 100, maxWidth: 150),
+                    constraints: const BoxConstraints(
+                      minWidth: 100,
+                      maxWidth: 150,
+                    ),
                     child: SizedBox(
                       width: double.infinity,
                       child: CupertinoSlidingSegmentedControl<bool>(
@@ -884,15 +1290,31 @@ class _SettingsPageState extends State<SettingsPage> {
                           true: Container(
                             alignment: Alignment.center,
                             padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(opt1, style: TextStyle(color: isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                            child: Text(
+                              opt1,
+                              style: TextStyle(
+                                color: isTrue ? accentColor : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                           false: Container(
                             alignment: Alignment.center,
                             padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(opt2, style: TextStyle(color: !isTrue ? accentColor : Colors.grey, fontWeight: FontWeight.bold, fontSize: 14)),
+                            child: Text(
+                              opt2,
+                              style: TextStyle(
+                                color: !isTrue ? accentColor : Colors.grey,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           ),
                         },
-                        onValueChanged: (val) { if (val != null) notifier.value = val; },
+                        onValueChanged: (val) {
+                          if (val != null) notifier.value = val;
+                        },
                       ),
                     ),
                   ),
@@ -913,7 +1335,9 @@ class _SettingsPageState extends State<SettingsPage> {
       child: ValueListenableBuilder<Color>(
         valueListenable: globalClockColor,
         builder: (context, rawAccentColor, child) {
-          Color uiAccentColor = rawAccentColor == Colors.transparent ? Colors.grey.shade800 : rawAccentColor;
+          Color uiAccentColor = rawAccentColor == Colors.transparent
+              ? Colors.grey.shade800
+              : rawAccentColor;
 
           return Scaffold(
             backgroundColor: const Color(0xFFF9F9F9),
@@ -933,11 +1357,21 @@ class _SettingsPageState extends State<SettingsPage> {
                               Align(
                                 alignment: Alignment.centerLeft,
                                 child: IconButton(
-                                  icon: Icon(Icons.arrow_back_ios_new, color: uiAccentColor),
+                                  icon: Icon(
+                                    Icons.arrow_back_ios_new,
+                                    color: uiAccentColor,
+                                  ),
                                   onPressed: () => Navigator.pop(context),
                                 ),
                               ),
-                              Text("SETTINGS", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: uiAccentColor)),
+                              Text(
+                                "SETTINGS",
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: uiAccentColor,
+                                ),
+                              ),
                             ],
                           ),
                         ),
@@ -957,8 +1391,12 @@ class _SettingsPageState extends State<SettingsPage> {
                                     _tabTitles[index],
                                     style: TextStyle(
                                       fontSize: 16,
-                                      fontWeight: isActive ? FontWeight.bold : FontWeight.w600,
-                                      color: isActive ? uiAccentColor : Colors.grey.shade400,
+                                      fontWeight: isActive
+                                          ? FontWeight.bold
+                                          : FontWeight.w600,
+                                      color: isActive
+                                          ? uiAccentColor
+                                          : Colors.grey.shade400,
                                     ),
                                   ),
                                 ),
@@ -966,14 +1404,20 @@ class _SettingsPageState extends State<SettingsPage> {
                             }),
                           ),
                         ),
-                        Divider(height: 1, color: uiAccentColor.withOpacity(0.3)),
+                        Divider(
+                          height: 1,
+                          color: uiAccentColor.withOpacity(0.3),
+                        ),
                       ],
                     ),
                   ),
                   Expanded(
                     child: SingleChildScrollView(
                       controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
                       child: Column(
                         children: [
                           ...List.generate(_tabTitles.length, (index) {
@@ -993,24 +1437,42 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-    Widget _loginButton(String text, IconData icon, Color color, VoidCallback onTap) {
+  Widget _loginButton(
+    String text,
+    IconData icon,
+    Color color,
+    VoidCallback onTap,
+  ) {
     final size = MediaQuery.of(context).size;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: size.height * 0.015, horizontal: size.width * 0.03),
+        padding: EdgeInsets.symmetric(
+          vertical: size.height * 0.015,
+          horizontal: size.width * 0.03,
+        ),
         child: Row(
           children: [
             Icon(icon, color: color, size: size.width * 0.06),
             SizedBox(width: size.width * 0.03),
-            Expanded(child: Text(text, style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.w600, color: color))),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: size.width * 0.04,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
+
   Widget _actionButton(String text, Color color, VoidCallback onTap) {
     final size = MediaQuery.of(context).size;
     return ElevatedButton(
@@ -1022,11 +1484,17 @@ class _SettingsPageState extends State<SettingsPage> {
         elevation: 0,
       ),
       onPressed: onTap,
-      child: Text(text, style: TextStyle(fontSize: size.width * 0.035, fontWeight: FontWeight.bold)),
+      child: Text(
+        text,
+        style: TextStyle(
+          fontSize: size.width * 0.035,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
     );
   }
 
-    Future<Map<String, String>?> _showEmailDialog() {
+  Future<Map<String, String>?> _showEmailDialog() {
     final email = TextEditingController();
     final pw = TextEditingController();
     return showDialog<Map<String, String>>(
@@ -1037,18 +1505,40 @@ class _SettingsPageState extends State<SettingsPage> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: email, decoration: const InputDecoration(labelText: "이메일")),
-              TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호")),
+              TextField(
+                controller: email,
+                decoration: const InputDecoration(labelText: "이메일"),
+              ),
+              TextField(
+                controller: pw,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "비밀번호"),
+              ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, {"email": email.text.trim(), "pw": pw.text.trim(), "type": "login"}), child: const Text("로그인")),
-            TextButton(onPressed: () => Navigator.pop(context, {"email": email.text.trim(), "pw": pw.text.trim(), "type": "signup"}), child: const Text("회원가입")),
+            TextButton(
+              onPressed: () => Navigator.pop(context, {
+                "email": email.text.trim(),
+                "pw": pw.text.trim(),
+                "type": "login",
+              }),
+              child: const Text("로그인"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, {
+                "email": email.text.trim(),
+                "pw": pw.text.trim(),
+                "type": "signup",
+              }),
+              child: const Text("회원가입"),
+            ),
           ],
         );
       },
     );
   }
+
   // ✅ [복구] 계정 섹션 위젯
   Widget _buildAccountSection(Color accentColor) {
     final size = MediaQuery.of(context).size;
@@ -1059,10 +1549,18 @@ class _SettingsPageState extends State<SettingsPage> {
         return Column(
           children: [
             if (user == null) ...[
-              _loginButton("Google로 로그인", Icons.g_mobiledata, accentColor, () async {
-                final result = await AuthService.signInWithGoogle();
-                if (result != null) await FirebaseSettingsService.loadSettingsFromCloud();
-              }),
+              _loginButton(
+                "Google로 로그인",
+                Icons.g_mobiledata,
+                accentColor,
+                () async {
+                  final result = await AuthService.signInWithGoogle();
+                  if (result != null) {
+                    await FirebaseSettingsService.loadSettingsFromCloud();
+                    await _loadFavorites();
+                  }
+                },
+              ),
               SizedBox(height: size.height * 0.01),
               _loginButton("이메일 로그인", Icons.email, accentColor, () async {
                 final result = await _showEmailDialog();
@@ -1072,9 +1570,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 final type = result["type"];
                 if (type == "login" && (email.isEmpty || pw.isEmpty)) return;
                 if (type == "signup") {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => SignUpPage()));
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SignUpPage()),
+                  );
                 } else {
-                  await AuthService.signInWithEmail(email, pw);
+                  final user = await AuthService.signInWithEmail(email, pw);
+                  if (user != null) {
+                    await FirebaseSettingsService.loadSettingsFromCloud();
+                    await _loadFavorites(); // 🔥 추가
+                  }
                 }
               }),
             ] else ...[
@@ -1086,20 +1591,40 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(user.email ?? "사용자", style: TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.bold, color: accentColor)),
+                        Text(
+                          user.email ?? "사용자",
+                          style: TextStyle(
+                            fontSize: size.width * 0.04,
+                            fontWeight: FontWeight.bold,
+                            color: accentColor,
+                          ),
+                        ),
                         if (!user.emailVerified) ...[
-                          Text("이메일 인증 필요", style: TextStyle(color: Colors.red, fontSize: size.width * 0.03)),
+                          Text(
+                            "이메일 인증 필요",
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: size.width * 0.03,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           TextButton(
                             onPressed: () async {
                               final user = FirebaseAuth.instance.currentUser;
                               await user?.reload();
-                              final refreshedUser = FirebaseAuth.instance.currentUser;
-                              setState(() { _user = refreshedUser; });
+                              final refreshedUser =
+                                  FirebaseAuth.instance.currentUser;
+                              setState(() {
+                                _user = refreshedUser;
+                              });
                               if (refreshedUser?.emailVerified == true) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("인증 완료!")));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("인증 완료!")),
+                                );
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("아직 인증 안됨")));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("아직 인증 안됨")),
+                                );
                               }
                             },
                             child: const Text("인증 확인"),
@@ -1113,14 +1638,29 @@ class _SettingsPageState extends State<SettingsPage> {
               SizedBox(height: size.height * 0.015),
               Row(
                 children: [
-                  Expanded(child: _actionButton("로그아웃", accentColor, () async {
-                    await FirebaseSettingsService.saveSettingsToCloud();
-                    await AuthService.signOut();
-                  })),
+                  Expanded(
+                    child: _actionButton("로그아웃", accentColor, () async {
+                      await FirebaseSettingsService.saveSettingsToCloud();
+                      await AuthService.signOut();
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.clear(); // 🔥 로컬 데이터 전부 초기화
+
+                      setState(() {
+                        _favorites.clear(); // 🔥 핵심
+                      });
+                      await loadSettings(); // 🔥 기본값 다시 로드
+
+                      await _loadFavorites(); // 🔥 추가
+
+                      setState(() {}); // 🔥 UI 갱신
+                    }),
+                  ),
                   SizedBox(width: size.width * 0.02),
-                  Expanded(child: _actionButton("탈퇴", Colors.red, () async {
-                    await AuthService.deleteAccount();
-                  })),
+                  Expanded(
+                    child: _actionButton("탈퇴", Colors.red, () async {
+                      await AuthService.deleteAccount();
+                    }),
+                  ),
                 ],
               ),
             ],
@@ -1142,31 +1682,73 @@ class _SettingsPageState extends State<SettingsPage> {
           if (_favorites.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20.0),
-              child: Text("현재 저장된 즐겨찾기가 없습니다.", textAlign: TextAlign.center, style: TextStyle(color: Colors.grey.shade500, height: 1.5)),
+              child: Text(
+                "현재 저장된 즐겨찾기가 없습니다.",
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade500, height: 1.5),
+              ),
             )
           else
             ListView.builder(
-              shrinkWrap: true, physics: const NeverScrollableScrollPhysics(), itemCount: _favorites.length,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _favorites.length,
               itemBuilder: (context, i) {
                 final fav = _favorites[i];
                 return ListTile(
-                  contentPadding: EdgeInsets.zero, leading: Icon(Icons.star, color: accentColor),
-                  title: Text(fav["name"], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.star, color: accentColor),
+                  title: Text(
+                    fav["name"],
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      color: Colors.redAccent,
+                      size: 20,
+                    ),
                     onPressed: () {
                       showDialog(
                         context: context,
                         builder: (BuildContext context) {
                           return AlertDialog(
                             backgroundColor: Colors.white,
-                            title: Text("즐겨찾기 삭제", style: TextStyle(color: accentColor, fontWeight: FontWeight.bold, fontSize: 18)),
-                            content: const Text("해당 즐겨찾기를 제거하시겠습니까?", style: TextStyle(fontSize: 15)),
+                            title: Text(
+                              "즐겨찾기 삭제",
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            content: const Text(
+                              "해당 즐겨찾기를 제거하시겠습니까?",
+                              style: TextStyle(fontSize: 15),
+                            ),
                             actions: [
-                              TextButton(onPressed: () => Navigator.pop(context), child: const Text("취소", style: TextStyle(color: Colors.grey))),
                               TextButton(
-                                onPressed: () { setState(() { _favorites.removeAt(i); }); _saveFavorites(); Navigator.pop(context); },
-                                child: const Text("제거", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text(
+                                  "취소",
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () async {
+                                  await _deleteFavorite(i); // 🔥 핵심
+                                  Navigator.pop(context);
+                                },
+                                child: const Text(
+                                  "제거",
+                                  style: TextStyle(
+                                    color: Colors.redAccent,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
                             ],
                           );
@@ -1182,44 +1764,82 @@ class _SettingsPageState extends State<SettingsPage> {
           GestureDetector(
             onTap: () => _showAddFavoriteDialog(accentColor),
             child: Container(
-              padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: accentColor.withOpacity(0.1), shape: BoxShape.circle),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: accentColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
               child: Icon(Icons.add, size: 32, color: accentColor),
             ),
           ),
         ],
       );
-    } 
-    else if (index == 2) {
+    } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
-          globalBgColor, globalClockColor, globalDigitalColor, globalIndicatorColor, globalBgVideoName,
+          globalBgColor,
+          globalClockColor,
+          globalDigitalColor,
+          globalIndicatorColor,
+          globalBgVideoName,
         ]),
         builder: (context, child) {
-          final solidPresets = _themePresets.where((t) => t.bgVideo == "사용 안 함").toList();
-          final mediaPresets = _themePresets.where((t) => t.bgVideo != "사용 안 함").toList();
+          final solidPresets = _themePresets
+              .where((t) => t.bgVideo == "사용 안 함")
+              .toList();
+          final mediaPresets = _themePresets
+              .where((t) => t.bgVideo != "사용 안 함")
+              .toList();
 
           Widget buildPresetWrap(List<AppThemePreset> presets) {
             return Wrap(
-              spacing: 12.0, runSpacing: 12.0,
+              spacing: 12.0,
+              runSpacing: 12.0,
               children: presets.map((theme) {
-                bool isSelected = globalBgColor.value == theme.bg && globalClockColor.value == theme.clock && globalDigitalColor.value == theme.digital && globalIndicatorColor.value == theme.indicator && globalBgVideoName.value == theme.bgVideo;
+                bool isSelected =
+                    globalBgColor.value == theme.bg &&
+                    globalClockColor.value == theme.clock &&
+                    globalDigitalColor.value == theme.digital &&
+                    globalIndicatorColor.value == theme.indicator &&
+                    globalBgVideoName.value == theme.bgVideo;
                 bool isVideoPreset = theme.bgVideo != "사용 안 함";
 
                 return GestureDetector(
                   onTap: () {
-                    globalBgColor.value = theme.bg; globalClockColor.value = theme.clock; globalDigitalColor.value = theme.digital; globalIndicatorColor.value = theme.indicator; globalBgVideoName.value = theme.bgVideo;
+                    globalBgColor.value = theme.bg;
+                    globalClockColor.value = theme.clock;
+                    globalDigitalColor.value = theme.digital;
+                    globalIndicatorColor.value = theme.indicator;
+                    globalBgVideoName.value = theme.bgVideo;
                   },
-                  onLongPressStart: (details) { if (isVideoPreset) _showPreview(context, theme.bgVideo); },
+                  onLongPressStart: (details) {
+                    if (isVideoPreset) _showPreview(context, theme.bgVideo);
+                  },
                   onLongPressEnd: (details) => _hidePreview(),
                   onLongPressCancel: () => _hidePreview(),
                   child: Container(
-                    width: 56, height: 56,
+                    width: 56,
+                    height: 56,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
-                      gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, stops: const [0.5, 0.5], colors: [theme.bg, theme.clock]),
+                      border: Border.all(
+                        color: isSelected ? accentColor : Colors.grey.shade300,
+                        width: isSelected ? 3.0 : 1.0,
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        stops: const [0.5, 0.5],
+                        colors: [theme.bg, theme.clock],
+                      ),
                     ),
-                    child: isVideoPreset ? const Icon(Icons.wallpaper, color: Colors.white, size: 20) : null,
+                    child: isVideoPreset
+                        ? const Icon(
+                            Icons.wallpaper,
+                            color: Colors.white,
+                            size: 20,
+                          )
+                        : null,
                   ),
                 );
               }).toList(),
@@ -1229,19 +1849,47 @@ class _SettingsPageState extends State<SettingsPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("프리셋 선택", style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
+              Text(
+                "프리셋 선택",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: accentColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 16),
-              Text("단색 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+              Text(
+                "단색 테마",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: accentColor.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               buildPresetWrap(solidPresets),
               const SizedBox(height: 20),
-              Text("스페셜 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+              Text(
+                "스페셜 테마",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: accentColor.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 8),
               buildPresetWrap(mediaPresets),
               const SizedBox(height: 24),
               Divider(height: 1, color: accentColor.withOpacity(0.2)),
               const SizedBox(height: 16),
-              Text("세부 색상 커스텀", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+              Text(
+                "세부 색상 커스텀",
+                style: TextStyle(
+                  fontSize: 14,
+                  color: accentColor.withOpacity(0.7),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const SizedBox(height: 12),
               colorPicker("배경색", globalBgColor, accentColor),
               colorPicker("시계색", globalClockColor, accentColor),
@@ -1255,19 +1903,86 @@ class _SettingsPageState extends State<SettingsPage> {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildTwoOptionToggle("모드 선택", "TMR", "SW", globalIsTimerMode, accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "타이머 최대 눈금", options: const ["30초", "60초 (1분)", "120초 (2분)", "30분", "60분", "120분"], notifier: globalTimerMaxString, accentColor: accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "시계 표시", options: const ["BOTH", "ANALOG", "DIGITAL"], notifier: globalDisplayMode, accentColor: accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "숫자 표시", options: const ["NUMBER", "DOT", "NONE"], notifier: globalIndicatorMode, accentColor: accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "디지털 스타일", options: const ["DEFAULT", "SEGMENT", "FLIP"], notifier: globalDigitalStyle, accentColor: accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "폰트 크기", options: const ["SMALL", "MEDIUM", "LARGE"], notifier: globalDigitalFontSize, accentColor: accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          CustomWheelPicker(title: "햅틱 진동", options: const ["NONE", "SOFT", "MEDIUM", "STRONG"], notifier: globalHapticIntensity, accentColor: accentColor),
+          buildTwoOptionToggle(
+            "모드 선택",
+            "TMR",
+            "SW",
+            globalIsTimerMode,
+            accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "타이머 최대 눈금",
+            options: const [
+              "30초",
+              "60초 (1분)",
+              "120초 (2분)",
+              "30분",
+              "60분",
+              "120분",
+            ],
+            notifier: globalTimerMaxString,
+            accentColor: accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "시계 표시",
+            options: const ["BOTH", "ANALOG", "DIGITAL"],
+            notifier: globalDisplayMode,
+            accentColor: accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "숫자 표시",
+            options: const ["NUMBER", "DOT", "NONE"],
+            notifier: globalIndicatorMode,
+            accentColor: accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "디지털 스타일",
+            options: const ["DEFAULT", "SEGMENT", "FLIP"],
+            notifier: globalDigitalStyle,
+            accentColor: accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "폰트 크기",
+            options: const ["SMALL", "MEDIUM", "LARGE"],
+            notifier: globalDigitalFontSize,
+            accentColor: accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          CustomWheelPicker(
+            title: "햅틱 진동",
+            options: const ["NONE", "SOFT", "MEDIUM", "STRONG"],
+            notifier: globalHapticIntensity,
+            accentColor: accentColor,
+          ),
         ],
       );
     } else if (index == 4) {
@@ -1277,25 +1992,90 @@ class _SettingsPageState extends State<SettingsPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              buildTwoOptionToggle("뽀모도로 모드", "ON", "OFF", globalPomodoroMode, accentColor),
+              buildTwoOptionToggle(
+                "뽀모도로 모드",
+                "ON",
+                "OFF",
+                globalPomodoroMode,
+                accentColor,
+              ),
               if (isPomodoroOn) ...[
-                Divider(color: accentColor.withOpacity(0.2), height: 24, thickness: 1),
-                Text("시간 및 횟수 설정", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                Divider(
+                  color: accentColor.withOpacity(0.2),
+                  height: 24,
+                  thickness: 1,
+                ),
+                Text(
+                  "시간 및 횟수 설정",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: accentColor.withOpacity(0.7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                CustomWheelPicker(title: "집중 시간", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroWorkTime, accentColor: accentColor),
+                CustomWheelPicker(
+                  title: "집중 시간",
+                  options: List.generate(60, (i) => "${i + 1}분"),
+                  notifier: globalPomodoroWorkTime,
+                  accentColor: accentColor,
+                ),
                 const SizedBox(height: 4),
-                CustomWheelPicker(title: "짧은 휴식", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroShortBreak, accentColor: accentColor),
+                CustomWheelPicker(
+                  title: "짧은 휴식",
+                  options: List.generate(60, (i) => "${i + 1}분"),
+                  notifier: globalPomodoroShortBreak,
+                  accentColor: accentColor,
+                ),
                 const SizedBox(height: 4),
-                CustomWheelPicker(title: "긴 휴식", options: List.generate(60, (i) => "${i + 1}분"), notifier: globalPomodoroLongBreak, accentColor: accentColor),
+                CustomWheelPicker(
+                  title: "긴 휴식",
+                  options: List.generate(60, (i) => "${i + 1}분"),
+                  notifier: globalPomodoroLongBreak,
+                  accentColor: accentColor,
+                ),
                 const SizedBox(height: 4),
-                CustomWheelPicker(title: "긴 휴식 주기", options: List.generate(10, (i) => "${i + 1}번"), notifier: globalPomodoroCycleCount, accentColor: accentColor),
+                CustomWheelPicker(
+                  title: "긴 휴식 주기",
+                  options: List.generate(10, (i) => "${i + 1}번"),
+                  notifier: globalPomodoroCycleCount,
+                  accentColor: accentColor,
+                ),
                 const SizedBox(height: 4),
-                CustomWheelPicker(title: "최대 뽀모도로 횟수", options: ["제한 없음", ...List.generate(20, (i) => "${i + 1}세션")], notifier: globalPomodoroMaxSessions, accentColor: accentColor),
-                Divider(color: accentColor.withOpacity(0.2), height: 24, thickness: 1),
-                Text("자동 시작 옵션", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
+                CustomWheelPicker(
+                  title: "최대 뽀모도로 횟수",
+                  options: ["제한 없음", ...List.generate(20, (i) => "${i + 1}세션")],
+                  notifier: globalPomodoroMaxSessions,
+                  accentColor: accentColor,
+                ),
+                Divider(
+                  color: accentColor.withOpacity(0.2),
+                  height: 24,
+                  thickness: 1,
+                ),
+                Text(
+                  "자동 시작 옵션",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: accentColor.withOpacity(0.7),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 const SizedBox(height: 8),
-                buildTwoOptionToggle("집중 모드 자동시작", "ON", "OFF", globalPomodoroAutoWork, accentColor),
-                buildTwoOptionToggle("휴식 모드 자동시작", "ON", "OFF", globalPomodoroAutoBreak, accentColor),
+                buildTwoOptionToggle(
+                  "집중 모드 자동시작",
+                  "ON",
+                  "OFF",
+                  globalPomodoroAutoWork,
+                  accentColor,
+                ),
+                buildTwoOptionToggle(
+                  "휴식 모드 자동시작",
+                  "ON",
+                  "OFF",
+                  globalPomodoroAutoBreak,
+                  accentColor,
+                ),
               ],
             ],
           );
@@ -1305,21 +2085,53 @@ class _SettingsPageState extends State<SettingsPage> {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildTwoOptionToggle("타이머 종료 알림", "ON", "OFF", globalAlarmEnabled, accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          audioPickerRow("알림 방식", alarmOptions, globalAlarmSound, accentColor, (val) => GlobalBgmManager.previewAlarmSound(val)),
+          buildTwoOptionToggle(
+            "타이머 종료 알림",
+            "ON",
+            "OFF",
+            globalAlarmEnabled,
+            accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          audioPickerRow(
+            "알림 방식",
+            alarmOptions,
+            globalAlarmSound,
+            accentColor,
+            (val) => GlobalBgmManager.previewAlarmSound(val),
+          ),
         ],
       );
     } else if (index == 6) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildTwoOptionToggle("배경 음악 재생", "ON", "OFF", globalBgmEnabled, accentColor),
-          Divider(color: accentColor.withOpacity(0.2), height: 16, thickness: 1),
-          audioPickerRow("트랙 선택", bgmOptions, globalBgmTrack, accentColor, (val) => GlobalBgmManager.previewBgm(val)),
+          buildTwoOptionToggle(
+            "배경 음악 재생",
+            "ON",
+            "OFF",
+            globalBgmEnabled,
+            accentColor,
+          ),
+          Divider(
+            color: accentColor.withOpacity(0.2),
+            height: 16,
+            thickness: 1,
+          ),
+          audioPickerRow(
+            "트랙 선택",
+            bgmOptions,
+            globalBgmTrack,
+            accentColor,
+            (val) => GlobalBgmManager.previewBgm(val),
+          ),
         ],
       );
-    } 
+    }
     // ✅ [고객 센터] 섹션 완성
     else if (index == 7) {
       sectionContent = Column(
@@ -1329,7 +2141,12 @@ class _SettingsPageState extends State<SettingsPage> {
             leading: Icon(Icons.campaign, color: accentColor),
             title: const Text("공지사항"),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => NoticePage(accentColor: accentColor))),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => NoticePage(accentColor: accentColor),
+              ),
+            ),
           ),
           Divider(color: accentColor.withOpacity(0.1), height: 1),
           ListTile(
@@ -1343,21 +2160,29 @@ class _SettingsPageState extends State<SettingsPage> {
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.quiz_outlined, color: accentColor),
             title: const Text("자주 묻는 질문 (FAQ)"),
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => FAQPage(accentColor: accentColor))),
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => FAQPage(accentColor: accentColor),
+              ),
+            ),
           ),
           Divider(color: accentColor.withOpacity(0.1), height: 1),
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: Icon(Icons.info_outline, color: accentColor),
             title: const Text("오픈소스 라이선스"),
-            onTap: () => showLicensePage(context: context, applicationName: "타이머"),
+            onTap: () =>
+                showLicensePage(context: context, applicationName: "타이머"),
           ),
           const SizedBox(height: 8),
-          Text("버전 정보 1.0.0", style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
+          Text(
+            "버전 정보 1.0.0",
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+          ),
         ],
       );
-    }
-    else {
+    } else {
       sectionContent = const SizedBox();
     }
 
@@ -1369,14 +2194,25 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
           child: Row(
             children: [
-              Text(_tabTitles[index], style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+              Text(
+                _tabTitles[index],
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: accentColor,
+                ),
+              ),
               if (_tabTitles[index] == "뽀모도로")
                 Padding(
                   padding: const EdgeInsets.only(left: 6.0),
                   child: InkWell(
                     onTap: () => _showPomodoroHelpDialog(accentColor),
                     borderRadius: BorderRadius.circular(12),
-                    child: Icon(Icons.help_outline, color: accentColor.withOpacity(0.7), size: 22),
+                    child: Icon(
+                      Icons.help_outline,
+                      color: accentColor.withOpacity(0.7),
+                      size: 22,
+                    ),
                   ),
                 ),
             ],
@@ -1425,14 +2261,28 @@ class _SignUpPageState extends State<SignUpPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            TextField(controller: email, decoration: const InputDecoration(labelText: "이메일")),
-            TextField(controller: pw, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호")),
-            TextField(controller: pwConfirm, obscureText: true, decoration: const InputDecoration(labelText: "비밀번호 확인")),
+            TextField(
+              controller: email,
+              decoration: const InputDecoration(labelText: "이메일"),
+            ),
+            TextField(
+              controller: pw,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "비밀번호"),
+            ),
+            TextField(
+              controller: pwConfirm,
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "비밀번호 확인"),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () async {
                 if (pw.text != pwConfirm.text) return;
-                final user = await AuthService.signUpWithEmail(email.text.trim(), pw.text.trim());
+                final user = await AuthService.signUpWithEmail(
+                  email.text.trim(),
+                  pw.text.trim(),
+                );
                 if (user != null) {
                   showDialog(
                     context: context,
@@ -1451,7 +2301,9 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("회원가입 실패")));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(const SnackBar(content: Text("회원가입 실패")));
                 }
               },
               child: const Text("회원가입"),
@@ -1470,7 +2322,12 @@ class CustomWheelPicker extends StatefulWidget {
   final Color accentColor;
   final Function(String)? onSelected;
   const CustomWheelPicker({
-    super.key, required this.title, required this.options, required this.notifier, required this.accentColor, this.onSelected,
+    super.key,
+    required this.title,
+    required this.options,
+    required this.notifier,
+    required this.accentColor,
+    this.onSelected,
   });
   @override
   State<CustomWheelPicker> createState() => _CustomWheelPickerState();
@@ -1485,19 +2342,24 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
     if (initialIndex == -1) initialIndex = 0;
     _controller = FixedExtentScrollController(initialItem: initialIndex);
   }
+
   @override
   void didUpdateWidget(covariant CustomWheelPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
     int targetIndex = widget.options.indexOf(widget.notifier.value);
-    if (targetIndex != -1 && _controller.hasClients && _controller.selectedItem != targetIndex) {
+    if (targetIndex != -1 &&
+        _controller.hasClients &&
+        _controller.selectedItem != targetIndex) {
       _controller.jumpToItem(targetIndex);
     }
   }
+
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -1505,7 +2367,14 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(widget.title, style: TextStyle(fontSize: 16, color: widget.accentColor, fontWeight: FontWeight.bold)),
+          Text(
+            widget.title,
+            style: TextStyle(
+              fontSize: 16,
+              color: widget.accentColor,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Align(
@@ -1517,16 +2386,31 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      Container(width: double.infinity, height: 32, decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10))),
+                      Container(
+                        width: double.infinity,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
                       ScrollConfiguration(
                         behavior: ScrollConfiguration.of(context).copyWith(
-                          dragDevices: {PointerDeviceKind.touch, PointerDeviceKind.mouse, PointerDeviceKind.trackpad},
+                          dragDevices: {
+                            PointerDeviceKind.touch,
+                            PointerDeviceKind.mouse,
+                            PointerDeviceKind.trackpad,
+                          },
                         ),
                         child: CupertinoPicker(
-                          scrollController: _controller, itemExtent: 32.0, diameterRatio: 1.5, selectionOverlay: const SizedBox(),
+                          scrollController: _controller,
+                          itemExtent: 32.0,
+                          diameterRatio: 1.5,
+                          selectionOverlay: const SizedBox(),
                           onSelectedItemChanged: (index) {
                             widget.notifier.value = widget.options[index];
-                            if (widget.onSelected != null) widget.onSelected!(widget.options[index]);
+                            if (widget.onSelected != null)
+                              widget.onSelected!(widget.options[index]);
                           },
                           children: List<Widget>.generate(
                             widget.options.length,
@@ -1535,13 +2419,23 @@ class _CustomWheelPickerState extends State<CustomWheelPicker> {
                                 child: ValueListenableBuilder<String>(
                                   valueListenable: widget.notifier,
                                   builder: (context, currentValue, child) {
-                                    bool isSelected = widget.options[index] == currentValue;
+                                    bool isSelected =
+                                        widget.options[index] == currentValue;
                                     return Text(
-                                      widget.options[index], textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis,
+                                      widget.options[index],
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
                                         fontSize: isSelected ? 15 : 13,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                        color: isSelected ? widget.accentColor : widget.accentColor.withOpacity(0.4),
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w600,
+                                        color: isSelected
+                                            ? widget.accentColor
+                                            : widget.accentColor.withOpacity(
+                                                0.4,
+                                              ),
                                       ),
                                     );
                                   },
@@ -1582,13 +2476,12 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
 
     if (widget.videoName == "비 오는 밤 (Rain)") {
       _assetPath = 'assets/video/rainwindow.mp4';
-      _isVideo = true; 
-    } 
-    else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
+      _isVideo = true;
+    } else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
       _assetPath = 'assets/video/sakura.mp4';
       _isVideo = true;
     }
-    
+
     if (_isVideo && _assetPath.isNotEmpty) {
       _controller = VideoPlayerController.asset(_assetPath)
         ..initialize().then((_) {
@@ -1609,7 +2502,9 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
   @override
   Widget build(BuildContext context) {
     if (_assetPath.isEmpty) {
-      return const Center(child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)));
+      return const Center(
+        child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)),
+      );
     }
 
     return Stack(
@@ -1617,16 +2512,18 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
         Positioned.fill(
           child: _isVideo
               ? (_controller != null && _controller!.value.isInitialized)
-                  ? FittedBox(
-                      fit: BoxFit.cover,
-                      child: SizedBox(
-                        width: _controller!.value.size.width,
-                        height: _controller!.value.size.height,
-                        child: VideoPlayer(_controller!),
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator(color: Colors.white))
-              : Image.asset(_assetPath, fit: BoxFit.cover), 
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controller!.value.size.width,
+                          height: _controller!.value.size.height,
+                          child: VideoPlayer(_controller!),
+                        ),
+                      )
+                    : const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+              : Image.asset(_assetPath, fit: BoxFit.cover),
         ),
       ],
     );
