@@ -1071,33 +1071,22 @@ class BaseClockLayout extends StatelessWidget {
             String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
 
             double baseFontSize = availableHeight * 0.07;
+            double fontMultiplier = 1.0; // 🔥 딱 한번만 선언
 
             if (displayMode == "digital") {
-              if (isLandscape) {
-                baseFontSize = availableHeight * 0.35;
-              } else {
-                baseFontSize = availableHeight * 0.15;
-              }
-            } else if (displayMode == "both") {
-              if (isLandscape) {
-                baseFontSize = availableHeight * 0.15;
-              } else {
-                baseFontSize = availableHeight * 0.08;
-              }
-            }
-            // 🔥 FLIP 전용 보정 (핵심)
-            else if (digitalStyle != "default" && displayMode == "digital") {
-              double fontMultiplier = 1.0;
-              debugPrint("🔥 FLIP 스타일 보정 적용");
-              if (fontSizeStr == "small") fontMultiplier = 0.4;
-              if (fontSizeStr == "medium") fontMultiplier = 0.7;
-              if (fontSizeStr == "large") fontMultiplier = 1.5;
-            }
-            double fontMultiplier = 1.0;
+              baseFontSize = isLandscape
+                  ? availableHeight * 0.35
+                  : availableHeight * 0.15;
 
-            // 기본값
-            if (fontSizeStr == "small") fontMultiplier = 0.7;
-            if (fontSizeStr == "large") fontMultiplier = 1.3;
+              if (digitalStyle == "flip" || digitalStyle == "segment") {
+                if (fontSizeStr == "small") fontMultiplier = 0.4;
+                if (fontSizeStr == "medium") fontMultiplier = 0.7;
+                if (fontSizeStr == "large") fontMultiplier = 1.5;
+              } else {
+                if (fontSizeStr == "small") fontMultiplier = 0.7;
+                if (fontSizeStr == "large") fontMultiplier = 1.3;
+              }
+            }
 
             final digitalFontSize = baseFontSize * fontMultiplier;
 
