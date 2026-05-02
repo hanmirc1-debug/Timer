@@ -52,11 +52,12 @@ final ValueNotifier<String> globalHapticIntensity = ValueNotifier<String>(
 
 final ValueNotifier<bool> globalAlarmEnabled = ValueNotifier<bool>(true);
 final ValueNotifier<String> globalAlarmSound = ValueNotifier<String>(
-  "기본음 (Bell)",
+  alarmOptions.first,
 );
 final ValueNotifier<bool> globalBgmEnabled = ValueNotifier<bool>(false);
+
 final ValueNotifier<String> globalBgmTrack = ValueNotifier<String>(
-  "백색소음 (White Noise)",
+  bgmOptions.first,
 );
 
 final ValueNotifier<String> globalTimerMaxString = ValueNotifier<String>(
