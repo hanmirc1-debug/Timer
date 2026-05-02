@@ -266,15 +266,21 @@ class _SettingsPageState extends State<SettingsPage> {
     ).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
   }
 
-// ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
-  void _confirmDeletion(String title, VoidCallback onDelete, {bool isSlot = false}) {
+  // ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
+  void _confirmDeletion(
+    String title,
+    VoidCallback onDelete, {
+    bool isSlot = false,
+  }) {
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: Text(isSlot ? "$title 삭제" : "$title 삭제"),
-        content: Text(isSlot 
-          ? "이 슬롯은 포인트로 구매했을 수 있습니다.\n삭제하면 슬롯이 영구적으로 사라지며, 소모된 포인트는 복구되지 않습니다.\n정말로 삭제하시겠습니까?" 
-          : "정말로 삭제하시겠습니까?\n삭제해도 슬롯(빈 칸)은 그대로 유지됩니다."),
+        content: Text(
+          isSlot
+              ? "이 슬롯은 포인트로 구매했을 수 있습니다.\n삭제하면 슬롯이 영구적으로 사라지며, 소모된 포인트는 복구되지 않습니다.\n정말로 삭제하시겠습니까?"
+              : "정말로 삭제하시겠습니까?\n삭제해도 슬롯(빈 칸)은 그대로 유지됩니다.",
+        ),
         actions: [
           CupertinoDialogAction(
             child: const Text("취소"),
@@ -1237,30 +1243,42 @@ class _SettingsPageState extends State<SettingsPage> {
                                     ),
                                   ),
                                 );
-} else {
-                              // ✅ 빈 슬롯 (+ 추가 버튼)
-                              return GestureDetector(
-                                onTap: () => _pickLocalImage(dialogSetState: dialogSetState),
-                                // 🔥 [수정됨] 사진 빈 칸(+)이 2개 이상일 때만 삭제 경고창이 뜸!
-                                onLongPress: _unlockedMediaSlots > _localMediaPaths.length + 1 ? () {
-                                  _confirmDeletion("사진 슬롯", () {
-                                    setState(() {
-                                      _unlockedMediaSlots--;
-                                    });
-                                    dialogSetState(() {}); // 팝업창 즉시 갱신
-                                    _updateSlotCount(); // Firebase 동기화
-                                  }, isSlot: true);
-                                } : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                              } else {
+                                // ✅ 빈 슬롯 (+ 추가 버튼)
+                                return GestureDetector(
+                                  onTap: () => _pickLocalImage(
+                                    dialogSetState: dialogSetState,
                                   ),
-                                  child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
-                                ),
-                              );
-                            }
+                                  // 🔥 [수정됨] 사진 빈 칸(+)이 2개 이상일 때만 삭제 경고창이 뜸!
+                                  onLongPress:
+                                      _unlockedMediaSlots >
+                                          _localMediaPaths.length + 1
+                                      ? () {
+                                          _confirmDeletion("사진 슬롯", () {
+                                            setState(() {
+                                              _unlockedMediaSlots--;
+                                            });
+                                            dialogSetState(() {}); // 팝업창 즉시 갱신
+                                            _updateSlotCount(); // Firebase 동기화
+                                          }, isSlot: true);
+                                        }
+                                      : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.grey.shade300,
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.add_photo_alternate,
+                                      color: Colors.grey.shade400,
+                                    ),
+                                  ),
+                                );
+                              }
                             },
                           ),
                         ],
@@ -1301,107 +1319,115 @@ class _SettingsPageState extends State<SettingsPage> {
         final screenHeight = MediaQuery.of(context).size.height;
         final double popupWidth = screenWidth * 0.85;
         final double popupHeight = screenHeight * 0.6;
-
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: popupWidth,
-            height: popupHeight,
-            padding: const EdgeInsets.only(
-              top: 20.0,
-              left: 16.0,
-              right: 16.0,
-              bottom: 12.0,
+        return PopScope(
+          canPop: true,
+          onPopInvokedWithResult: (didPop, result) {
+            GlobalBgmManager.stopAllSound(); // 🔥 뒤로가기 시 소리 끄기
+          },
+          child: Dialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
             ),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: accentColor,
+            child: Container(
+              width: popupWidth,
+              height: popupHeight,
+              padding: const EdgeInsets.only(
+                top: 20.0,
+                left: 16.0,
+                right: 16.0,
+                bottom: 12.0,
+              ),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16.0),
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: accentColor,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ValueListenableBuilder<String>(
-                    valueListenable: notifier,
-                    builder: (context, currentValue, _) {
-                      return ListView.separated(
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: options.length,
-                        // 🌟 내부 구분선 색상 동기화
-                        separatorBuilder: (context, index) => Divider(
-                          color: accentColor.withOpacity(0.2),
-                          height: 1,
-                        ),
-                        itemBuilder: (context, index) {
-                          final option = options[index];
-                          final isSelected = option == currentValue;
+                  Expanded(
+                    child: ValueListenableBuilder<String>(
+                      valueListenable: notifier,
+                      builder: (context, currentValue, _) {
+                        return ListView.separated(
+                          physics: const BouncingScrollPhysics(),
+                          itemCount: options.length,
+                          // 🌟 내부 구분선 색상 동기화
+                          separatorBuilder: (context, index) => Divider(
+                            color: accentColor.withOpacity(0.2),
+                            height: 1,
+                          ),
+                          itemBuilder: (context, index) {
+                            final option = options[index];
+                            final isSelected = option == currentValue;
 
-                          return ListTile(
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 12.0,
-                              vertical: 4.0,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            tileColor: isSelected
-                                ? accentColor.withOpacity(0.1)
-                                : Colors.transparent,
-                            leading: Icon(
-                              title.contains("BGM")
-                                  ? Icons.music_note
-                                  : Icons.notifications_active,
-                              color: isSelected
-                                  ? accentColor
-                                  : Colors.grey.shade400,
-                            ),
-                            title: Text(
-                              option,
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: isSelected
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12.0,
+                                vertical: 4.0,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              tileColor: isSelected
+                                  ? accentColor.withOpacity(0.1)
+                                  : Colors.transparent,
+                              leading: Icon(
+                                title.contains("BGM")
+                                    ? Icons.music_note
+                                    : Icons.notifications_active,
                                 color: isSelected
                                     ? accentColor
-                                    : Colors.black87,
+                                    : Colors.grey.shade400,
                               ),
-                            ),
-                            trailing: isSelected
-                                ? Icon(Icons.check_circle, color: accentColor)
-                                : null,
-                            onTap: () {
-                              notifier.value = option;
-                              onPreview(option);
-                            },
-                          );
-                        },
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "닫기",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                              title: Text(
+                                option,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w500,
+                                  color: isSelected
+                                      ? accentColor
+                                      : Colors.black87,
+                                ),
+                              ),
+                              trailing: isSelected
+                                  ? Icon(Icons.check_circle, color: accentColor)
+                                  : null,
+                              onTap: () {
+                                notifier.value = option;
+                                onPreview(option);
+                              },
+                            );
+                          },
+                        );
+                      },
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: () {
+                      GlobalBgmManager.stopAllSound(); // 🔥 추가
+                      Navigator.pop(context);
+                    },
+                    child: const Text(
+                      "닫기",
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -2194,7 +2220,14 @@ class _SettingsPageState extends State<SettingsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("커스텀 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+                  Text(
+                    "커스텀 테마",
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: accentColor.withOpacity(0.8),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 8),
@@ -2245,20 +2278,23 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ),
                     );
-} else {
+                  } else {
                     // ✅ 비어있는 슬롯 (+ 버튼)
                     return GestureDetector(
                       onTap: _saveCurrentAsPresetLocal,
                       // 🔥 [수정됨] 전체 슬롯 수가 '저장된 테마 수 + 1'보다 클 때만 삭제 가능!
                       // 즉, 화면에 + 버튼이 2개 이상 보일 때만 꾹 눌러서 삭제할 수 있습니다.
-                      onLongPress: _unlockedThemeSlots > _localCustomPresets.length + 1 ? () {
-                        _confirmDeletion("테마 슬롯", () {
-                          setState(() {
-                            _unlockedThemeSlots--;
-                          });
-                          _updateSlotCount(); // Firebase 동기화
-                        }, isSlot: true);
-                      } : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
+                      onLongPress:
+                          _unlockedThemeSlots > _localCustomPresets.length + 1
+                          ? () {
+                              _confirmDeletion("테마 슬롯", () {
+                                setState(() {
+                                  _unlockedThemeSlots--;
+                                });
+                                _updateSlotCount(); // Firebase 동기화
+                              }, isSlot: true);
+                            }
+                          : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
                       child: Container(
                         width: 56,
                         height: 56,
