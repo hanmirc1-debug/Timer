@@ -190,34 +190,39 @@ class _SettingsPageState extends State<SettingsPage> {
           bgVideo: data['bgVideo'] ?? "사용 안 함",
         )).toList();
       }
+      // 🔥 여기를 추가하세요! 앱을 껐다 켜더라도 저장된 내용물보다 칸이 줄어들지 않게 방어합니다.
+      if (_localMediaPaths.length >= _unlockedMediaSlots) {
+        _unlockedMediaSlots = _localMediaPaths.length + 1;
+      }
+      if (_localCustomPresets.length >= _unlockedThemeSlots) {
+        _unlockedThemeSlots = _localCustomPresets.length + 1;
+      }
     });
   }
-
-  // ✅ [수정됨] 갤러리에서 '사진만' 골라 기기 로컬에 저장하는 함수
-  Future<void> _pickLocalImage() async {
-    // if (_localMediaPaths.length >= _unlockedMediaSlots) {
-    //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("슬롯이 꽉 찼습니다.")));
-    //   return;
-    // }
-
+// ✅ 갤러리 사진 추가 및 슬롯 영구 확장 로직
+  Future<void> _pickLocalImage({StateSetter? dialogSetState}) async {
     final picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.gallery); // 📌 비디오 제외, 사진만 선택
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
 
-    setState(() => _localMediaPaths.add(image.path));
+    setState(() {
+      _localMediaPaths.add(image.path);
+      // 🔥 핵심: 꽉 찼을 때 사진을 추가하면, 포인트로 샀다고 가정하고 슬롯(칸)을 영구적으로 늘림!
+      if (_localMediaPaths.length >= _unlockedMediaSlots) {
+        _unlockedMediaSlots = _localMediaPaths.length + 1;
+      }
+    });
+    
+    if (dialogSetState != null) {
+      dialogSetState(() {});
+    }
 
-    // 기기 내부에 리스트 저장
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('local_media_paths', _localMediaPaths);
   }
 
-  // ✅ [수정됨] 현재 테마를 로컬에 저장하는 함수
+  // ✅ 커스텀 테마 추가 및 슬롯 영구 확장 로직
   Future<void> _saveCurrentAsPresetLocal() async {
-    // if (_localCustomPresets.length >= _unlockedThemeSlots) {
-    //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("테마 슬롯이 꽉 찼습니다.")));
-    //   return;
-    // }
-
     final newPreset = AppThemePreset(
       bg: globalBgColor.value,
       clock: globalClockColor.value,
@@ -226,9 +231,14 @@ class _SettingsPageState extends State<SettingsPage> {
       bgVideo: globalBgVideoName.value,
     );
     
-    setState(() => _localCustomPresets.add(newPreset));
+    setState(() {
+      _localCustomPresets.add(newPreset);
+      // 🔥 핵심: 꽉 찼을 때 테마를 추가하면, 슬롯(칸)을 영구적으로 늘림!
+      if (_localCustomPresets.length >= _unlockedThemeSlots) {
+        _unlockedThemeSlots = _localCustomPresets.length + 1;
+      }
+    });
 
-    // 기기 내부에 JSON으로 저장
     final prefs = await SharedPreferences.getInstance();
     final encoded = _localCustomPresets.map((t) => {
       'bg': t.bg.value, 'clock': t.clock.value, 'digital': t.digital.value, 'indicator': t.indicator.value, 'bgVideo': t.bgVideo,
@@ -236,6 +246,53 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setString('local_custom_themes', jsonEncode(encoded));
     
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
+  }
+
+
+// ✅ 삭제 확인 팝업창 함수
+  void _confirmDeletion(String title, VoidCallback onDelete) {
+    showCupertinoDialog(
+      context: context,
+      builder: (context) => CupertinoAlertDialog(
+        title: Text("$title 삭제"),
+        content: const Text("정말로 삭제하시겠습니까?\n삭제해도 슬롯(빈 칸)은 그대로 유지됩니다."),
+        actions: [
+          CupertinoDialogAction(
+            child: const Text("취소"),
+            onPressed: () => Navigator.pop(context),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
+            onPressed: () {
+              onDelete();
+              Navigator.pop(context);
+            },
+            child: const Text("삭제"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ✅ 커스텀 테마 삭제 로직
+  void _deleteTheme(int index) async {
+    setState(() {
+      _localCustomPresets.removeAt(index);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = _localCustomPresets.map((t) => {
+      'bg': t.bg.value, 'clock': t.clock.value, 'digital': t.digital.value, 'indicator': t.indicator.value, 'bgVideo': t.bgVideo,
+    }).toList();
+    await prefs.setString('local_custom_themes', jsonEncode(encoded));
+  }
+
+  // ✅ 로컬 이미지 삭제 로직
+  void _deleteImage(int index) async {
+    setState(() {
+      _localMediaPaths.removeAt(index);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('local_media_paths', _localMediaPaths);
   }
 
   void _showPreview(BuildContext context, String videoName) {
@@ -916,159 +973,163 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
   }
-void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
+
+  void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
     showDialog(
       context: context,
       builder: (context) {
-        final double popupWidth = MediaQuery.of(context).size.width * 0.85;
-        final double popupHeight = MediaQuery.of(context).size.height * 0.6;
-        final int columns = 6;
-        final double spacing = 12.0;
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            final double popupWidth = MediaQuery.of(context).size.width * 0.85;
+            final double popupHeight = MediaQuery.of(context).size.height * 0.65;
+            final int columns = 6;
+            final double spacing = 12.0;
 
-        // 단색 리스트 (비디오가 없는 항목만)
-        final solidOptions = _backgroundOptions.where((e) => e.video == null).toList();
-        
-        // 🔥 삭제되었던 기본 영상 리스트 복구 (비, 벚꽃 등)
-        final presetMediaOptions = _backgroundOptions.where((e) => e.video != null).toList();
+            // 1. 데이터 분류
+            final solidOptions = _backgroundOptions.where((e) => e.video == null).toList();
+            final presetMediaOptions = _backgroundOptions.where((e) => e.video != null).toList();
 
-        // 1. 단색 및 기본 영상을 그리는 공통 함수
-        Widget buildGrid(List<ThemeItem> items) {
-          return GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
-            ),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              final item = items[index];
-              bool isSelected = false;
-              
-              if (title == "배경색") {
-                if (item.video != null) { isSelected = globalBgVideoName.value == item.video; } 
-                else { isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함"; }
-              } else {
-                isSelected = colorNotifier.value == item.color;
-              }
-
-              if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
-
-              return GestureDetector(
-                onTap: () {
-                  if (item.isLocked) return;
-                  if (item.color != null) colorNotifier.value = item.color!;
+            // 2. [공통] 단색 및 기본 영상 그리드 빌더
+            Widget buildGrid(List<ThemeItem> items) {
+              return GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
+                ),
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  bool isSelected = false;
                   
-                  // 🔥 선택 시 배경 또는 시계 변수 알맞게 업데이트
                   if (title == "배경색") {
-                    globalBgVideoName.value = item.video ?? "사용 안 함";
-                  } else if (title == "시계색") {
-                    globalClockVideoName.value = item.video ?? "사용 안 함";
+                    if (item.video != null) { isSelected = globalBgVideoName.value == item.video; } 
+                    else { isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함"; }
+                  } else {
+                    isSelected = colorNotifier.value == item.color;
                   }
-                  Navigator.pop(context);
-                },
-                onLongPressStart: (details) { if (item.video != null) _showPreview(context, item.video!); },
-                onLongPressEnd: (details) => _hidePreview(),
-                onLongPressCancel: () => _hidePreview(),
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: item.color, borderRadius: BorderRadius.circular(12.0),
-                        border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
-                        boxShadow: [ if (isSelected) BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2) ],
-                      ),
-                      child: item.color == Colors.transparent ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20) : null,
+
+                  if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
+
+                  return GestureDetector(
+                    onTap: () {
+                      if (item.isLocked) return;
+                      if (item.color != null) colorNotifier.value = item.color!;
+                      if (title == "배경색") globalBgVideoName.value = item.video ?? "사용 안 함";
+                      else if (title == "시계색") globalClockVideoName.value = item.video ?? "사용 안 함";
+                      Navigator.pop(context);
+                    },
+                    onLongPressStart: (details) { if (item.video != null) _showPreview(context, item.video!); },
+                    onLongPressEnd: (details) => _hidePreview(),
+                    onLongPressCancel: () => _hidePreview(),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: item.color, borderRadius: BorderRadius.circular(12.0),
+                            border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                            boxShadow: [ if (isSelected) BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2) ],
+                          ),
+                          child: item.color == Colors.transparent ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20) : null,
+                        ),
+                        if (item.video != null) const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                      ],
                     ),
-                    if (item.video != null) const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                  );
+                },
+              );
+            }
+
+            return Dialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                width: popupWidth, height: popupHeight, padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: ListView(
+                        children: [
+                          // ✅ 1. 단색 리스트 (복구됨)
+                          Text("단색", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                          const SizedBox(height: 8),
+                          buildGrid(solidOptions), 
+                          
+                          // ✅ 2. 기본 제공 영상 (배경색일 때만 표시, 복구됨)
+                          if (title == "배경색") ...[
+                            const SizedBox(height: 24),
+                            Text("기본 제공 영상", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                            const SizedBox(height: 8),
+                            buildGrid(presetMediaOptions),
+                          ],
+
+                          // ✅ 3. 내 갤러리 사진 (슬롯 유지 버전)
+                          const SizedBox(height: 24),
+                          Text("내 갤러리 사진 (현재 기기에만 저장)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                          const SizedBox(height: 8),
+                          GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
+                            ),
+                            itemCount: _unlockedMediaSlots, // 슬롯 개수만큼 무조건 생성
+                            itemBuilder: (context, index) {
+                              if (index < _localMediaPaths.length) {
+                                final path = _localMediaPaths[index];
+                                bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
+                                return GestureDetector(
+                                  onTap: () {
+                                    if (title == "배경색") globalBgVideoName.value = path;
+                                    else if (title == "시계색") globalClockVideoName.value = path;
+                                    Navigator.pop(context);
+                                  },
+                                  onLongPress: () => _confirmDeletion("사진", () {
+                                    _deleteImage(index);
+                                    dialogSetState(() {});
+                                  }),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                                      image: DecorationImage(
+                                        image: kIsWeb ? NetworkImage(path) as ImageProvider : FileImage(File(path)), 
+                                        fit: BoxFit.cover
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              } else {
+                                return GestureDetector(
+                                  onTap: () => _pickLocalImage(dialogSetState: dialogSetState),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                                    ),
+                                    child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
+                                  ),
+                                );
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context), 
+                      child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))
+                    ),
                   ],
                 ),
-              );
-            },
-          );
-        }
-
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Container(
-            width: popupWidth, height: popupHeight, padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: ListView(
-                    children: [
-                      Text("단색", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-                      const SizedBox(height: 8),
-                      buildGrid(solidOptions), 
-                      
-                      // 🔥 삭제되었던 기본 영상(비, 벚꽃) 구역 다시 추가!
-                      if (title == "배경색") ...[
-                        const SizedBox(height: 24),
-                        Text("기본 제공 영상", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-                        const SizedBox(height: 8),
-                        buildGrid(presetMediaOptions),
-                      ],
-// 사용자 갤러리 구역
-                      if (title == "배경색" || title == "시계색") ...[
-                        const SizedBox(height: 24),
-                        Text("내 갤러리 사진 (현재 기기에만 저장)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
-                        const SizedBox(height: 8),
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
-                          ),
-                          // 🔥 저장된 사진 개수에 무조건 +버튼을 위한 1칸을 추가!
-                          itemCount: _localMediaPaths.length + 1, 
-                          itemBuilder: (context, index) {
-                            if (index < _localMediaPaths.length) {
-                              // ✅ 기존에 추가한 사진들 렌더링
-                              final path = _localMediaPaths[index];
-                              bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
-
-                              return GestureDetector(
-                                onTap: () {
-                                  if (title == "배경색") globalBgVideoName.value = path;
-                                  else if (title == "시계색") globalClockVideoName.value = path;
-                                  Navigator.pop(context);
-                                },
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
-                                    image: DecorationImage(image: FileImage(File(path)), fit: BoxFit.cover),
-                                  ),
-                                ),
-                              );
-                            } else {
-                              // ✅ 항상 맨 마지막에 생기는 + 버튼
-                              return GestureDetector(
-                                onTap: _pickLocalImage, // 슬롯 꽉 찼는지 확인은 이 함수가 알아서 해줌
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade200,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade400, width: 1.5),
-                                  ),
-                                  child: const Icon(Icons.add_photo_alternate, color: Colors.grey),
-                                ),
-                              );
-                            }
-                          },
-                        ),
-                      ]
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
-              ],
-            ),
-          ),
+              ),
+            );
+          }
         );
       },
     );
@@ -1954,30 +2015,61 @@ return Column(
                 ],
               ),
               const SizedBox(height: 8),
+              // ... 나만의 커스텀 테마 제목 부분 밑에 있는 Wrap을 아래로 교체 ...
+              // ... 나만의 커스텀 테마 제목 부분 밑에 있는 Wrap을 아래로 교체 ...
               Wrap(
                 spacing: 12.0,
                 runSpacing: 12.0,
-                children: [
-                  // 1. 저장된 커스텀 테마들 표시
-                  ..._localCustomPresets.map((t) {
-                    bool isSelected = globalBgColor.value == t.bg && globalClockColor.value == t.clock && globalDigitalColor.value == t.digital && globalIndicatorColor.value == t.indicator && globalBgVideoName.value == t.bgVideo;
-                    return buildPresetItem(t, isSelected);
-                  }),
-                  // 2. 🔥 항상 마지막에 위치하는 추가(+) 버튼
-                  GestureDetector(
-                    onTap: _saveCurrentAsPresetLocal, // 슬롯 꽉 찼는지 검사는 이 함수 안에서 자동으로 처리됨
-                    child: Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                // 🔥 핵심: 저장된 테마가 해제된 슬롯보다 많아지면 무조건 끝에 + 버튼을 1개 더 그려줍니다!
+                children: List.generate(_unlockedThemeSlots,
+                  (index) {
+                  if (index < _localCustomPresets.length) {
+                    // ✅ 내용이 채워진 테마 칸
+                    final t = _localCustomPresets[index];
+                    bool isSelected = globalBgColor.value == t.bg && 
+                                      globalClockColor.value == t.clock && 
+                                      globalDigitalColor.value == t.digital && 
+                                      globalIndicatorColor.value == t.indicator && 
+                                      globalBgVideoName.value == t.bgVideo;
+                    
+                    return GestureDetector(
+                      onTap: () {
+                        globalBgColor.value = t.bg;
+                        globalClockColor.value = t.clock;
+                        globalDigitalColor.value = t.digital;
+                        globalIndicatorColor.value = t.indicator;
+                        globalBgVideoName.value = t.bgVideo;
+                      },
+                      onLongPress: () => _confirmDeletion("커스텀 테마", () => _deleteTheme(index)),
+                      child: Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft, end: Alignment.bottomRight,
+                            stops: const [0.5, 0.5],
+                            colors: [t.bg, t.clock],
+                          ),
+                        ),
                       ),
-                      child: Icon(Icons.add, color: Colors.grey.shade600, size: 28),
-                    ),
-                  ),
-                ],
+                    );
+                  } else {
+                    // ✅ 비어있는 슬롯 (+ 버튼)
+                    return GestureDetector(
+                      onTap: _saveCurrentAsPresetLocal,
+                      child: Container(
+                        width: 56, height: 56,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                        ),
+                        child: Icon(Icons.add, color: Colors.grey.shade400, size: 28),
+                      ),
+                    );
+                  }
+                }),
               ),
               const SizedBox(height: 24),
               Divider(height: 1, color: accentColor.withOpacity(0.2)),
