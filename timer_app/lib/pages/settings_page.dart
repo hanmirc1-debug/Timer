@@ -12,6 +12,9 @@ import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter/foundation.dart'; // ✅ kIsWeb 사용을 위해 꼭 필요
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
@@ -141,6 +144,99 @@ class _SettingsPageState extends State<SettingsPage> {
   User? _user;
 
   OverlayEntry? _previewOverlay;
+// ✅ 로컬 저장용 변수 및 슬롯 관리 변수
+  int _unlockedMediaSlots = 1; // 기본 부여되는 사진 슬롯 개수 (Firebase 동기화)
+  int _unlockedThemeSlots = 1; // 기본 부여되는 테마 슬롯 개수 (Firebase 동기화)
+  
+  List<String> _localMediaPaths = []; // 기기에 저장된 사진 경로들
+  List<AppThemePreset> _localCustomPresets = []; // 기기에 저장된 테마들
+
+  // ✅ 데이터 불러오기 (Firebase에서는 '슬롯 개수'만, 사진/테마는 '로컬'에서)
+  Future<void> _loadCustomData() async {
+    final user = FirebaseAuth.instance.currentUser;
+    
+    // 1. Firebase에서 해제된 '슬롯 칸수' 불러오기
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data()!.containsKey('unlockedMediaSlots')) {
+        _unlockedMediaSlots = doc.data()!['unlockedMediaSlots'];
+        _unlockedThemeSlots = doc.data()!['unlockedThemeSlots'];
+      } else {
+        // 최초 로그인 시 기본 슬롯 1개씩 부여 (DB 기록)
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+          'unlockedMediaSlots': 1,
+          'unlockedThemeSlots': 1,
+        }, SetOptions(merge: true));
+        _unlockedMediaSlots = 1;
+        _unlockedThemeSlots = 1;
+      }
+    }
+
+    // 2. 로컬 기기(SharedPreferences)에서 저장된 사진/테마 불러오기
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // 로컬 사진 경로 불러오기
+      _localMediaPaths = prefs.getStringList('local_media_paths') ?? [];
+
+      // 로컬 테마 불러오기
+      final themeString = prefs.getString('local_custom_themes');
+      if (themeString != null) {
+        final List<dynamic> decoded = jsonDecode(themeString);
+        _localCustomPresets = decoded.map((data) => AppThemePreset(
+          bg: Color(data['bg']),
+          clock: Color(data['clock']),
+          digital: Color(data['digital']),
+          indicator: Color(data['indicator']),
+          bgVideo: data['bgVideo'] ?? "사용 안 함",
+        )).toList();
+      }
+    });
+  }
+
+  // ✅ [수정됨] 갤러리에서 '사진만' 골라 기기 로컬에 저장하는 함수
+  Future<void> _pickLocalImage() async {
+    // if (_localMediaPaths.length >= _unlockedMediaSlots) {
+    //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("슬롯이 꽉 찼습니다.")));
+    //   return;
+    // }
+
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery); // 📌 비디오 제외, 사진만 선택
+    if (image == null) return;
+
+    setState(() => _localMediaPaths.add(image.path));
+
+    // 기기 내부에 리스트 저장
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('local_media_paths', _localMediaPaths);
+  }
+
+  // ✅ [수정됨] 현재 테마를 로컬에 저장하는 함수
+  Future<void> _saveCurrentAsPresetLocal() async {
+    // if (_localCustomPresets.length >= _unlockedThemeSlots) {
+    //   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("테마 슬롯이 꽉 찼습니다.")));
+    //   return;
+    // }
+
+    final newPreset = AppThemePreset(
+      bg: globalBgColor.value,
+      clock: globalClockColor.value,
+      digital: globalDigitalColor.value,
+      indicator: globalIndicatorColor.value,
+      bgVideo: globalBgVideoName.value,
+    );
+    
+    setState(() => _localCustomPresets.add(newPreset));
+
+    // 기기 내부에 JSON으로 저장
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = _localCustomPresets.map((t) => {
+      'bg': t.bg.value, 'clock': t.clock.value, 'digital': t.digital.value, 'indicator': t.indicator.value, 'bgVideo': t.bgVideo,
+    }).toList();
+    await prefs.setString('local_custom_themes', jsonEncode(encoded));
+    
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
+  }
 
   void _showPreview(BuildContext context, String videoName) {
     if (_previewOverlay != null) return;
@@ -588,8 +684,10 @@ class _SettingsPageState extends State<SettingsPage> {
     _user = FirebaseAuth.instance.currentUser;
     _refreshUser();
     _loadFavorites(); // 🔥 추가
+    _loadCustomData(); // 🔥 이 줄을 추가하세요!
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
+      _loadCustomData(); // 🔥 여기도 추가!
     });
   }
 
@@ -818,167 +916,156 @@ class _SettingsPageState extends State<SettingsPage> {
       );
     }
   }
-
-  void _showCustomPicker(
-    String title,
-    ValueNotifier<Color> colorNotifier,
-    Color accentColor,
-  ) {
+void _showCustomPicker(String title, ValueNotifier<Color> colorNotifier, Color accentColor) {
     showDialog(
       context: context,
       builder: (context) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final screenHeight = MediaQuery.of(context).size.height;
-        final double popupWidth = screenWidth * 0.85;
-        final double popupHeight = screenHeight * 0.5;
+        final double popupWidth = MediaQuery.of(context).size.width * 0.85;
+        final double popupHeight = MediaQuery.of(context).size.height * 0.6;
         final int columns = 6;
         final double spacing = 12.0;
 
+        // 단색 리스트 (비디오가 없는 항목만)
+        final solidOptions = _backgroundOptions.where((e) => e.video == null).toList();
+        
+        // 🔥 삭제되었던 기본 영상 리스트 복구 (비, 벚꽃 등)
+        final presetMediaOptions = _backgroundOptions.where((e) => e.video != null).toList();
+
+        // 1. 단색 및 기본 영상을 그리는 공통 함수
+        Widget buildGrid(List<ThemeItem> items) {
+          return GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
+            ),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final item = items[index];
+              bool isSelected = false;
+              
+              if (title == "배경색") {
+                if (item.video != null) { isSelected = globalBgVideoName.value == item.video; } 
+                else { isSelected = colorNotifier.value == item.color && globalBgVideoName.value == "사용 안 함"; }
+              } else {
+                isSelected = colorNotifier.value == item.color;
+              }
+
+              if (item.color == Colors.transparent && title != "시계색") return const SizedBox.shrink();
+
+              return GestureDetector(
+                onTap: () {
+                  if (item.isLocked) return;
+                  if (item.color != null) colorNotifier.value = item.color!;
+                  
+                  // 🔥 선택 시 배경 또는 시계 변수 알맞게 업데이트
+                  if (title == "배경색") {
+                    globalBgVideoName.value = item.video ?? "사용 안 함";
+                  } else if (title == "시계색") {
+                    globalClockVideoName.value = item.video ?? "사용 안 함";
+                  }
+                  Navigator.pop(context);
+                },
+                onLongPressStart: (details) { if (item.video != null) _showPreview(context, item.video!); },
+                onLongPressEnd: (details) => _hidePreview(),
+                onLongPressCancel: () => _hidePreview(),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: item.color, borderRadius: BorderRadius.circular(12.0),
+                        border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                        boxShadow: [ if (isSelected) BoxShadow(color: accentColor.withOpacity(0.4), blurRadius: 8, spreadRadius: 2) ],
+                      ),
+                      child: item.color == Colors.transparent ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20) : null,
+                    ),
+                    if (item.video != null) const Icon(Icons.wallpaper, color: Colors.white, size: 20),
+                  ],
+                ),
+              );
+            },
+          );
+        }
+
         return Dialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Container(
-            width: popupWidth,
-            height: popupHeight,
-            padding: const EdgeInsets.all(16.0),
+            width: popupWidth, height: popupHeight, padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: Text(
-                    "$title 선택",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: accentColor,
-                    ),
-                  ),
-                ),
+                Text("$title 선택", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: accentColor)),
+                const SizedBox(height: 16),
                 Expanded(
-                  child: GridView.builder(
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: columns,
-                      crossAxisSpacing: spacing,
-                      mainAxisSpacing: spacing,
-                      childAspectRatio: 1.0,
-                    ),
-                    itemCount: _backgroundOptions.length,
-                    itemBuilder: (context, index) {
-                      final item = _backgroundOptions[index];
-                      bool isSelected = false;
-                      if (title == "배경색") {
-                        if (item.video != null) {
-                          isSelected = globalBgVideoName.value == item.video;
-                        } else {
-                          isSelected =
-                              colorNotifier.value == item.color &&
-                              globalBgVideoName.value == "사용 안 함";
-                        }
-                      } else {
-                        isSelected = colorNotifier.value == item.color;
-                      }
+                  child: ListView(
+                    children: [
+                      Text("단색", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                      const SizedBox(height: 8),
+                      buildGrid(solidOptions), 
+                      
+                      // 🔥 삭제되었던 기본 영상(비, 벚꽃) 구역 다시 추가!
+                      if (title == "배경색") ...[
+                        const SizedBox(height: 24),
+                        Text("기본 제공 영상", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                        const SizedBox(height: 8),
+                        buildGrid(presetMediaOptions),
+                      ],
+// 사용자 갤러리 구역
+                      if (title == "배경색" || title == "시계색") ...[
+                        const SizedBox(height: 24),
+                        Text("내 갤러리 사진 (현재 기기에만 저장)", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey.shade700)),
+                        const SizedBox(height: 8),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns, crossAxisSpacing: spacing, mainAxisSpacing: spacing, childAspectRatio: 1.0,
+                          ),
+                          // 🔥 저장된 사진 개수에 무조건 +버튼을 위한 1칸을 추가!
+                          itemCount: _localMediaPaths.length + 1, 
+                          itemBuilder: (context, index) {
+                            if (index < _localMediaPaths.length) {
+                              // ✅ 기존에 추가한 사진들 렌더링
+                              final path = _localMediaPaths[index];
+                              bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
 
-                      if (title != "배경색" && item.video != null)
-                        return const SizedBox.shrink();
-                      if (item.color == Colors.transparent && title != "시계색")
-                        return const SizedBox.shrink();
-
-                      return GestureDetector(
-                        onTap: () {
-                          if (item.isLocked) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('잠겨있는 테마입니다. (포인트 기능 준비 중)'),
-                              ),
-                            );
-                            return;
-                          }
-                          if (item.color != null)
-                            colorNotifier.value = item.color!;
-                          if (title == "배경색") {
-                            globalBgVideoName.value = item.video ?? "사용 안 함";
-                          }
-                          Navigator.pop(context);
-                        },
-                        onLongPressStart: (details) {
-                          if (item.video != null)
-                            _showPreview(context, item.video!);
-                        },
-                        onLongPressEnd: (details) => _hidePreview(),
-                        onLongPressCancel: () => _hidePreview(),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              decoration: BoxDecoration(
-                                color: item.color,
-                                borderRadius: BorderRadius.circular(12.0),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? accentColor
-                                      : (item.color == Colors.transparent
-                                            ? Colors.grey.shade400
-                                            : Colors.grey.shade300),
-                                  width: isSelected ? 3.0 : 1.0,
-                                ),
-                                boxShadow: [
-                                  if (isSelected)
-                                    BoxShadow(
-                                      color: accentColor.withOpacity(0.4),
-                                      blurRadius: 8,
-                                      spreadRadius: 2,
-                                    ),
-                                ],
-                              ),
-                              child: item.color == Colors.transparent
-                                  ? const Center(
-                                      child: Icon(
-                                        Icons.format_color_reset,
-                                        color: Colors.grey,
-                                        size: 20,
-                                      ),
-                                    )
-                                  : null,
-                            ),
-                            if (item.video != null)
-                              const Icon(
-                                Icons.wallpaper,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            if (item.isLocked)
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  borderRadius: BorderRadius.circular(12.0),
-                                ),
-                                child: const Center(
-                                  child: Icon(
-                                    Icons.lock,
-                                    color: Colors.white,
-                                    size: 20,
+                              return GestureDetector(
+                                onTap: () {
+                                  if (title == "배경색") globalBgVideoName.value = path;
+                                  else if (title == "시계색") globalClockVideoName.value = path;
+                                  Navigator.pop(context);
+                                },
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: isSelected ? accentColor : Colors.grey.shade300, width: isSelected ? 3.0 : 1.0),
+                                    image: DecorationImage(image: FileImage(File(path)), fit: BoxFit.cover),
                                   ),
                                 ),
-                              ),
-                          ],
+                              );
+                            } else {
+                              // ✅ 항상 맨 마지막에 생기는 + 버튼
+                              return GestureDetector(
+                                onTap: _pickLocalImage, // 슬롯 꽉 찼는지 확인은 이 함수가 알아서 해줌
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade400, width: 1.5),
+                                  ),
+                                  child: const Icon(Icons.add_photo_alternate, color: Colors.grey),
+                                ),
+                              );
+                            }
+                          },
                         ),
-                      );
-                    },
+                      ]
+                    ],
                   ),
                 ),
                 const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    "닫기",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("닫기", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
               ],
             ),
           ),
@@ -1774,7 +1861,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       );
-    } else if (index == 2) {
+   } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
           globalBgColor,
@@ -1784,112 +1871,118 @@ class _SettingsPageState extends State<SettingsPage> {
           globalBgVideoName,
         ]),
         builder: (context, child) {
-          final solidPresets = _themePresets
-              .where((t) => t.bgVideo == "사용 안 함")
-              .toList();
-          final mediaPresets = _themePresets
-              .where((t) => t.bgVideo != "사용 안 함")
-              .toList();
+          final solidPresets = _themePresets.where((t) => t.bgVideo == "사용 안 함").toList();
+          final mediaPresets = _themePresets.where((t) => t.bgVideo != "사용 안 함").toList();
 
-          Widget buildPresetWrap(List<AppThemePreset> presets) {
-            return Wrap(
-              spacing: 12.0,
-              runSpacing: 12.0,
-              children: presets.map((theme) {
-                bool isSelected =
-                    globalBgColor.value == theme.bg &&
-                    globalClockColor.value == theme.clock &&
-                    globalDigitalColor.value == theme.digital &&
-                    globalIndicatorColor.value == theme.indicator &&
-                    globalBgVideoName.value == theme.bgVideo;
-                bool isVideoPreset = theme.bgVideo != "사용 안 함";
-
-                return GestureDetector(
-                  onTap: () {
-                    globalBgColor.value = theme.bg;
-                    globalClockColor.value = theme.clock;
-                    globalDigitalColor.value = theme.digital;
-                    globalIndicatorColor.value = theme.indicator;
-                    globalBgVideoName.value = theme.bgVideo;
-                  },
-                  onLongPressStart: (details) {
-                    if (isVideoPreset) _showPreview(context, theme.bgVideo);
-                  },
-                  onLongPressEnd: (details) => _hidePreview(),
-                  onLongPressCancel: () => _hidePreview(),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: isSelected ? accentColor : Colors.grey.shade300,
-                        width: isSelected ? 3.0 : 1.0,
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        stops: const [0.5, 0.5],
-                        colors: [theme.bg, theme.clock],
-                      ),
-                    ),
-                    child: isVideoPreset
-                        ? const Icon(
-                            Icons.wallpaper,
-                            color: Colors.white,
-                            size: 20,
-                          )
-                        : null,
+          // 공통으로 사용할 프리셋 위젯 빌더
+          Widget buildPresetItem(AppThemePreset theme, bool isSelected) {
+            bool isVideoPreset = theme.bgVideo != "사용 안 함";
+            return GestureDetector(
+              onTap: () {
+                globalBgColor.value = theme.bg;
+                globalClockColor.value = theme.clock;
+                globalDigitalColor.value = theme.digital;
+                globalIndicatorColor.value = theme.indicator;
+                globalBgVideoName.value = theme.bgVideo;
+              },
+              onLongPressStart: (details) {
+                if (isVideoPreset) _showPreview(context, theme.bgVideo);
+              },
+              onLongPressEnd: (details) => _hidePreview(),
+              onLongPressCancel: () => _hidePreview(),
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? accentColor : Colors.grey.shade300,
+                    width: isSelected ? 3.0 : 1.0,
                   ),
-                );
-              }).toList(),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    stops: const [0.5, 0.5],
+                    colors: [theme.bg, theme.clock],
+                  ),
+                ),
+                child: isVideoPreset
+                    ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
+                    : null,
+              ),
             );
           }
-
-          return Column(
+return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                "프리셋 선택",
-                style: TextStyle(
-                  fontSize: 16,
-                  color: accentColor,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text("프리셋 선택", style: TextStyle(fontSize: 16, color: accentColor, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              Text(
-                "단색 테마",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: accentColor.withOpacity(0.8),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text("단색 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              buildPresetWrap(solidPresets),
+              Wrap(
+                spacing: 12.0, runSpacing: 12.0,
+                children: solidPresets.map((t) {
+                  // 🔥 배경, 시계뿐만 아니라 세부 색상 4가지 모두가 완벽히 같아야만 테두리가 생깁니다!
+                  bool isSelected = globalBgColor.value == t.bg && 
+                                    globalClockColor.value == t.clock && 
+                                    globalDigitalColor.value == t.digital && 
+                                    globalIndicatorColor.value == t.indicator && 
+                                    globalBgVideoName.value == t.bgVideo;
+                  return buildPresetItem(t, isSelected);
+                }).toList(),
+              ),
               const SizedBox(height: 20),
-              Text(
-                "스페셜 테마",
-                style: TextStyle(
-                  fontSize: 13,
-                  color: accentColor.withOpacity(0.8),
-                  fontWeight: FontWeight.bold,
-                ),
+              Text("스페셜 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 12.0, runSpacing: 12.0,
+                children: mediaPresets.map((t) {
+                  // 🔥 여기도 동일하게 모든 색상이 일치할 때만 선택 처리!
+                  bool isSelected = globalBgColor.value == t.bg && 
+                                    globalClockColor.value == t.clock && 
+                                    globalDigitalColor.value == t.digital && 
+                                    globalIndicatorColor.value == t.indicator && 
+                                    globalBgVideoName.value == t.bgVideo;
+                  return buildPresetItem(t, isSelected);
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("나만의 커스텀 테마 (현재 기기에만 저장)", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
+                ],
               ),
               const SizedBox(height: 8),
-              buildPresetWrap(mediaPresets),
+              Wrap(
+                spacing: 12.0,
+                runSpacing: 12.0,
+                children: [
+                  // 1. 저장된 커스텀 테마들 표시
+                  ..._localCustomPresets.map((t) {
+                    bool isSelected = globalBgColor.value == t.bg && globalClockColor.value == t.clock && globalDigitalColor.value == t.digital && globalIndicatorColor.value == t.indicator && globalBgVideoName.value == t.bgVideo;
+                    return buildPresetItem(t, isSelected);
+                  }),
+                  // 2. 🔥 항상 마지막에 위치하는 추가(+) 버튼
+                  GestureDetector(
+                    onTap: _saveCurrentAsPresetLocal, // 슬롯 꽉 찼는지 검사는 이 함수 안에서 자동으로 처리됨
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                      ),
+                      child: Icon(Icons.add, color: Colors.grey.shade600, size: 28),
+                    ),
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               Divider(height: 1, color: accentColor.withOpacity(0.2)),
               const SizedBox(height: 16),
-              Text(
-                "세부 색상 커스텀",
-                style: TextStyle(
-                  fontSize: 14,
-                  color: accentColor.withOpacity(0.7),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text("세부 색상 커스텀", style: TextStyle(fontSize: 14, color: accentColor.withOpacity(0.7), fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               colorPicker("배경색", globalBgColor, accentColor),
               colorPicker("시계색", globalClockColor, accentColor),
@@ -2472,32 +2565,46 @@ class MediaPreviewWidget extends StatefulWidget {
   @override
   State<MediaPreviewWidget> createState() => _MediaPreviewWidgetState();
 }
-
 class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
   VideoPlayerController? _controller;
   bool _isVideo = false;
   String _assetPath = "";
+  bool _isNetwork = false; // 🔥 네트워크 파일 여부 체크
 
   @override
   void initState() {
     super.initState();
 
-    if (widget.videoName == "비 오는 밤 (Rain)") {
-      _assetPath = 'assets/video/rainwindow.mp4';
-      _isVideo = true;
-    } else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
-      _assetPath = 'assets/video/sakura.mp4';
-      _isVideo = true;
-    }
+    if (widget.videoName.startsWith("http")) {
+      // ✅ 갤러리에서 올린 파이어베이스 URL인 경우
+      _assetPath = widget.videoName;
+      _isNetwork = true;
+      // URL이나 메타데이터에 mp4가 있으면 비디오로 간주 (임시 처리)
+      _isVideo = _assetPath.contains(".mp4") || _assetPath.contains("video"); 
+      
+      if (_isVideo) {
+        _controller = VideoPlayerController.networkUrl(Uri.parse(_assetPath))
+          ..initialize().then((_) {
+            _controller!.setVolume(0.0);
+            _controller!.setLooping(true);
+            _controller!.play();
+            if (mounted) setState(() {});
+          });
+      }
+    } else {
+      // ✅ 기존 에셋 파일인 경우
+      if (widget.videoName == "비 오는 밤 (Rain)") { _assetPath = 'assets/video/rainwindow.mp4'; _isVideo = true; } 
+      else if (widget.videoName == "벚꽃 (Cherry Blossom)") { _assetPath = 'assets/video/sakura.mp4'; _isVideo = true; }
 
-    if (_isVideo && _assetPath.isNotEmpty) {
-      _controller = VideoPlayerController.asset(_assetPath)
-        ..initialize().then((_) {
-          _controller!.setVolume(0.0);
-          _controller!.setLooping(true);
-          _controller!.play();
-          if (mounted) setState(() {});
-        });
+      if (_isVideo && _assetPath.isNotEmpty) {
+        _controller = VideoPlayerController.asset(_assetPath)
+          ..initialize().then((_) {
+            _controller!.setVolume(0.0);
+            _controller!.setLooping(true);
+            _controller!.play();
+            if (mounted) setState(() {});
+          });
+      }
     }
   }
 
@@ -2506,32 +2613,26 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
     _controller?.dispose();
     super.dispose();
   }
-
+// _MediaPreviewWidgetState 의 build 부분
   @override
   Widget build(BuildContext context) {
-    if (_assetPath.isEmpty) {
-      return const Center(
-        child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)),
-      );
-    }
+    if (_assetPath.isEmpty) return const Center(child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)));
+
+    // ✅ 로컬 기기의 파일 경로인지 확인 (앱 내부 경로는 보통 '/' 로 시작함)
+    bool isLocalFile = _assetPath.startsWith('/');
 
     return Stack(
       children: [
         Positioned.fill(
           child: _isVideo
               ? (_controller != null && _controller!.value.isInitialized)
-                    ? FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _controller!.value.size.width,
-                          height: _controller!.value.size.height,
-                          child: VideoPlayer(_controller!),
-                        ),
-                      )
-                    : const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-              : Image.asset(_assetPath, fit: BoxFit.cover),
+                    ? FittedBox(fit: BoxFit.cover, child: SizedBox(width: _controller!.value.size.width, height: _controller!.value.size.height, child: VideoPlayer(_controller!)))
+                    : const Center(child: CircularProgressIndicator(color: Colors.white))
+              : (isLocalFile 
+                  ? Image.file(File(_assetPath), fit: BoxFit.cover) // 🔥 로컬 기기 파일
+                  : (_isNetwork 
+                      ? Image.network(_assetPath, fit: BoxFit.cover, loadingBuilder: (context, child, progress) => progress == null ? child : const Center(child: CircularProgressIndicator(color: Colors.white))) 
+                      : Image.asset(_assetPath, fit: BoxFit.cover))), // 🔥 기존 에셋 파일
         ),
       ],
     );
