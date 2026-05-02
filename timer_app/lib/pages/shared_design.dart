@@ -1071,32 +1071,23 @@ class BaseClockLayout extends StatelessWidget {
             String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
 
             double baseFontSize = availableHeight * 0.07;
+            double fontMultiplier = 1.0; // 🔥 딱 한번만 선언
 
             if (displayMode == "digital") {
-              if (isLandscape) {
-                baseFontSize = availableHeight * 0.35;
+              baseFontSize = isLandscape
+                  ? availableHeight * 0.35
+                  : availableHeight * 0.15;
+
+              if (digitalStyle == "flip" || digitalStyle == "segment") {
+                if (fontSizeStr == "small") fontMultiplier = 0.4;
+                if (fontSizeStr == "medium") fontMultiplier = 0.7;
+                if (fontSizeStr == "large") fontMultiplier = 1.5;
               } else {
-                baseFontSize = availableHeight * 0.15;
-              }
-            } else if (displayMode == "both") {
-              if (isLandscape) {
-                baseFontSize = availableHeight * 0.15;
-              } else {
-                baseFontSize = availableHeight * 0.08;
+                if (fontSizeStr == "small") fontMultiplier = 0.7;
+                if (fontSizeStr == "large") fontMultiplier = 1.3;
               }
             }
-            double fontMultiplier = 1.0;
 
-            // 기본값
-            if (fontSizeStr == "small") fontMultiplier = 0.7;
-            if (fontSizeStr == "large") fontMultiplier = 1.3;
-
-            // 🔥 FLIP 전용 보정 (핵심)
-            if (digitalStyle == "flip") {
-              if (fontSizeStr == "small") fontMultiplier = 0.7;
-              if (fontSizeStr == "medium") fontMultiplier = 1.0;
-              if (fontSizeStr == "large") fontMultiplier = 1.5;
-            }
             final digitalFontSize = baseFontSize * fontMultiplier;
 
             Widget analogClockWidget = GestureDetector(
