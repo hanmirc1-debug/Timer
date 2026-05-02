@@ -1171,7 +1171,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (title == "배경색") ...[
                             const SizedBox(height: 24),
                             Text(
-                              "기본 제공 영상",
+                              "스페셜",
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -1185,7 +1185,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           // ✅ 3. 내 갤러리 사진 (슬롯 유지 버전)
                           const SizedBox(height: 24),
                           Text(
-                            "내 갤러리 사진 (현재 기기에만 저장)",
+                            "내 사진",
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
