@@ -1819,6 +1819,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSectionBox(int index, Color accentColor) {
+    bool showstopwatch = false;
     bool isLastItem = index == _tabTitles.length - 1;
     Widget sectionContent;
 
@@ -2088,18 +2089,20 @@ return Column(
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          buildTwoOptionToggle(
-            "모드 선택",
-            "TMR",
-            "SW",
-            globalIsTimerMode,
-            accentColor,
-          ),
-          Divider(
-            color: accentColor.withOpacity(0.2),
-            height: 16,
-            thickness: 1,
-          ),
+          if (showstopwatch) ...[
+            buildTwoOptionToggle(
+              "모드 선택",
+              "TMR",
+              "SW",
+              globalIsTimerMode,
+              accentColor,
+            ),
+            Divider(
+              color: accentColor.withOpacity(0.2),
+              height: 16,
+              thickness: 1,
+            ),
+          ],
           CustomWheelPicker(
             title: "타이머 최대 눈금",
             options: const [
