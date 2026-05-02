@@ -9,13 +9,17 @@ import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'services/firebase_settings_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+// 🌟 2. 기존 MobileAds 초기화 코드를 if (!kIsWeb) 으로 감싸기!
+  if (!kIsWeb) {
+    MobileAds.instance.initialize();
+  }
   // 🔥 광고 초기화 (여기 추가)
-  await MobileAds.instance.initialize();
+  //await MobileAds.instance.initialize();
   final user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {

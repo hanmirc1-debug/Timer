@@ -95,11 +95,19 @@ Future<void> saveSettings() async {
   await prefs.setInt("clockColor", globalClockColor.value.value);
   await prefs.setInt("digitalColor", globalDigitalColor.value.value);
   await prefs.setInt("indicatorColor", globalIndicatorColor.value.value);
-
+  await prefs.setBool("vibrationEnabled", globalVibrationEnabled.value);
   await prefs.setBool("alarmEnabled", globalAlarmEnabled.value);
   await prefs.setString("alarmSound", globalAlarmSound.value);
   await prefs.setBool("bgmEnabled", globalBgmEnabled.value);
   await prefs.setString("bgmTrack", globalBgmTrack.value);
+  await prefs.setBool("pomodoroMode", globalPomodoroMode.value);
+  await prefs.setString("pomodoroWork", globalPomodoroWorkTime.value);
+  await prefs.setString("pomodoroShortBreak", globalPomodoroShortBreak.value);
+  await prefs.setString("pomodoroLongBreak", globalPomodoroLongBreak.value);
+  await prefs.setString("pomodoroCycle", globalPomodoroCycleCount.value);
+  await prefs.setString("pomodoroMax", globalPomodoroMaxSessions.value);
+  await prefs.setBool("pomodoroAutoWork", globalPomodoroAutoWork.value);
+  await prefs.setBool("pomodoroAutoBreak", globalPomodoroAutoBreak.value);
 }
 
 Future<void> loadSettings() async {
@@ -114,7 +122,7 @@ Future<void> loadSettings() async {
   globalTimerMaxSeconds.value = prefs.getDouble("timerMaxSeconds") ?? 60.0;
 
   globalBgVideoName.value = prefs.getString("bgVideoName") ?? "사용 안 함";
-
+  globalVibrationEnabled.value = prefs.getBool("vibrationEnabled") ?? true;
   globalBgColor.value = Color(prefs.getInt("bgColor") ?? 0xFF252528);
   globalClockColor.value = Color(prefs.getInt("clockColor") ?? 0xFFB94646);
   globalDigitalColor.value = Color(prefs.getInt("digitalColor") ?? 0xFF8E8E93);
@@ -123,12 +131,34 @@ Future<void> loadSettings() async {
   );
 
   globalAlarmEnabled.value = prefs.getBool("alarmEnabled") ?? true;
-  globalAlarmSound.value = prefs.getString("alarmSound") ?? "기본음 (Bell)";
+  globalAlarmSound.value = prefs.getString("alarmSound") ?? alarmOptions.first;
   globalBgmEnabled.value = prefs.getBool("bgmEnabled") ?? false;
-  globalBgmTrack.value = prefs.getString("bgmTrack") ?? "백색소음 (White Noise)";
+  globalBgmTrack.value = prefs.getString("bgmTrack") ?? bgmOptions.first;
+  globalPomodoroMode.value = prefs.getBool("pomodoroMode") ?? false;
+  globalPomodoroWorkTime.value = prefs.getString("pomodoroWork") ?? "25분";
+
+  globalPomodoroShortBreak.value =
+      prefs.getString("pomodoroShortBreak") ?? "5분";
+  globalPomodoroLongBreak.value = prefs.getString("pomodoroLongBreak") ?? "15분";
+  globalPomodoroCycleCount.value = prefs.getString("pomodoroCycle") ?? "4번";
+  globalPomodoroMaxSessions.value = prefs.getString("pomodoroMax") ?? "제한 없음";
+  globalPomodoroAutoWork.value = prefs.getBool("pomodoroAutoWork") ?? false;
+  globalPomodoroAutoBreak.value = prefs.getBool("pomodoroAutoBreak") ?? true;
 }
 
 void initSettingsListener() {
+  bool _lastVibrationState = globalVibrationEnabled.value;
+  globalVibrationEnabled.addListener(() {
+    // 🔥 OFF → ON 바뀌는 순간만 진동
+    if (!_lastVibrationState && globalVibrationEnabled.value) {
+      HapticFeedback.heavyImpact();
+    }
+
+    _lastVibrationState = globalVibrationEnabled.value;
+
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
   globalBgColor.addListener(() {
     saveSettings();
     FirebaseSettingsService.saveSettingsDebounced();
@@ -208,7 +238,48 @@ void initSettingsListener() {
     saveSettings();
     FirebaseSettingsService.saveSettingsDebounced();
   });
+  globalPomodoroMode.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroWorkTime.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroShortBreak.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroLongBreak.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroCycleCount.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroMaxSessions.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroAutoWork.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
+
+  globalPomodoroAutoBreak.addListener(() {
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  });
 }
+
+final ValueNotifier<bool> globalVibrationEnabled = ValueNotifier<bool>(true);
 
 const Map<String, String> alarmSoundMap = {
   "기본음": "audio/alarm/default.mp3",
@@ -223,8 +294,7 @@ const Map<String, String> alarmSoundMap = {
   "심플한 알림 3": "audio/alarm/simple3.mp3",
   "심플한 알림 4": "audio/alarm/simple4.mp3",
 };
-
-final List<String> alarmOptions = [...alarmSoundMap.keys, "진동만"];
+final List<String> alarmOptions = [...alarmSoundMap.keys];
 
 String getAlarmPath(String name) {
   return alarmSoundMap[name] ?? "audio/alarm/default.mp3";
@@ -278,6 +348,11 @@ class GlobalBgmManager {
   // 🔥 알람 재생 (핵심)
   static Future<void> playAlarmSound(String soundName) async {
     debugPrint("🔥 playAlarmSound CALLED");
+    // 🔥 진동 추가
+    if (globalVibrationEnabled.value) {
+      HapticFeedback.heavyImpact();
+    }
+
     final path = alarmSoundMap[soundName];
     if (path == null) return;
 
