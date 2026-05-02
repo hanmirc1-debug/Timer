@@ -1085,11 +1085,18 @@ class BaseClockLayout extends StatelessWidget {
                 baseFontSize = availableHeight * 0.08;
               }
             }
-
             double fontMultiplier = 1.0;
+
+            // 기본값
             if (fontSizeStr == "small") fontMultiplier = 0.7;
             if (fontSizeStr == "large") fontMultiplier = 1.3;
 
+            // 🔥 FLIP 전용 보정 (핵심)
+            if (digitalStyle == "flip") {
+              if (fontSizeStr == "small") fontMultiplier = 0.7;
+              if (fontSizeStr == "medium") fontMultiplier = 1.0;
+              if (fontSizeStr == "large") fontMultiplier = 1.5;
+            }
             final digitalFontSize = baseFontSize * fontMultiplier;
 
             Widget analogClockWidget = GestureDetector(
