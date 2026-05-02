@@ -450,6 +450,9 @@ class FloatingGlassMenuButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+
+    final isLandscape = screenWidth > screenHeight;
+    final base = isLandscape ? screenHeight : screenWidth;
     Color iconColor = backgroundColor.computeLuminance() > 0.5
         ? Colors.black87
         : Colors.white;
@@ -464,11 +467,14 @@ class FloatingGlassMenuButton extends StatelessWidget {
           padding: EdgeInsets.zero,
           child: IconButton(
             key: _buttonKey,
-            padding: EdgeInsets.all(screenWidth * 0.02),
-            constraints: const BoxConstraints(),
+            padding: EdgeInsets.all(screenHeight * 0.02),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: Icon(
               Icons.more_horiz,
-              size: screenWidth * 0.04,
+              size: isLandscape
+                  ? base *
+                        0.05 // 🔥 가로모드 작게
+                  : base * 0.07, // 🔥 세로모드 유지
               color: iconColor,
             ),
             onPressed: () {
@@ -1072,17 +1078,26 @@ class BaseClockLayout extends StatelessWidget {
             String fontSizeStr = globalDigitalFontSize.value.toLowerCase();
 
             double baseFontSize = availableHeight * 0.07;
-            double fontMultiplier = 1.0; // 🔥 딱 한번만 선언
+            double fontMultiplier = 1.0;
 
-            if (displayMode == "digital") {
-              baseFontSize = isLandscape
-                  ? availableHeight * 0.35
-                  : availableHeight * 0.15;
+            if (displayMode == "digital" || displayMode == "both") {
+              if (displayMode == "digital") {
+                baseFontSize = isLandscape
+                    ? availableHeight * 0.35
+                    : availableHeight * 0.15;
+              } else if (displayMode == "both") {
+                if (isLandscape) {
+                  // 🔥 가로모드에서는 width 기준으로
+                  baseFontSize = availableWidth * 0.12;
+                } else {
+                  baseFontSize = availableHeight * 0.12;
+                }
+              }
 
               if (digitalStyle == "flip" || digitalStyle == "segment") {
-                if (fontSizeStr == "small") fontMultiplier = 0.4;
-                if (fontSizeStr == "medium") fontMultiplier = 0.7;
-                if (fontSizeStr == "large") fontMultiplier = 1.5;
+                if (fontSizeStr == "small") fontMultiplier = 0.5;
+                if (fontSizeStr == "medium") fontMultiplier = 1.0;
+                if (fontSizeStr == "large") fontMultiplier = 1.6;
               } else {
                 if (fontSizeStr == "small") fontMultiplier = 0.7;
                 if (fontSizeStr == "large") fontMultiplier = 1.3;
@@ -1151,9 +1166,11 @@ class BaseClockLayout extends StatelessWidget {
             } else {
               if (isLandscape) {
                 layoutContent = Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [analogClockWidget, digitalClockWidget],
+                  children: [
+                    Expanded(flex: 5, child: Center(child: analogClockWidget)),
+                    Expanded(flex: 5, child: Center(child: digitalClockWidget)),
+                  ],
                 );
               } else {
                 layoutContent = Column(
