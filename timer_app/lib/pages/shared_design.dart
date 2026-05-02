@@ -19,11 +19,17 @@ ValueNotifier<String> globalPomodoroWorkTime = ValueNotifier<String>("25분");
 ValueNotifier<String> globalPomodoroShortBreak = ValueNotifier<String>("5분");
 ValueNotifier<String> globalPomodoroLongBreak = ValueNotifier<String>("15분");
 ValueNotifier<String> globalPomodoroCycleCount = ValueNotifier<String>("4번");
-ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>("제한 없음");
+ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>(
+  "제한 없음",
+);
 
 // 뽀모도로 자동 시작 설정
-ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(false); // 집중 모드 자동 시작
-ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(true); // 휴식 모드 자동 시작
+ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(
+  false,
+); // 집중 모드 자동 시작
+ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(
+  true,
+); // 휴식 모드 자동 시작
 
 // =========================================================
 // 🌟 0. 앱 전체 공유 설정값
@@ -1002,11 +1008,18 @@ class BaseClockLayout extends StatelessWidget {
                 baseFontSize = availableHeight * 0.08;
               }
             }
-
             double fontMultiplier = 1.0;
+
+            // 기본값
             if (fontSizeStr == "small") fontMultiplier = 0.7;
             if (fontSizeStr == "large") fontMultiplier = 1.3;
 
+            // 🔥 FLIP 전용 보정 (핵심)
+            if (digitalStyle == "flip") {
+              if (fontSizeStr == "small") fontMultiplier = 0.7;
+              if (fontSizeStr == "medium") fontMultiplier = 1.0;
+              if (fontSizeStr == "large") fontMultiplier = 1.5;
+            }
             final digitalFontSize = baseFontSize * fontMultiplier;
 
             Widget analogClockWidget = GestureDetector(
@@ -1358,16 +1371,19 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
 
 // shared_design.dart 파일 하단에 추가
 enum PomodoroState { work, shortBreak, longBreak }
-ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(PomodoroState.work);
+
+ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(
+  PomodoroState.work,
+);
 ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0); // 완료된 뽀모도로 횟수
 
 // shared_design.dart 파일 하단에 추가
 
 /// 뽀모도로 상태를 처음부터 다시 시작하도록 초기화하는 함수
 void resetPomodoroStatus() {
-  globalPomodoroState.value = PomodoroState.work;      // 다시 '집중 모드'로
-  globalCompletedCycles.value = 0;                     // 완료 횟수 0으로
-  
+  globalPomodoroState.value = PomodoroState.work; // 다시 '집중 모드'로
+  globalCompletedCycles.value = 0; // 완료 횟수 0으로
+
   // 현재 설정된 '집중 시간'을 파싱해서 타이머 시간도 리셋 (옵션)
   // 예: "25분" -> 25 * 60 초로 세팅하는 로직을 호출하거나 변수 직접 수정
 }
