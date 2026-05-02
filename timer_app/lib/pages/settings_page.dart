@@ -266,13 +266,15 @@ class _SettingsPageState extends State<SettingsPage> {
     ).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
   }
 
-  // ✅ 삭제 확인 팝업창 함수
-  void _confirmDeletion(String title, VoidCallback onDelete) {
+// ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
+  void _confirmDeletion(String title, VoidCallback onDelete, {bool isSlot = false}) {
     showCupertinoDialog(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: Text("$title 삭제"),
-        content: const Text("정말로 삭제하시겠습니까?\n삭제해도 슬롯(빈 칸)은 그대로 유지됩니다."),
+        title: Text(isSlot ? "$title 삭제" : "$title 삭제"),
+        content: Text(isSlot 
+          ? "이 슬롯은 포인트로 구매했을 수 있습니다.\n삭제하면 슬롯이 영구적으로 사라지며, 소모된 포인트는 복구되지 않습니다.\n정말로 삭제하시겠습니까?" 
+          : "정말로 삭제하시겠습니까?\n삭제해도 슬롯(빈 칸)은 그대로 유지됩니다."),
         actions: [
           CupertinoDialogAction(
             child: const Text("취소"),
@@ -289,6 +291,17 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  // ✅ [추가] 슬롯 개수 변경 시 Firebase에 즉시 동기화하는 함수
+  Future<void> _updateSlotCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'unlockedMediaSlots': _unlockedMediaSlots,
+        'unlockedThemeSlots': _unlockedThemeSlots,
+      }, SetOptions(merge: true));
+    }
   }
 
   // ✅ 커스텀 테마 삭제 로직
@@ -1224,27 +1237,30 @@ class _SettingsPageState extends State<SettingsPage> {
                                     ),
                                   ),
                                 );
-                              } else {
-                                return GestureDetector(
-                                  onTap: () => _pickLocalImage(
-                                    dialogSetState: dialogSetState,
+} else {
+                              // ✅ 빈 슬롯 (+ 추가 버튼)
+                              return GestureDetector(
+                                onTap: () => _pickLocalImage(dialogSetState: dialogSetState),
+                                // 🔥 [수정됨] 사진 빈 칸(+)이 2개 이상일 때만 삭제 경고창이 뜸!
+                                onLongPress: _unlockedMediaSlots > _localMediaPaths.length + 1 ? () {
+                                  _confirmDeletion("사진 슬롯", () {
+                                    setState(() {
+                                      _unlockedMediaSlots--;
+                                    });
+                                    dialogSetState(() {}); // 팝업창 즉시 갱신
+                                    _updateSlotCount(); // Firebase 동기화
+                                  }, isSlot: true);
+                                } : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.grey.shade300, width: 1.0),
                                   ),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                    child: Icon(
-                                      Icons.add_photo_alternate,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  ),
-                                );
-                              }
+                                  child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
+                                ),
+                              );
+                            }
                             },
                           ),
                         ],
@@ -2178,14 +2194,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    "나만의 커스텀 테마 (현재 기기에만 저장)",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: accentColor.withOpacity(0.8),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text("커스텀 테마", style: TextStyle(fontSize: 13, color: accentColor.withOpacity(0.8), fontWeight: FontWeight.bold)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -2236,10 +2245,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         ),
                       ),
                     );
-                  } else {
+} else {
                     // ✅ 비어있는 슬롯 (+ 버튼)
                     return GestureDetector(
                       onTap: _saveCurrentAsPresetLocal,
+                      // 🔥 [수정됨] 전체 슬롯 수가 '저장된 테마 수 + 1'보다 클 때만 삭제 가능!
+                      // 즉, 화면에 + 버튼이 2개 이상 보일 때만 꾹 눌러서 삭제할 수 있습니다.
+                      onLongPress: _unlockedThemeSlots > _localCustomPresets.length + 1 ? () {
+                        _confirmDeletion("테마 슬롯", () {
+                          setState(() {
+                            _unlockedThemeSlots--;
+                          });
+                          _updateSlotCount(); // Firebase 동기화
+                        }, isSlot: true);
+                      } : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
                       child: Container(
                         width: 56,
                         height: 56,
