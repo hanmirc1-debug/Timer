@@ -29,6 +29,7 @@ class _TimerAppPageState extends State<TimerAppPage>
   bool isAlarmPlaying = false;
   bool alarmTriggered = false;
   bool hasStarted = false;
+  bool isCompleted = false; // 🔥 추가
 
   @override
   void initState() {
@@ -46,6 +47,7 @@ class _TimerAppPageState extends State<TimerAppPage>
       if (status == AnimationStatus.dismissed &&
           !alarmTriggered &&
           hasStarted) {
+        controller.stop(); // 🔥 추가 (무한 트리거 방지)
         debugPrint("🔥 DISMISSED");
 
         alarmTriggered = true;
@@ -162,6 +164,10 @@ class _TimerAppPageState extends State<TimerAppPage>
     if (isAlarmPlaying) return;
 
     isAlarmPlaying = true;
+
+    isCompleted = true; // 🔥 추가
+
+    controller.stop(); // 🔥 꼭 넣어
 
     await GlobalBgmManager.stopBgm();
 
@@ -300,7 +306,17 @@ class _TimerAppPageState extends State<TimerAppPage>
     isAlarmPlaying = false;
 
     controller.duration = Duration(seconds: targetSeconds.toInt());
-    controller.reverse(from: 1.0);
+    if (isCompleted) {
+      // 🔥 완료 상태면 초기화 후 시작
+      controller.value = 1.0;
+      isCompleted = false;
+    }
+    // 아니면 이어서 시작 (controller.value 유지)
+    if (controller.value == 0) {
+      controller.value = 1.0; // 🔥 0이면 강제 리셋
+    }
+
+    controller.reverse(from: controller.value);
 
     setState(() => isRunning = true);
     widget.onRunningChanged(true);
@@ -539,7 +555,17 @@ class _TimerAppPageState extends State<TimerAppPage>
   }
 
   void toggle() {
-    isRunning ? stop() : start();
+    if (isRunning) {
+      stop();
+    } else {
+      if (isCompleted) {
+        controller.value = 1.0;
+        currentSeconds = targetSeconds;
+        isCompleted = false;
+      }
+
+      start();
+    }
   }
 
   @override
@@ -711,6 +737,8 @@ class _TimerAppPageState extends State<TimerAppPage>
               behavior: HitTestBehavior.opaque,
               onTap: () {
                 GlobalBgmManager.stopAllSound();
+
+                _vibrationTimer?.cancel(); // 🔥 추가
 
                 setState(() {
                   isAlarmPlaying = false;
