@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import '../services/firebase_settings_service.dart';
+import 'package:vibration/vibration.dart';
 
 // shared_design.dart 파일 내부에 추가
 
@@ -152,9 +153,7 @@ void initSettingsListener() {
   bool _lastVibrationState = globalVibrationEnabled.value;
   globalVibrationEnabled.addListener(() {
     // 🔥 OFF → ON 바뀌는 순간만 진동
-    if (!_lastVibrationState && globalVibrationEnabled.value) {
-      HapticFeedback.heavyImpact();
-    }
+    Vibration.vibrate(duration: 80, amplitude: 255);
 
     _lastVibrationState = globalVibrationEnabled.value;
 
@@ -352,7 +351,7 @@ class GlobalBgmManager {
     debugPrint("🔥 playAlarmSound CALLED");
     // 🔥 진동 추가
     if (globalVibrationEnabled.value) {
-      HapticFeedback.heavyImpact();
+      Vibration.vibrate(pattern: [0, 500, 200, 500], amplitude: 255);
     }
 
     final path = alarmSoundMap[soundName];
@@ -411,12 +410,13 @@ class DragHapticManager {
       _lastTick = currentTick;
       String intensity = globalHapticIntensity.value.toUpperCase();
       if (intensity == "NONE") return;
-      if (intensity == "SOFT")
-        HapticFeedback.heavyImpact();
-      else if (intensity == "MEDIUM")
-        HapticFeedback.mediumImpact();
-      else if (intensity == "STRONG")
-        HapticFeedback.lightImpact();
+      if (intensity == "SOFT") {
+        Vibration.vibrate(duration: 20, amplitude: 80);
+      } else if (intensity == "MEDIUM") {
+        Vibration.vibrate(duration: 30, amplitude: 160);
+      } else if (intensity == "STRONG") {
+        Vibration.vibrate(duration: 40, amplitude: 255);
+      }
     }
   }
 }

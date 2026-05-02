@@ -4,6 +4,8 @@ import 'dart:math';
 import 'dart:async';
 import 'shared_design.dart';
 
+import 'package:vibration/vibration.dart';
+
 class TimerAppPage extends StatefulWidget {
   final ValueChanged<bool> onRunningChanged;
   final GlobalKey clockKey;
@@ -26,8 +28,8 @@ class _TimerAppPageState extends State<TimerAppPage>
   bool isRunning = false;
   bool isAlarmPlaying = false;
   bool alarmTriggered = false;
-  bool hasStarted = false; 
-  
+  bool hasStarted = false;
+
   @override
   void initState() {
     super.initState();
@@ -48,13 +50,13 @@ class _TimerAppPageState extends State<TimerAppPage>
 
         alarmTriggered = true;
         _triggerAlarm();
-        _checkAutoPomodoro(); 
+        _checkAutoPomodoro();
       }
     });
-    
+
     // 글로벌 리스너 연결
     globalTimerMaxSeconds.addListener(_onMaxScaleChanged);
-    
+
     // 🌟 [추가됨] 뽀모도로 관련 리스너 등록 (켜짐/꺼짐 및 시간 변경 감지)
     globalPomodoroMode.addListener(_onPomodoroModeChanged);
     globalPomodoroWorkTime.addListener(_onPomodoroSettingsChanged);
@@ -97,23 +99,35 @@ class _TimerAppPageState extends State<TimerAppPage>
   void _syncPomodoroTime() {
     // 현재 뽀모도로 상태(집중/휴식)에 맞는 텍스트 값을 가져와서 초 단위로 변환
     if (globalPomodoroState.value == PomodoroState.work) {
-      double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+      double min =
+          double.tryParse(
+            globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          25;
       _applyManualTime(min * 60);
     } else if (globalPomodoroState.value == PomodoroState.shortBreak) {
-      double min = double.tryParse(globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5;
+      double min =
+          double.tryParse(
+            globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          5;
       _applyManualTime(min * 60);
     } else {
-      double min = double.tryParse(globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 15;
+      double min =
+          double.tryParse(
+            globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          15;
       _applyManualTime(min * 60);
     }
   }
 
   // 🌟 [추가됨] 뽀모도로 모드일 때 자체적으로 가장 알맞은 최대 눈금을 계산
   double _getPomodoroMaxScale(double targetSec) {
-    if (targetSec <= 60) return 60.0;        // 1분 이하 -> 눈금 60초
-    if (targetSec <= 120) return 120.0;      // 2분 이하 -> 눈금 120초
-    if (targetSec <= 3600) return 3600.0;    // 60분 이하 -> 눈금 60분
-    return 7200.0;                           // 그 외 -> 눈금 120분
+    if (targetSec <= 60) return 60.0; // 1분 이하 -> 눈금 60초
+    if (targetSec <= 120) return 120.0; // 2분 이하 -> 눈금 120초
+    if (targetSec <= 3600) return 3600.0; // 60분 이하 -> 눈금 60분
+    return 7200.0; // 그 외 -> 눈금 120분
   }
 
   void _onMaxScaleChanged() {
@@ -141,7 +155,7 @@ class _TimerAppPageState extends State<TimerAppPage>
     final option = globalAlarmSound.value;
 
     if (option == "진동만") {
-      HapticFeedback.vibrate();
+      Vibration.vibrate(pattern: [0, 500, 200, 500], amplitude: 255);
       return;
     }
 
@@ -152,11 +166,13 @@ class _TimerAppPageState extends State<TimerAppPage>
     if (!globalPomodoroMode.value) return;
 
     bool isGoingToBreak = (globalPomodoroState.value == PomodoroState.work);
-    bool isAuto = isGoingToBreak ? globalPomodoroAutoBreak.value : globalPomodoroAutoWork.value;
+    bool isAuto = isGoingToBreak
+        ? globalPomodoroAutoBreak.value
+        : globalPomodoroAutoWork.value;
 
     if (isAuto) {
       await Future.delayed(const Duration(seconds: 3));
-      if (!mounted || !isAlarmPlaying) return; 
+      if (!mounted || !isAlarmPlaying) return;
 
       GlobalBgmManager.stopAllSound();
       setState(() {
@@ -164,64 +180,95 @@ class _TimerAppPageState extends State<TimerAppPage>
         isRunning = false;
         widget.onRunningChanged(false);
       });
-      
-      _handlePomodoroNextStep(); 
+
+      _handlePomodoroNextStep();
     }
   }
 
-void _handlePomodoroNextStep() {
+  void _handlePomodoroNextStep() {
     if (!globalPomodoroMode.value) return;
 
     if (globalPomodoroState.value == PomodoroState.work) {
       // 집중 -> 휴식 셋팅 (기존과 동일)
       globalCompletedCycles.value++;
-      
-      int cycleTarget = int.tryParse(globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
-      
-      if (globalCompletedCycles.value > 0 && globalCompletedCycles.value % cycleTarget == 0) {
+
+      int cycleTarget =
+          int.tryParse(
+            globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          4;
+
+      if (globalCompletedCycles.value > 0 &&
+          globalCompletedCycles.value % cycleTarget == 0) {
         globalPomodoroState.value = PomodoroState.longBreak;
-        double min = double.tryParse(globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 15;
+        double min =
+            double.tryParse(
+              globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            15;
         _applyManualTime(min * 60);
       } else {
         globalPomodoroState.value = PomodoroState.shortBreak;
-        double min = double.tryParse(globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5;
+        double min =
+            double.tryParse(
+              globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            5;
         _applyManualTime(min * 60);
       }
 
       if (globalPomodoroAutoBreak.value) start();
-      
     } else {
       // 🌟 [수정됨] 휴식 -> 집중 셋팅으로 넘어갈 때 최대 세션 검사!
-      
+
       // 방금 끝난 휴식이 '긴 휴식'이라면, 목표한 최대 세션에 도달했는지 확인합니다.
       if (globalPomodoroState.value == PomodoroState.longBreak) {
         String maxSessionStr = globalPomodoroMaxSessions.value;
-        
+
         if (!maxSessionStr.contains("제한 없음")) {
-          int maxSessions = int.tryParse(maxSessionStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-          int cycleTarget = int.tryParse(globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
-          
+          int maxSessions =
+              int.tryParse(maxSessionStr.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              1;
+          int cycleTarget =
+              int.tryParse(
+                globalPomodoroCycleCount.value.replaceAll(
+                  RegExp(r'[^0-9]'),
+                  '',
+                ),
+              ) ??
+              4;
+
           // 완료한 총 횟수가 (최대 세션 * 1세션당 횟수)에 도달했다면? (예: 1세션 * 4번 = 4)
           if (globalCompletedCycles.value >= (maxSessions * cycleTarget)) {
-            
             // 🍅 모든 뽀모도로 일정이 끝났습니다! 완전히 초기화하고 멈춥니다.
             globalPomodoroState.value = PomodoroState.work;
             globalCompletedCycles.value = 0; // 횟수 리셋
-            
+
             // 시계를 다시 '집중 모드' 초기 시간으로 되돌려 놓습니다.
-            double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+            double min =
+                double.tryParse(
+                  globalPomodoroWorkTime.value.replaceAll(
+                    RegExp(r'[^0-9]'),
+                    '',
+                  ),
+                ) ??
+                25;
             _applyManualTime(min * 60);
-            
+
             // 🚨 중요: 여기서 return 해버려서 밑에 있는 start()가 실행되지 않게 막습니다.
             debugPrint("🍅 설정한 최대 뽀모도로 세션이 모두 종료되었습니다.");
-            return; 
+            return;
           }
         }
       }
 
       // 최대 횟수에 도달하지 않았다면, 정상적으로 다음 집중 모드를 셋팅하고 시작합니다.
       globalPomodoroState.value = PomodoroState.work;
-      double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+      double min =
+          double.tryParse(
+            globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          25;
       _applyManualTime(min * 60);
 
       if (globalPomodoroAutoWork.value) start();
@@ -232,7 +279,7 @@ void _handlePomodoroNextStep() {
     debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
 
-    hasStarted = true; 
+    hasStarted = true;
     alarmTriggered = false;
     isAlarmPlaying = false;
 
@@ -243,7 +290,7 @@ void _handlePomodoroNextStep() {
     widget.onRunningChanged(true);
 
     if (globalBgmEnabled.value) {
-      GlobalBgmManager.playBgm(globalBgmTrack.value); 
+      GlobalBgmManager.playBgm(globalBgmTrack.value);
     }
   }
 
@@ -253,7 +300,7 @@ void _handlePomodoroNextStep() {
     setState(() => isRunning = false);
     widget.onRunningChanged(false);
 
-    GlobalBgmManager.stopBgm(); 
+    GlobalBgmManager.stopBgm();
   }
 
   void updateStartTime(Offset localPosition, Size size) {
@@ -327,20 +374,42 @@ void _handlePomodoroNextStep() {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                           decoration: InputDecoration(
                             labelText: "분 (Min)",
                             labelStyle: TextStyle(color: textColor),
                             border: const OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : Colors.grey)),
-                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : globalClockColor.value, width: 2)),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding
+                                    ? Colors.red
+                                    : globalClockColor.value,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           onChanged: (val) => setStateDialog(() {}),
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(":", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                        child: Text(
+                          ":",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
                       ),
                       Expanded(
                         child: TextField(
@@ -350,13 +419,28 @@ void _handlePomodoroNextStep() {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                           decoration: InputDecoration(
                             labelText: "초 (Sec)",
                             labelStyle: TextStyle(color: textColor),
                             border: const OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : Colors.grey)),
-                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : globalClockColor.value, width: 2)),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding
+                                    ? Colors.red
+                                    : globalClockColor.value,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           onChanged: (val) => setStateDialog(() {}),
                         ),
@@ -366,22 +450,48 @@ void _handlePomodoroNextStep() {
                   if (isExceeding)
                     const Padding(
                       padding: EdgeInsets.only(top: 12.0),
-                      child: Text("120분 이하로 설정해주세요.", style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        "120분 이하로 설정해주세요.",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("취소", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "취소",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: isExceeding ? Colors.grey.shade400 : globalClockColor.value),
-                  onPressed: isExceeding ? null : () {
-                    if (totalInputSeconds > 0) _applyManualTime(totalInputSeconds);
-                    Navigator.pop(context);
-                  },
-                  child: const Text("적용", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isExceeding
+                        ? Colors.grey.shade400
+                        : globalClockColor.value,
+                  ),
+                  onPressed: isExceeding
+                      ? null
+                      : () {
+                          if (totalInputSeconds > 0)
+                            _applyManualTime(totalInputSeconds);
+                          Navigator.pop(context);
+                        },
+                  child: const Text(
+                    "적용",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -402,7 +512,7 @@ void _handlePomodoroNextStep() {
         else if (inputSec <= 3600)
           globalTimerMaxString.value = "60분";
         else
-          globalTimerMaxString.value = "120분"; 
+          globalTimerMaxString.value = "120분";
       }
 
       targetSeconds = inputSec;
@@ -423,18 +533,24 @@ void _handlePomodoroNextStep() {
         BaseClockLayout(
           key: widget.clockKey,
           isRunning: isRunning,
-          onTapToggle: toggle, 
+          onTapToggle: toggle,
           // 🌟 뽀모도로 모드일 때는 드래그(수동 조작) 잠금
-          onPanUpdate: (!isRunning && !globalPomodoroMode.value) ? updateStartTime : null,
+          onPanUpdate: (!isRunning && !globalPomodoroMode.value)
+              ? updateStartTime
+              : null,
           drawnSeconds: currentSeconds,
           // 🌟 뽀모도로 모드일 때는 뽀모도로 자체 눈금을, 아닐 때는 전역 눈금을 따름
-          maxScaleSeconds: globalPomodoroMode.value ? _getPomodoroMaxScale(targetSeconds) : globalTimerMaxSeconds.value,
+          maxScaleSeconds: globalPomodoroMode.value
+              ? _getPomodoroMaxScale(targetSeconds)
+              : globalTimerMaxSeconds.value,
           isTimer: true,
           digitalSeconds: currentSeconds,
           // 🌟 뽀모도로 모드일 때는 길게 눌러 수동 입력하는 기능도 잠금
-          onDigitalLongPress: globalPomodoroMode.value ? null : () => _showTimeInputDialog(),
+          onDigitalLongPress: globalPomodoroMode.value
+              ? null
+              : () => _showTimeInputDialog(),
         ),
-// =========================================================
+        // =========================================================
         // 🌟 상단 뽀모도로 배지 표시 UI (설정 변경 시 즉시 업데이트 버전)
         // =========================================================
         Positioned(
@@ -466,30 +582,57 @@ void _handlePomodoroNextStep() {
                               return ValueListenableBuilder<String>(
                                 valueListenable: globalPomodoroMaxSessions,
                                 builder: (context, sessionSetting, child) {
-                                  
-                                  String statusText = (state == PomodoroState.work) ? "집중 모드" 
-                                      : (state == PomodoroState.shortBreak ? "짧은 휴식" : "긴 휴식");
-                                  IconData icon = (state == PomodoroState.work) ? Icons.local_fire_department 
-                                      : (state == PomodoroState.shortBreak ? Icons.coffee : Icons.hotel);
+                                  String statusText =
+                                      (state == PomodoroState.work)
+                                      ? "집중 모드"
+                                      : (state == PomodoroState.shortBreak
+                                            ? "짧은 휴식"
+                                            : "긴 휴식");
+                                  IconData icon = (state == PomodoroState.work)
+                                      ? Icons.local_fire_department
+                                      : (state == PomodoroState.shortBreak
+                                            ? Icons.coffee
+                                            : Icons.hotel);
 
                                   // 설정값 파싱
-                                  int cycleTarget = int.tryParse(cycleSetting.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
-                                  
-                                  // 현재 사이클 및 세션 계산
-                                  int displayCycle = (state == PomodoroState.work) 
-                                      ? (cycles % cycleTarget) + 1 
-                                      : (cycles > 0 ? ((cycles - 1) % cycleTarget) + 1 : 1);
-                                      
-                                  int displaySession = (state == PomodoroState.work) 
-                                      ? (cycles ~/ cycleTarget) + 1 
-                                      : (cycles > 0 ? ((cycles - 1) ~/ cycleTarget) + 1 : 1);
+                                  int cycleTarget =
+                                      int.tryParse(
+                                        cycleSetting.replaceAll(
+                                          RegExp(r'[^0-9]'),
+                                          '',
+                                        ),
+                                      ) ??
+                                      4;
 
-                                  String totalSessions = sessionSetting.contains("제한 없음") 
-                                      ? "제한 없음" : sessionSetting.replaceAll(RegExp(r'[^0-9]'), '');
+                                  // 현재 사이클 및 세션 계산
+                                  int displayCycle =
+                                      (state == PomodoroState.work)
+                                      ? (cycles % cycleTarget) + 1
+                                      : (cycles > 0
+                                            ? ((cycles - 1) % cycleTarget) + 1
+                                            : 1);
+
+                                  int displaySession =
+                                      (state == PomodoroState.work)
+                                      ? (cycles ~/ cycleTarget) + 1
+                                      : (cycles > 0
+                                            ? ((cycles - 1) ~/ cycleTarget) + 1
+                                            : 1);
+
+                                  String totalSessions =
+                                      sessionSetting.contains("제한 없음")
+                                      ? "제한 없음"
+                                      : sessionSetting.replaceAll(
+                                          RegExp(r'[^0-9]'),
+                                          '',
+                                        );
 
                                   return Center(
                                     child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 10,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.black.withOpacity(0.06),
                                         borderRadius: BorderRadius.circular(16),
@@ -500,18 +643,32 @@ void _handlePomodoroNextStep() {
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Icon(icon, size: 16, color: clockColor),
+                                              Icon(
+                                                icon,
+                                                size: 16,
+                                                color: clockColor,
+                                              ),
                                               const SizedBox(width: 6),
                                               Text(
                                                 "뽀모도로 - $statusText ($displayCycle/$cycleTarget)",
-                                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: clockColor),
+                                                style: TextStyle(
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: clockColor,
+                                                ),
                                               ),
                                             ],
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
                                             "세션 (현재/최대) : $displaySession / $totalSessions",
-                                            style: TextStyle(fontSize: 13, color: clockColor.withOpacity(0.7), fontWeight: FontWeight.w600),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: clockColor.withOpacity(
+                                                0.7,
+                                              ),
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -521,9 +678,9 @@ void _handlePomodoroNextStep() {
                               );
                             },
                           );
-                        }
+                        },
                       );
-                    }
+                    },
                   );
                 },
               );
@@ -541,7 +698,7 @@ void _handlePomodoroNextStep() {
 
                 setState(() {
                   isAlarmPlaying = false;
-                  isRunning = false; 
+                  isRunning = false;
                   widget.onRunningChanged(false);
                 });
 
