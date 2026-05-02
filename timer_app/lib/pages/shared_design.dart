@@ -64,6 +64,8 @@ final ValueNotifier<String> globalTimerMaxString = ValueNotifier<String>(
 final ValueNotifier<double> globalTimerMaxSeconds = ValueNotifier<double>(60.0);
 
 final ValueNotifier<String> globalBgVideoName = ValueNotifier<String>("사용 안 함");
+// 🔥 이 줄을 추가하세요! (시계 이미지/영상용 변수)
+ValueNotifier<String> globalClockVideoName = ValueNotifier("사용 안 함");
 
 final ValueNotifier<Color> globalBgColor = ValueNotifier(
   const Color(0xFF252528),
