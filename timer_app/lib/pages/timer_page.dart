@@ -22,7 +22,7 @@ class TimerAppPage extends StatefulWidget {
 class _TimerAppPageState extends State<TimerAppPage>
     with SingleTickerProviderStateMixin {
   late AnimationController controller;
-
+  Timer? _vibrationTimer;
   double targetSeconds = globalTimerMaxSeconds.value;
   double currentSeconds = globalTimerMaxSeconds.value;
   bool isRunning = false;
@@ -143,6 +143,19 @@ class _TimerAppPageState extends State<TimerAppPage>
     }
   }
 
+  void _startVibrationLoop() {
+    _vibrationTimer?.cancel();
+
+    _vibrationTimer = Timer.periodic(const Duration(milliseconds: 700), (_) {
+      if (!isAlarmPlaying) {
+        _vibrationTimer?.cancel();
+        return;
+      }
+
+      Vibration.vibrate(duration: 400, amplitude: 255);
+    });
+  }
+
   void _triggerAlarm() async {
     debugPrint("triggerAlarm called");
     if (!globalAlarmEnabled.value) return;
@@ -155,11 +168,13 @@ class _TimerAppPageState extends State<TimerAppPage>
     final option = globalAlarmSound.value;
 
     if (option == "진동만") {
-      Vibration.vibrate(pattern: [0, 500, 200, 500], amplitude: 255);
+      _startVibrationLoop();
       return;
     }
 
     await GlobalBgmManager.playAlarmSound(option);
+
+    _startVibrationLoop(); // 🔥 추가
   }
 
   void _checkAutoPomodoro() async {
@@ -175,6 +190,7 @@ class _TimerAppPageState extends State<TimerAppPage>
       if (!mounted || !isAlarmPlaying) return;
 
       GlobalBgmManager.stopAllSound();
+      _vibrationTimer?.cancel();
       setState(() {
         isAlarmPlaying = false;
         isRunning = false;
