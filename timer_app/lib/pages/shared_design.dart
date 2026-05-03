@@ -9,6 +9,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:video_player/video_player.dart';
 import '../services/firebase_settings_service.dart';
 import 'package:vibration/vibration.dart';
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 // shared_design.dart 파일 내부에 추가
 
@@ -507,7 +509,7 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
 
-    if (globalClockColor.value != Colors.transparent) {
+if (globalClockColor.value != Colors.transparent && globalClockVideoName.value == "사용 안 함") {
       final shadowPaint = Paint()
         ..color = Colors.black.withOpacity(0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
@@ -543,11 +545,17 @@ class SharedClockPainter extends CustomPainter {
       arcColor = globalIndicatorColor.value.withOpacity(0.25);
     }
 
+    // // 🔥 [핵심 추가] 시계 사진이 설정되어 있다면, 타이머 색상을 50% 반투명하게 만듭니다!
+    // // 이렇게 하면 줄어드는 타이머 색상 뒤로 사진이 예쁘게 비치게 됩니다.
+    // if (globalClockVideoName.value != "사용 안 함") {
+    //   arcColor = arcColor.withOpacity(0.5); 
+    // }
+
     final paintArc = Paint()
       ..color = arcColor
       ..style = PaintingStyle.fill;
-    if (drawnSeconds > 0) {
-      canvas.drawArc(
+if (drawnSeconds > 0 && globalClockVideoName.value == "사용 안 함") {
+        canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius * 0.98),
         startAngle,
         sweepAngle,
@@ -1068,6 +1076,7 @@ class BaseClockLayout extends StatelessWidget {
             globalDigitalColor,
             globalIndicatorColor,
             globalDigitalFontSize,
+            globalClockVideoName, // 🔥 [핵심 추가] 시계 사진 변화를 감지하도록 추가
           ]),
           builder: (context, child) {
             String displayMode = globalDisplayMode.value.toLowerCase();
@@ -1105,7 +1114,7 @@ class BaseClockLayout extends StatelessWidget {
             }
 
             final digitalFontSize = baseFontSize * fontMultiplier;
-
+// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
             Widget analogClockWidget = GestureDetector(
               onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
               onPanUpdate: onPanUpdate != null
@@ -1128,17 +1137,34 @@ class BaseClockLayout extends StatelessWidget {
                     }
                   : null,
               onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
-              child: CustomPaint(
-                key: analogClockHitKey,
-                size: Size(clockSize, clockSize),
-                painter: SharedClockPainter(
-                  drawnSeconds,
-                  maxScaleSeconds,
-                  isTimer: isTimer,
-                  indicatorMode: indicatorMode,
+              child: Container(
+                width: clockSize,
+                height: clockSize,
+                // 🔥 [핵심 수정] 크롬(Web)의 blob 경로도 무조건 허용하도록 조건 완화!
+                decoration: globalClockVideoName.value != "사용 안 함"
+                    ? BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: kIsWeb 
+                              ? NetworkImage(globalClockVideoName.value) as ImageProvider 
+                              : FileImage(File(globalClockVideoName.value)),
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    : null,
+                child: CustomPaint(
+                  key: analogClockHitKey,
+                  size: Size(clockSize, clockSize),
+                  painter: SharedClockPainter(
+                    drawnSeconds,
+                    maxScaleSeconds,
+                    isTimer: isTimer,
+                    indicatorMode: indicatorMode,
+                  ),
                 ),
               ),
             );
+// ---------------- 여기까지 교체 끝 ----------------
 
             Widget digitalClockWidget = GestureDetector(
               onLongPress: onDigitalLongPress,
@@ -1352,9 +1378,11 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     globalBgVideoName.addListener(_updateVideoState);
     _updateVideoState();
   }
-
+// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   void _updateVideoState() {
-    if (globalBgVideoName.value == "사용 안 함") {
+    String currentVal = globalBgVideoName.value;
+
+    if (currentVal == "사용 안 함") {
       _videoController?.dispose();
       _videoController = null;
       _currentBgPath = "";
@@ -1366,34 +1394,45 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     String targetPath = "";
     bool isVideo = false;
 
-    if (globalBgVideoName.value == "비 오는 밤 (Rain)") {
+    // 1. 고정 프리셋 영상 확인
+    if (currentVal == "비 오는 밤 (Rain)") {
       targetPath = 'assets/video/rainwindow.mp4';
       isVideo = true;
-    }
-    // 💡 [여기!] 질문자님이 직접 수정하신 이름표와 완벽하게 똑같이 맞췄습니다!
-    else if (globalBgVideoName.value == "벚꽃 (Cherry Blossom)") {
-      targetPath = 'assets/video/sakura.mp4'; // 👈 파일명도 지정하신 sakura.mp4 로 맞춤!
+    } else if (currentVal == "벚꽃 (Cherry Blossom)") {
+      targetPath = 'assets/video/sakura.mp4';
       isVideo = true;
+    } 
+    // 🌟 [핵심 추가] 프리셋이 아니면 사용자가 추가한 '사진/영상 경로'를 그대로 사용!
+    else {
+      targetPath = currentVal;
+      // 파일명에 mp4가 들어있으면 비디오로 간주
+      isVideo = currentVal.toLowerCase().contains(".mp4");
     }
 
     if (_currentBgPath != targetPath) {
       _currentBgPath = targetPath;
       _isCurrentVideo = isVideo;
+
       if (isVideo) {
         _videoController?.dispose();
         _hasError = false;
-        _videoController = VideoPlayerController.asset(targetPath)
-          ..initialize()
-              .then((_) {
-                _videoController!.setVolume(0.0);
-                _videoController!.setLooping(true);
-                _videoController!.play();
-                if (mounted) setState(() {});
-              })
-              .catchError((e) {
-                debugPrint("비디오 재생 에러: $e");
-                if (mounted) setState(() => _hasError = true);
-              });
+        
+        // 에셋인지 로컬 파일인지 구분해서 로드
+        if (targetPath.startsWith('assets/')) {
+          _videoController = VideoPlayerController.asset(targetPath);
+        } else {
+          _videoController = VideoPlayerController.file(File(targetPath));
+        }
+
+        _videoController!.initialize().then((_) {
+          _videoController!.setVolume(0.0);
+          _videoController!.setLooping(true);
+          _videoController!.play();
+          if (mounted) setState(() {});
+        }).catchError((e) {
+          debugPrint("비디오 재생 에러: $e");
+          if (mounted) setState(() => _hasError = true);
+        });
       } else {
         _videoController?.dispose();
         _videoController = null;
@@ -1401,6 +1440,7 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       }
     }
   }
+// ---------------- 여기까지 교체 끝 ----------------
 
   @override
   void dispose() {
@@ -1439,9 +1479,12 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
           ),
 
         if (!_isCurrentVideo && _currentBgPath.isNotEmpty)
-          Positioned.fill(
-            child: Image.asset(_currentBgPath, fit: BoxFit.cover),
-          ),
+Positioned.fill(
+            child: _currentBgPath.startsWith('assets/')
+                ? Image.asset(_currentBgPath, fit: BoxFit.cover)
+                : (kIsWeb 
+                    ? Image.network(_currentBgPath, fit: BoxFit.cover) 
+                    : Image.file(File(_currentBgPath), fit: BoxFit.cover)),),
 
         // 🌸 [핵심 추가] 벚꽃 테마일 때만 터치를 통과하는(IgnorePointer) 애니메이션을 화면 꽉 차게 띄웁니다!
         if (isCherryBlossom)

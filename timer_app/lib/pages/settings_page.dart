@@ -144,90 +144,120 @@ class _SettingsPageState extends State<SettingsPage> {
   User? _user;
 
   OverlayEntry? _previewOverlay;
-  // ✅ 로컬 저장용 변수 및 슬롯 관리 변수
-  int _unlockedMediaSlots = 1; // 기본 부여되는 사진 슬롯 개수 (Firebase 동기화)
-  int _unlockedThemeSlots = 1; // 기본 부여되는 테마 슬롯 개수 (Firebase 동기화)
+int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
+  int _unlockedClockMediaSlots = 1; // 시계 사진 슬롯
+  int _unlockedThemeSlots = 1; 
 
-  List<String> _localMediaPaths = []; // 기기에 저장된 사진 경로들
-  List<AppThemePreset> _localCustomPresets = []; // 기기에 저장된 테마들
+  List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
+  List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
+  List<AppThemePreset> _localCustomPresets = [];
 
-  // ✅ 데이터 불러오기 (Firebase에서는 '슬롯 개수'만, 사진/테마는 '로컬'에서)
+// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   Future<void> _loadCustomData() async {
     final user = FirebaseAuth.instance.currentUser;
 
-    // 1. Firebase에서 해제된 '슬롯 칸수' 불러오기
     if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      if (doc.exists && doc.data()!.containsKey('unlockedMediaSlots')) {
-        _unlockedMediaSlots = doc.data()!['unlockedMediaSlots'];
-        _unlockedThemeSlots = doc.data()!['unlockedThemeSlots'];
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data()!.containsKey('unlockedBgMediaSlots')) {
+        _unlockedBgMediaSlots = doc.data()!['unlockedBgMediaSlots'] ?? 1;
+        _unlockedClockMediaSlots = doc.data()!['unlockedClockMediaSlots'] ?? 1;
+        _unlockedThemeSlots = doc.data()!['unlockedThemeSlots'] ?? 1;
       } else {
-        // 최초 로그인 시 기본 슬롯 1개씩 부여 (DB 기록)
         await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'unlockedMediaSlots': 1,
+          'unlockedBgMediaSlots': 1,
+          'unlockedClockMediaSlots': 1,
           'unlockedThemeSlots': 1,
         }, SetOptions(merge: true));
-        _unlockedMediaSlots = 1;
+        _unlockedBgMediaSlots = 1;
+        _unlockedClockMediaSlots = 1;
         _unlockedThemeSlots = 1;
       }
     }
 
-    // 2. 로컬 기기(SharedPreferences)에서 저장된 사진/테마 불러오기
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      // 로컬 사진 경로 불러오기
-      _localMediaPaths = prefs.getStringList('local_media_paths') ?? [];
+      _localBgMediaPaths = prefs.getStringList('local_bg_media_paths') ?? [];
+      _localClockMediaPaths = prefs.getStringList('local_clock_media_paths') ?? [];
 
-      // 로컬 테마 불러오기
       final themeString = prefs.getString('local_custom_themes');
       if (themeString != null) {
         final List<dynamic> decoded = jsonDecode(themeString);
-        _localCustomPresets = decoded
-            .map(
-              (data) => AppThemePreset(
+        _localCustomPresets = decoded.map((data) => AppThemePreset(
                 bg: Color(data['bg']),
                 clock: Color(data['clock']),
                 digital: Color(data['digital']),
                 indicator: Color(data['indicator']),
                 bgVideo: data['bgVideo'] ?? "사용 안 함",
-              ),
-            )
-            .toList();
+              )).toList();
       }
-      // 🔥 여기를 추가하세요! 앱을 껐다 켜더라도 저장된 내용물보다 칸이 줄어들지 않게 방어합니다.
-      if (_localMediaPaths.length >= _unlockedMediaSlots) {
-        _unlockedMediaSlots = _localMediaPaths.length + 1;
-      }
-      if (_localCustomPresets.length >= _unlockedThemeSlots) {
-        _unlockedThemeSlots = _localCustomPresets.length + 1;
-      }
+
+      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
+      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
+      if (_localCustomPresets.length >= _unlockedThemeSlots) _unlockedThemeSlots = _localCustomPresets.length + 1;
     });
   }
 
-  // ✅ 갤러리 사진 추가 및 슬롯 영구 확장 로직
-  Future<void> _pickLocalImage({StateSetter? dialogSetState}) async {
+  Future<void> _pickLocalImage(String type, {StateSetter? dialogSetState}) async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
 
+    final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _localMediaPaths.add(image.path);
-      // 🔥 핵심: 꽉 찼을 때 사진을 추가하면, 포인트로 샀다고 가정하고 슬롯(칸)을 영구적으로 늘림!
-      if (_localMediaPaths.length >= _unlockedMediaSlots) {
-        _unlockedMediaSlots = _localMediaPaths.length + 1;
+      if (type == "배경색") {
+        _localBgMediaPaths.add(image.path);
+        if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
+        prefs.setStringList('local_bg_media_paths', _localBgMediaPaths);
+      } else {
+        _localClockMediaPaths.add(image.path);
+        if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
+        prefs.setStringList('local_clock_media_paths', _localClockMediaPaths);
       }
     });
 
-    if (dialogSetState != null) {
-      dialogSetState(() {});
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('local_media_paths', _localMediaPaths);
+    if (dialogSetState != null) dialogSetState(() {});
   }
+
+  Future<void> _updateSlotCount() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'unlockedBgMediaSlots': _unlockedBgMediaSlots,
+        'unlockedClockMediaSlots': _unlockedClockMediaSlots,
+        'unlockedThemeSlots': _unlockedThemeSlots,
+      }, SetOptions(merge: true));
+    }
+  }
+
+  void _deleteImage(String type, int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      if (type == "배경색") {
+        _localBgMediaPaths.removeAt(index);
+        prefs.setStringList('local_bg_media_paths', _localBgMediaPaths);
+      } else {
+        _localClockMediaPaths.removeAt(index);
+        prefs.setStringList('local_clock_media_paths', _localClockMediaPaths);
+      }
+    });
+  }
+
+  // ✅ 커스텀 테마 삭제 로직 (에러 3 해결: 복구됨)
+  void _deleteTheme(int index) async {
+    setState(() {
+      _localCustomPresets.removeAt(index);
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final encoded = _localCustomPresets.map((t) => {
+          'bg': t.bg.value,
+          'clock': t.clock.value,
+          'digital': t.digital.value,
+          'indicator': t.indicator.value,
+          'bgVideo': t.bgVideo,
+        }).toList();
+    await prefs.setString('local_custom_themes', jsonEncode(encoded));
+  }
+// ---------------- 여기까지가 함수 교체 끝 ----------------
 
   // ✅ 커스텀 테마 추가 및 슬롯 영구 확장 로직
   Future<void> _saveCurrentAsPresetLocal() async {
@@ -297,46 +327,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
-  }
-
-  // ✅ [추가] 슬롯 개수 변경 시 Firebase에 즉시 동기화하는 함수
-  Future<void> _updateSlotCount() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'unlockedMediaSlots': _unlockedMediaSlots,
-        'unlockedThemeSlots': _unlockedThemeSlots,
-      }, SetOptions(merge: true));
-    }
-  }
-
-  // ✅ 커스텀 테마 삭제 로직
-  void _deleteTheme(int index) async {
-    setState(() {
-      _localCustomPresets.removeAt(index);
-    });
-    final prefs = await SharedPreferences.getInstance();
-    final encoded = _localCustomPresets
-        .map(
-          (t) => {
-            'bg': t.bg.value,
-            'clock': t.clock.value,
-            'digital': t.digital.value,
-            'indicator': t.indicator.value,
-            'bgVideo': t.bgVideo,
-          },
-        )
-        .toList();
-    await prefs.setString('local_custom_themes', jsonEncode(encoded));
-  }
-
-  // ✅ 로컬 이미지 삭제 로직
-  void _deleteImage(int index) async {
-    setState(() {
-      _localMediaPaths.removeAt(index);
-    });
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('local_media_paths', _localMediaPaths);
   }
 
   void _showPreview(BuildContext context, String videoName) {
@@ -1193,93 +1183,82 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          GridView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
+                         Builder(
+                            builder: (context) {
+                              // 🔥 현재 열린 팝업이 배경인지 시계인지 파악해서 리스트 지정
+                              int currentSlots = title == "배경색" ? _unlockedBgMediaSlots : _unlockedClockMediaSlots;
+                              List<String> currentList = title == "배경색" ? _localBgMediaPaths : _localClockMediaPaths;
+
+                              return GridView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: columns,
                                   crossAxisSpacing: spacing,
                                   mainAxisSpacing: spacing,
                                   childAspectRatio: 1.0,
                                 ),
-                            itemCount: _unlockedMediaSlots, // 슬롯 개수만큼 무조건 생성
-                            itemBuilder: (context, index) {
-                              if (index < _localMediaPaths.length) {
-                                final path = _localMediaPaths[index];
-                                bool isSelected =
-                                    (title == "배경색"
-                                        ? globalBgVideoName.value
-                                        : globalClockVideoName.value) ==
-                                    path;
-                                return GestureDetector(
-                                  onTap: () {
-                                    if (title == "배경색")
-                                      globalBgVideoName.value = path;
-                                    else if (title == "시계색")
-                                      globalClockVideoName.value = path;
-                                    Navigator.pop(context);
-                                  },
-                                  onLongPress: () => _confirmDeletion("사진", () {
-                                    _deleteImage(index);
-                                    dialogSetState(() {});
-                                  }),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? accentColor
-                                            : Colors.grey.shade300,
-                                        width: isSelected ? 3.0 : 1.0,
-                                      ),
-                                      image: DecorationImage(
-                                        image: kIsWeb
-                                            ? NetworkImage(path)
-                                                  as ImageProvider
-                                            : FileImage(File(path)),
-                                        fit: BoxFit.cover,
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                // ✅ 빈 슬롯 (+ 추가 버튼)
-                                return GestureDetector(
-                                  onTap: () => _pickLocalImage(
-                                    dialogSetState: dialogSetState,
-                                  ),
-                                  // 🔥 [수정됨] 사진 빈 칸(+)이 2개 이상일 때만 삭제 경고창이 뜸!
-                                  onLongPress:
-                                      _unlockedMediaSlots >
-                                          _localMediaPaths.length + 1
-                                      ? () {
-                                          _confirmDeletion("사진 슬롯", () {
-                                            setState(() {
-                                              _unlockedMediaSlots--;
-                                            });
-                                            dialogSetState(() {}); // 팝업창 즉시 갱신
-                                            _updateSlotCount(); // Firebase 동기화
-                                          }, isSlot: true);
+                                itemCount: currentSlots,
+                                itemBuilder: (context, index) {
+                                  if (index < currentList.length) {
+                                    final path = currentList[index];
+                                    bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
+                                    return GestureDetector(
+                                      onTap: () {
+                                        if (title == "배경색") {
+                                          globalBgVideoName.value = path;
+                                        } else if (title == "시계색") {
+                                          globalClockVideoName.value = path;
                                         }
-                                      : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: Colors.grey.shade300,
-                                        width: 1.0,
+                                        Navigator.pop(context);
+                                      },
+                                      onLongPress: () => _confirmDeletion("사진", () {
+                                        _deleteImage(title, index);
+                                        dialogSetState(() {});
+                                      }),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(
+                                            color: isSelected ? accentColor : Colors.grey.shade300,
+                                            width: isSelected ? 3.0 : 1.0,
+                                          ),
+                                          image: DecorationImage(
+                                            image: kIsWeb ? NetworkImage(path) as ImageProvider : FileImage(File(path)),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    child: Icon(
-                                      Icons.add_photo_alternate,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
+                                    );
+                                  } else {
+                                    // ✅ 빈 슬롯 (+ 버튼)
+                                    return GestureDetector(
+                                      onTap: () => _pickLocalImage(title, dialogSetState: dialogSetState),
+                                      onLongPress: currentSlots > currentList.length + 1
+                                          ? () {
+                                              _confirmDeletion("사진 슬롯", () {
+                                                setState(() {
+                                                  if (title == "배경색") _unlockedBgMediaSlots--;
+                                                  else _unlockedClockMediaSlots--;
+                                                });
+                                                dialogSetState(() {}); 
+                                                _updateSlotCount(); 
+                                              }, isSlot: true);
+                                            }
+                                          : null,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade100,
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                                        ),
+                                        child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            }
                           ),
                         ],
                       ),
