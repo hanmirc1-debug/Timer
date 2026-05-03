@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'services/firebase_settings_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
+import 'pages/splash_page.dart'; // 🌟 [추가] 스플래시 페이지 가져오기
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +43,7 @@ class MyApp extends StatelessWidget {
       title: 'Time Manager App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(useMaterial3: true, fontFamily: 'Courier'),
-      home: const MainScreen(),
+      home: const SplashPage(),
     );
   }
 }
