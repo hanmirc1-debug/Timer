@@ -40,6 +40,7 @@ class AppThemePreset {
   final Color digital;
   final Color indicator;
   final String bgVideo;
+  final String clockVideo; // 🔥 시계 사진 저장용 변수 추가!
 
   const AppThemePreset({
     required this.bg,
@@ -47,6 +48,7 @@ class AppThemePreset {
     required this.digital,
     required this.indicator,
     this.bgVideo = "사용 안 함",
+    this.clockVideo = "사용 안 함", // 🔥 기본값 추가
   });
 }
 
@@ -153,7 +155,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
   List<AppThemePreset> _localCustomPresets = [];
 
 // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
-  Future<void> _loadCustomData() async {
+Future<void> _loadCustomData() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
@@ -188,6 +190,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                 digital: Color(data['digital']),
                 indicator: Color(data['indicator']),
                 bgVideo: data['bgVideo'] ?? "사용 안 함",
+                clockVideo: data['clockVideo'] ?? "사용 안 함", // 🔥 추가
               )).toList();
       }
 
@@ -195,6 +198,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
       if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
       if (_localCustomPresets.length >= _unlockedThemeSlots) _unlockedThemeSlots = _localCustomPresets.length + 1;
     });
+  
   }
 
   Future<void> _pickLocalImage(String type, {StateSetter? dialogSetState}) async {
@@ -243,7 +247,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
   }
 
   // ✅ 커스텀 테마 삭제 로직 (에러 3 해결: 복구됨)
-  void _deleteTheme(int index) async {
+void _deleteTheme(int index) async {
     setState(() {
       _localCustomPresets.removeAt(index);
     });
@@ -254,46 +258,40 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
           'digital': t.digital.value,
           'indicator': t.indicator.value,
           'bgVideo': t.bgVideo,
+          'clockVideo': t.clockVideo, // 🔥 추가
         }).toList();
     await prefs.setString('local_custom_themes', jsonEncode(encoded));
   }
 // ---------------- 여기까지가 함수 교체 끝 ----------------
-
-  // ✅ 커스텀 테마 추가 및 슬롯 영구 확장 로직
-  Future<void> _saveCurrentAsPresetLocal() async {
+Future<void> _saveCurrentAsPresetLocal() async {
     final newPreset = AppThemePreset(
       bg: globalBgColor.value,
       clock: globalClockColor.value,
       digital: globalDigitalColor.value,
       indicator: globalIndicatorColor.value,
       bgVideo: globalBgVideoName.value,
+      clockVideo: globalClockVideoName.value, // 🔥 추가
     );
 
     setState(() {
       _localCustomPresets.add(newPreset);
-      // 🔥 핵심: 꽉 찼을 때 테마를 추가하면, 슬롯(칸)을 영구적으로 늘림!
       if (_localCustomPresets.length >= _unlockedThemeSlots) {
         _unlockedThemeSlots = _localCustomPresets.length + 1;
       }
     });
 
     final prefs = await SharedPreferences.getInstance();
-    final encoded = _localCustomPresets
-        .map(
-          (t) => {
-            'bg': t.bg.value,
-            'clock': t.clock.value,
-            'digital': t.digital.value,
-            'indicator': t.indicator.value,
-            'bgVideo': t.bgVideo,
-          },
-        )
-        .toList();
+    final encoded = _localCustomPresets.map((t) => {
+      'bg': t.bg.value,
+      'clock': t.clock.value,
+      'digital': t.digital.value,
+      'indicator': t.indicator.value,
+      'bgVideo': t.bgVideo,
+      'clockVideo': t.clockVideo, // 🔥 추가
+    }).toList();
     await prefs.setString('local_custom_themes', jsonEncode(encoded));
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
   }
 
   // ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
@@ -871,6 +869,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
       "alarmSound": globalAlarmSound.value,
       "bgmEnabled": globalBgmEnabled.value,
       "bgmTrack": globalBgmTrack.value,
+      "clockVideoName": globalClockVideoName.value,
     };
     if (user != null) {
       final docRef = await FirebaseFirestore.instance
@@ -909,6 +908,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
       globalAlarmSound.value = fav["alarmSound"] ?? "기본 알람";
       globalBgmEnabled.value = fav["bgmEnabled"] ?? false;
       globalBgmTrack.value = fav["bgmTrack"] ?? "기본 BGM";
+      globalClockVideoName.value = fav["clockVideoName"] ?? "사용 안 함";
     });
     FirebaseSettingsService.saveSettingsDebounced();
     ScaffoldMessenger.of(context).showSnackBar(
@@ -1496,6 +1496,8 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
     );
   }
 
+// ---------------- ✨ 바꿀 코드 ✨ ----------------
+  // ---------------- ✨ 바꿀 코드 ✨ ----------------
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
@@ -1504,6 +1506,16 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
       builder: (context, color, _) {
+        String videoName = (title == "배경색") ? globalBgVideoName.value : globalClockVideoName.value;
+
+        // 🔥 [수정] "사용 안 함"이 아니고, 앱 내장 프리셋 이름도 아니면 '개인 로컬 사진'으로 판단
+        bool isLocalImage = videoName != "사용 안 함" && 
+                            videoName != "비 오는 밤 (Rain)" && 
+                            videoName != "벚꽃 (Cherry Blossom)";
+        
+        // 아이콘은 사진/영상 기반이면 무엇이든 띄워줍니다.
+        bool hasMedia = videoName != "사용 안 함";
+
         return Padding(
           padding: const EdgeInsets.symmetric(vertical: 4.0),
           child: Row(
@@ -1523,7 +1535,10 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: color,
+                    // 🔥 개인 사진일 때만 회색으로 바꾸고, 스페셜 테마는 원래 색(color)을 보여줍니다!
+                    color: color == Colors.transparent
+                        ? Colors.transparent
+                        : (isLocalImage ? Colors.grey : color),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: color == Colors.transparent
@@ -1532,18 +1547,10 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                     ),
                   ),
                   child: color == Colors.transparent
-                      ? const Icon(
-                          Icons.format_color_reset,
-                          color: Colors.grey,
-                          size: 20,
-                        )
-                      : (title == "배경색" && globalBgVideoName.value != "사용 안 함")
-                      ? const Icon(
-                          Icons.wallpaper,
-                          color: Colors.white,
-                          size: 20,
-                        )
-                      : null,
+                      ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20)
+                      : (hasMedia
+                          ? const Icon(Icons.image, color: Colors.white, size: 20)
+                          : null),
                 ),
               ),
             ],
@@ -1552,6 +1559,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
       },
     );
   }
+// ---------------- 교체 끝 ----------------
 
   Widget buildTwoOptionToggle(
     String title,
@@ -2080,6 +2088,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
           ),
         ],
       );
+// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
     } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
@@ -2088,18 +2097,30 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
           globalDigitalColor,
           globalIndicatorColor,
           globalBgVideoName,
+          globalClockVideoName, // 🔥 [핵심] 시계 사진 변화 감지!
         ]),
         builder: (context, child) {
           final solidPresets = _themePresets
-              .where((t) => t.bgVideo == "사용 안 함")
+              .where((t) => t.bgVideo == "사용 안 함" && t.clockVideo == "사용 안 함")
               .toList();
           final mediaPresets = _themePresets
-              .where((t) => t.bgVideo != "사용 안 함")
+              .where((t) => t.bgVideo != "사용 안 함" || t.clockVideo != "사용 안 함")
               .toList();
 
-          // 공통으로 사용할 프리셋 위젯 빌더
+          // ---------------- ✨ 바꿀 코드 ✨ ----------------
+          // ✅ 공통으로 사용할 프리셋 위젯 빌더
           Widget buildPresetItem(AppThemePreset theme, bool isSelected) {
-            bool isVideoPreset = theme.bgVideo != "사용 안 함";
+            // 🔥 배경이 로컬 사진인지 체크
+            bool isLocalBg = theme.bgVideo != "사용 안 함" && 
+                             theme.bgVideo != "비 오는 밤 (Rain)" && 
+                             theme.bgVideo != "벚꽃 (Cherry Blossom)";
+            // 🔥 시계가 로컬 사진인지 체크
+            bool isLocalClock = theme.clockVideo != "사용 안 함" && 
+                                theme.clockVideo != "비 오는 밤 (Rain)" && 
+                                theme.clockVideo != "벚꽃 (Cherry Blossom)";
+
+            bool hasAnyMedia = theme.bgVideo != "사용 안 함" || theme.clockVideo != "사용 안 함";
+
             return GestureDetector(
               onTap: () {
                 globalBgColor.value = theme.bg;
@@ -2107,12 +2128,9 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                 globalDigitalColor.value = theme.digital;
                 globalIndicatorColor.value = theme.indicator;
                 globalBgVideoName.value = theme.bgVideo;
+                globalClockVideoName.value = theme.clockVideo;
               },
-              onLongPressStart: (details) {
-                if (isVideoPreset) _showPreview(context, theme.bgVideo);
-              },
-              onLongPressEnd: (details) => _hidePreview(),
-              onLongPressCancel: () => _hidePreview(),
+              // (미리보기 로직 생략...)
               child: Container(
                 width: 56,
                 height: 56,
@@ -2126,11 +2144,15 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     stops: const [0.5, 0.5],
-                    colors: [theme.bg, theme.clock],
+                    // 🔥 로컬 사진 부위만 회색으로, 내장 테마는 원래 색상으로!
+                    colors: [
+                      isLocalBg ? Colors.grey : theme.bg,
+                      isLocalClock ? Colors.grey : theme.clock,
+                    ],
                   ),
                 ),
-                child: isVideoPreset
-                    ? const Icon(Icons.wallpaper, color: Colors.white, size: 20)
+                child: hasAnyMedia
+                    ? const Icon(Icons.image, color: Colors.white, size: 20)
                     : null,
               ),
             );
@@ -2161,13 +2183,13 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                 spacing: 12.0,
                 runSpacing: 12.0,
                 children: solidPresets.map((t) {
-                  // 🔥 배경, 시계뿐만 아니라 세부 색상 4가지 모두가 완벽히 같아야만 테두리가 생깁니다!
                   bool isSelected =
                       globalBgColor.value == t.bg &&
                       globalClockColor.value == t.clock &&
                       globalDigitalColor.value == t.digital &&
                       globalIndicatorColor.value == t.indicator &&
-                      globalBgVideoName.value == t.bgVideo;
+                      globalBgVideoName.value == t.bgVideo &&
+                      globalClockVideoName.value == t.clockVideo;
                   return buildPresetItem(t, isSelected);
                 }).toList(),
               ),
@@ -2185,13 +2207,13 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                 spacing: 12.0,
                 runSpacing: 12.0,
                 children: mediaPresets.map((t) {
-                  // 🔥 여기도 동일하게 모든 색상이 일치할 때만 선택 처리!
                   bool isSelected =
                       globalBgColor.value == t.bg &&
                       globalClockColor.value == t.clock &&
                       globalDigitalColor.value == t.digital &&
                       globalIndicatorColor.value == t.indicator &&
-                      globalBgVideoName.value == t.bgVideo;
+                      globalBgVideoName.value == t.bgVideo &&
+                      globalClockVideoName.value == t.clockVideo;
                   return buildPresetItem(t, isSelected);
                 }).toList(),
               ),
@@ -2210,22 +2232,22 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                 ],
               ),
               const SizedBox(height: 8),
-              // ... 나만의 커스텀 테마 제목 부분 밑에 있는 Wrap을 아래로 교체 ...
-              // ... 나만의 커스텀 테마 제목 부분 밑에 있는 Wrap을 아래로 교체 ...
               Wrap(
                 spacing: 12.0,
                 runSpacing: 12.0,
-                // 🔥 핵심: 저장된 테마가 해제된 슬롯보다 많아지면 무조건 끝에 + 버튼을 1개 더 그려줍니다!
                 children: List.generate(_unlockedThemeSlots, (index) {
                   if (index < _localCustomPresets.length) {
-                    // ✅ 내용이 채워진 테마 칸
                     final t = _localCustomPresets[index];
                     bool isSelected =
                         globalBgColor.value == t.bg &&
                         globalClockColor.value == t.clock &&
                         globalDigitalColor.value == t.digital &&
                         globalIndicatorColor.value == t.indicator &&
-                        globalBgVideoName.value == t.bgVideo;
+                        globalBgVideoName.value == t.bgVideo &&
+                        globalClockVideoName.value == t.clockVideo;
+
+                    bool hasBgImage = t.bgVideo != "사용 안 함";
+                    bool hasClockImage = t.clockVideo != "사용 안 함";
 
                     return GestureDetector(
                       onTap: () {
@@ -2234,6 +2256,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                         globalDigitalColor.value = t.digital;
                         globalIndicatorColor.value = t.indicator;
                         globalBgVideoName.value = t.bgVideo;
+                        globalClockVideoName.value = t.clockVideo; // 🔥 추가
                       },
                       onLongPress: () =>
                           _confirmDeletion("커스텀 테마", () => _deleteTheme(index)),
@@ -2252,17 +2275,21 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             stops: const [0.5, 0.5],
-                            colors: [t.bg, t.clock],
+                            // 🔥 [핵심] 커스텀 테마도 사진 부위만 회색으로 표시!
+                            colors: [
+                              hasBgImage ? Colors.grey : t.bg,
+                              hasClockImage ? Colors.grey : t.clock,
+                            ],
                           ),
                         ),
+                        child: (hasBgImage || hasClockImage)
+                            ? const Icon(Icons.image, color: Colors.white, size: 20)
+                            : null,
                       ),
                     );
                   } else {
-                    // ✅ 비어있는 슬롯 (+ 버튼)
                     return GestureDetector(
                       onTap: _saveCurrentAsPresetLocal,
-                      // 🔥 [수정됨] 전체 슬롯 수가 '저장된 테마 수 + 1'보다 클 때만 삭제 가능!
-                      // 즉, 화면에 + 버튼이 2개 이상 보일 때만 꾹 눌러서 삭제할 수 있습니다.
                       onLongPress:
                           _unlockedThemeSlots > _localCustomPresets.length + 1
                           ? () {
@@ -2270,10 +2297,10 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
                                 setState(() {
                                   _unlockedThemeSlots--;
                                 });
-                                _updateSlotCount(); // Firebase 동기화
+                                _updateSlotCount();
                               }, isSlot: true);
                             }
-                          : null, // + 버튼이 1개일 때는 아예 반응 없음 (null)
+                          : null,
                       child: Container(
                         width: 56,
                         height: 56,
@@ -2315,6 +2342,7 @@ int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
           );
         },
       );
+// ---------------- 여기까지 ----------------
     } else if (index == 3) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
