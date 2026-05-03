@@ -545,12 +545,6 @@ if (globalClockColor.value != Colors.transparent && globalClockVideoName.value =
       arcColor = globalIndicatorColor.value.withOpacity(0.25);
     }
 
-    // // 🔥 [핵심 추가] 시계 사진이 설정되어 있다면, 타이머 색상을 50% 반투명하게 만듭니다!
-    // // 이렇게 하면 줄어드는 타이머 색상 뒤로 사진이 예쁘게 비치게 됩니다.
-    // if (globalClockVideoName.value != "사용 안 함") {
-    //   arcColor = arcColor.withOpacity(0.5); 
-    // }
-
     final paintArc = Paint()
       ..color = arcColor
       ..style = PaintingStyle.fill;
@@ -1140,10 +1134,18 @@ class BaseClockLayout extends StatelessWidget {
               child: Container(
                 width: clockSize,
                 height: clockSize,
-                // 🔥 [핵심 수정] 크롬(Web)의 blob 경로도 무조건 허용하도록 조건 완화!
                 decoration: globalClockVideoName.value != "사용 안 함"
                     ? BoxDecoration(
                         shape: BoxShape.circle,
+                        // 🔥 [핵심 추가] 시계판 뒤에 은은한 검은색 그림자를 깔아줍니다!
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.5), // 그림자 진하기 (0.5는 50% 반투명)
+                            blurRadius: 15.0, // 그림자가 부드럽게 퍼지는 정도
+                            spreadRadius: 2.0, // 그림자가 바깥으로 나가는 크기
+                            offset: const Offset(4, 4), // 그림자 위치 (오른쪽 아래로 약간 이동)
+                          ),
+                        ],
                         image: DecorationImage(
                           image: kIsWeb 
                               ? NetworkImage(globalClockVideoName.value) as ImageProvider 
