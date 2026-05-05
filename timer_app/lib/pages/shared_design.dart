@@ -413,12 +413,21 @@ class DragHapticManager {
       _lastTick = currentTick;
       String intensity = globalHapticIntensity.value.toUpperCase();
       if (intensity == "NONE") return;
-      if (intensity == "SOFT") {
-        Vibration.vibrate(duration: 20, amplitude: 80);
-      } else if (intensity == "MEDIUM") {
-        Vibration.vibrate(duration: 30, amplitude: 160);
-      } else if (intensity == "STRONG") {
-        Vibration.vibrate(duration: 40, amplitude: 255);
+
+      // 🔥 핵심 수정 1: 웹(Chrome)으로 실행 중일 때는 진동 명령을 아예 스킵합니다!
+      if (kIsWeb) return;
+
+      // 🔥 핵심 수정 2: 모바일에서도 혹시 모를 진동 에러로 앱이 멈추는 것을 방지합니다.
+      try {
+        if (intensity == "SOFT") {
+          Vibration.vibrate(duration: 20, amplitude: 80);
+        } else if (intensity == "MEDIUM") {
+          Vibration.vibrate(duration: 30, amplitude: 160);
+        } else if (intensity == "STRONG") {
+          Vibration.vibrate(duration: 40, amplitude: 255);
+        }
+      } catch (e) {
+        debugPrint("진동 호출 실패 (무시됨): $e");
       }
     }
   }
@@ -1111,6 +1120,7 @@ class BaseClockLayout extends StatelessWidget {
             final digitalFontSize = baseFontSize * fontMultiplier;
 // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
             Widget analogClockWidget = GestureDetector(
+              behavior: HitTestBehavior.opaque, // 🔥 추가: 드래그 영역 확실히 잡기
               onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
               onPanUpdate: onPanUpdate != null
                   ? (details) {
@@ -1154,7 +1164,10 @@ class BaseClockLayout extends StatelessWidget {
                           fit: BoxFit.cover,
                         ),
                       )
-                    : null,
+                    : const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.transparent, // 🔥 핵심 수정: null 대신 투명색을 깔아서 터치 인식 활성화!
+                      ),
                 child: CustomPaint(
                   key: analogClockHitKey,
                   size: Size(clockSize, clockSize),
@@ -1215,7 +1228,8 @@ class BaseClockLayout extends StatelessWidget {
             }
 
             return GestureDetector(
-              behavior: HitTestBehavior.deferToChild,
+              //behavior: HitTestBehavior.deferToChild,
+              behavior: HitTestBehavior.translucent, // 🔥 핵심 수정: 시계 빈 공간을 터치해도 무시되지 않고 정상 작동하게 만듦
               onTap: onTapToggle,
               child: SizedBox(
                 width: availableWidth,

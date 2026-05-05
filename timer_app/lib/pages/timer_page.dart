@@ -305,7 +305,8 @@ class _TimerAppPageState extends State<TimerAppPage>
     alarmTriggered = false;
     isAlarmPlaying = false;
 
-    controller.duration = Duration(seconds: targetSeconds.toInt());
+    //controller.duration = Duration(seconds: targetSeconds.toInt());
+    controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt()); // 🔥 변경
     if (isCompleted) {
       // 🔥 완료 상태면 초기화 후 시작
       controller.value = 1.0;
@@ -353,7 +354,8 @@ class _TimerAppPageState extends State<TimerAppPage>
         targetSeconds = maxScale;
       }
       currentSeconds = targetSeconds;
-      controller.duration = Duration(seconds: targetSeconds.toInt());
+      // 기존 코드: controller.duration = Duration(seconds: targetSeconds.toInt());
+controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt()); // 🔥 변경
       controller.value = 1.0;
     });
   }
@@ -549,12 +551,26 @@ class _TimerAppPageState extends State<TimerAppPage>
 
       targetSeconds = inputSec;
       currentSeconds = targetSeconds;
-      controller.duration = Duration(seconds: targetSeconds.toInt());
+      // 기존 코드: controller.duration = Duration(seconds: targetSeconds.toInt());
+controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt()); // 🔥 변경
       controller.value = 1.0;
     });
   }
 
+// 🔥 추가 1: 중복 터치 시간을 기록할 변수 선언 (toggle 함수 바로 위에 작성하세요)
+  DateTime? _lastToggleTime;
+// 🔥 추가 2: toggle 함수 내용을 아래 코드로 통째로 교체
   void toggle() {
+    // -----------------------------------------------------
+    // 방어막 로직: 300ms(0.3초) 이내의 중복 터치는 무시합니다.
+    final now = DateTime.now();
+    if (_lastToggleTime != null && now.difference(_lastToggleTime!).inMilliseconds < 300) {
+      debugPrint("고스트 터치 방어 완료!");
+      return; 
+    }
+    _lastToggleTime = now;
+    // -----------------------------------------------------
+
     if (isRunning) {
       stop();
     } else {
