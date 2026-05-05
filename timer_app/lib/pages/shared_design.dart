@@ -525,8 +525,8 @@ if (globalClockColor.value != Colors.transparent && globalClockVideoName.value =
       canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
 
 // 🔥 [핵심 수정] BgColor(배경색) -> ClockColor(시계색) 으로 변경!
-      final facePaint = Paint()..color = globalClockColor.value; 
-      canvas.drawCircle(center, radius, facePaint);
+      //final facePaint = Paint()..color = globalClockColor.value; 
+      //canvas.drawCircle(center, radius, facePaint);
     }
 
     final highlightPaint = Paint()
