@@ -1209,6 +1209,10 @@ Future<void> _saveCurrentAsPresetLocal() async {
                                           globalBgVideoName.value = path;
                                         } else if (title == "시계색") {
                                           globalClockVideoName.value = path;
+                                          // 🔥 추가된 핵심 로직: 시계 사진 선택 시 '투명' 상태를 해제합니다!
+                                          if (globalClockColor.value == Colors.transparent) {
+                                            globalClockColor.value = const Color.fromARGB(255, 185, 70, 70); // 벽돌색으로 임시 변경
+                                          }
                                         }
                                         Navigator.pop(context);
                                       },
@@ -1495,9 +1499,7 @@ Future<void> _saveCurrentAsPresetLocal() async {
       ),
     );
   }
-
 // ---------------- ✨ 바꿀 코드 ✨ ----------------
-  // ---------------- ✨ 바꿀 코드 ✨ ----------------
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
@@ -1506,9 +1508,17 @@ Future<void> _saveCurrentAsPresetLocal() async {
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
       builder: (context, color, _) {
-        String videoName = (title == "배경색") ? globalBgVideoName.value : globalClockVideoName.value;
+        
+        // 🔥 [핵심 수정] 타이틀에 따라 사진/영상 변수를 정확히 매칭!
+        // 디지털 시계, 테두리/시간은 사진 기능이 없으므로 무조건 "사용 안 함"이 됩니다.
+        String videoName = "사용 안 함";
+        if (title == "배경색") {
+          videoName = globalBgVideoName.value;
+        } else if (title == "시계색") {
+          videoName = globalClockVideoName.value;
+        }
 
-        // 🔥 [수정] "사용 안 함"이 아니고, 앱 내장 프리셋 이름도 아니면 '개인 로컬 사진'으로 판단
+        // "사용 안 함"이 아니고, 앱 내장 프리셋 이름도 아니면 '개인 로컬 사진'으로 판단
         bool isLocalImage = videoName != "사용 안 함" && 
                             videoName != "비 오는 밤 (Rain)" && 
                             videoName != "벚꽃 (Cherry Blossom)";
@@ -1559,7 +1569,7 @@ Future<void> _saveCurrentAsPresetLocal() async {
       },
     );
   }
-// ---------------- 교체 끝 ----------------
+  // ---------------- 교체 끝 ----------------
 
   Widget buildTwoOptionToggle(
     String title,

@@ -1116,11 +1116,9 @@ class BaseClockLayout extends StatelessWidget {
                 if (fontSizeStr == "large") fontMultiplier = 1.3;
               }
             }
-
             final digitalFontSize = baseFontSize * fontMultiplier;
-// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
-            Widget analogClockWidget = GestureDetector(
-              behavior: HitTestBehavior.opaque, // 🔥 추가: 드래그 영역 확실히 잡기
+Widget analogClockWidget = GestureDetector(
+              behavior: HitTestBehavior.opaque,
               onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
               onPanUpdate: onPanUpdate != null
                   ? (details) {
@@ -1142,45 +1140,56 @@ class BaseClockLayout extends StatelessWidget {
                     }
                   : null,
               onPanEnd: onPanEnd != null ? (_) => onPanEnd!() : null,
-              child: Container(
-                width: clockSize,
-                height: clockSize,
-                decoration: globalClockVideoName.value != "사용 안 함"
-                    ? BoxDecoration(
-                        shape: BoxShape.circle,
-                        // 🔥 [핵심 추가] 시계판 뒤에 은은한 검은색 그림자를 깔아줍니다!
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.5), // 그림자 진하기 (0.5는 50% 반투명)
-                            blurRadius: 15.0, // 그림자가 부드럽게 퍼지는 정도
-                            spreadRadius: 2.0, // 그림자가 바깥으로 나가는 크기
-                            offset: const Offset(4, 4), // 그림자 위치 (오른쪽 아래로 약간 이동)
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // 🔥 1. 새롭게 추가된 부분: 부채꼴 모양에 맞춰 완벽하게 생기는 입체 그림자!
+                  if (globalClockVideoName.value != "사용 안 함")
+                    CustomPaint(
+                      size: Size(clockSize, clockSize),
+                      painter: PieShadowPainter(drawnSeconds, maxScaleSeconds, isTimer),
+                    ),
+                  // 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
+                  if (globalClockVideoName.value != "사용 안 함")
+                    ClipPath(
+                      clipper: ClockImageClipper(drawnSeconds, maxScaleSeconds, isTimer),
+                      child: Container(
+                        width: clockSize,
+                        height: clockSize,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          image: DecorationImage(
+                            image: kIsWeb 
+                                ? NetworkImage(globalClockVideoName.value) as ImageProvider 
+                                : FileImage(File(globalClockVideoName.value)),
+                            fit: BoxFit.cover,
                           ),
-                        ],
-                        image: DecorationImage(
-                          image: kIsWeb 
-                              ? NetworkImage(globalClockVideoName.value) as ImageProvider 
-                              : FileImage(File(globalClockVideoName.value)),
-                          fit: BoxFit.cover,
                         ),
-                      )
-                    : const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.transparent, // 🔥 핵심 수정: null 대신 투명색을 깔아서 터치 인식 활성화!
                       ),
-                child: CustomPaint(
-                  key: analogClockHitKey,
-                  size: Size(clockSize, clockSize),
-                  painter: SharedClockPainter(
-                    drawnSeconds,
-                    maxScaleSeconds,
-                    isTimer: isTimer,
-                    indicatorMode: indicatorMode,
+                    ),
+
+                  // 🔥 핵심 2: 터치 인식을 유지하면서 그 위에 눈금/숫자를 그리는 투명 CustomPaint
+                  Container(
+                    width: clockSize,
+                    height: clockSize,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.transparent, 
+                    ),
+                    child: CustomPaint(
+                      key: analogClockHitKey,
+                      size: Size(clockSize, clockSize),
+                      painter: SharedClockPainter(
+                        drawnSeconds,
+                        maxScaleSeconds,
+                        isTimer: isTimer,
+                        indicatorMode: indicatorMode,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             );
-// ---------------- 여기까지 교체 끝 ----------------
 
             Widget digitalClockWidget = GestureDetector(
               onLongPress: onDigitalLongPress,
@@ -1544,4 +1553,94 @@ void initPomodoroResetListener() {
       debugPrint("🍅 뽀모도로 상태가 초기화되었습니다.");
     }
   });
+}
+
+// 🔥 사진을 타이머 부채꼴 모양으로 잘라주는 전용 클리퍼 (파일 맨 아래에 추가)
+class ClockImageClipper extends CustomClipper<Path> {
+  final double drawnSeconds;
+  final double maxScaleSeconds;
+  final bool isTimer;
+
+  ClockImageClipper(this.drawnSeconds, this.maxScaleSeconds, this.isTimer);
+
+  @override
+  Path getClip(Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final path = Path();
+    
+    if (drawnSeconds <= 0) return path; // 남은 시간이 없으면 모두 투명하게 만듦
+    if (drawnSeconds >= maxScaleSeconds) {
+      path.addOval(Rect.fromCircle(center: center, radius: radius));
+      return path; // 시간이 꽉 찼으면 둥근 사진 전체를 보여줌
+    }
+
+    // 타이머와 스톱워치 모드에 따라 부채꼴 각도 계산
+    final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
+    double startAngle = isTimer
+        ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
+        : -pi / 2;
+
+    // 부채꼴 모양 경로 생성
+    path.moveTo(center.dx, center.dy);
+    path.arcTo(
+      Rect.fromCircle(center: center, radius: radius),
+      startAngle,
+      sweepAngle,
+      false,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(ClockImageClipper oldClipper) {
+    return oldClipper.drawnSeconds != drawnSeconds ||
+           oldClipper.maxScaleSeconds != maxScaleSeconds ||
+           oldClipper.isTimer != isTimer;
+  }
+}
+// 🔥 깎여나가는 사진 모양에 맞춰 똑같이 잘리는 똑똑한 그림자 화가!
+class PieShadowPainter extends CustomPainter {
+  final double drawnSeconds;
+  final double maxScaleSeconds;
+  final bool isTimer;
+
+  PieShadowPainter(this.drawnSeconds, this.maxScaleSeconds, this.isTimer);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (drawnSeconds <= 0) return;
+    
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final path = Path();
+
+    if (drawnSeconds >= maxScaleSeconds) {
+      path.addOval(Rect.fromCircle(center: center, radius: radius));
+    } else {
+      final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
+      double startAngle = isTimer
+          ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
+          : -pi / 2;
+      path.moveTo(center.dx, center.dy);
+      path.arcTo(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false);
+      path.close();
+    }
+
+    // 기존 그림자 세팅과 완벽히 동일하게 적용 (오른쪽 아래 4,4 이동 / 블러 15)
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.5)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
+
+    final shadowPath = path.shift(const Offset(4.0, 4.0));
+    canvas.drawPath(shadowPath, shadowPaint);
+  }
+
+  @override
+  bool shouldRepaint(PieShadowPainter oldDelegate) {
+    return oldDelegate.drawnSeconds != drawnSeconds ||
+           oldDelegate.maxScaleSeconds != maxScaleSeconds ||
+           oldDelegate.isTimer != isTimer;
+  }
 }
