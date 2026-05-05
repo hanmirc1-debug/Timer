@@ -25,7 +25,7 @@ ValueNotifier<String> globalPomodoroCycleCount = ValueNotifier<String>("4번");
 ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>(
   "제한 없음",
 );
-
+ValueNotifier<bool> globalIsTutorialActive = ValueNotifier(false); // 🔥 튜토리얼 진행 여부
 // 뽀모도로 자동 시작 설정
 ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(
   false,

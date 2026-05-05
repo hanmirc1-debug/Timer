@@ -15,6 +15,8 @@ import 'package:flutter/foundation.dart'; // ✅ kIsWeb 사용을 위해 꼭 필
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'timer_page.dart';
+import '../main.dart'; // 🔥 globalTimerPageKey를 가져오기 위해 필요합니다.
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
@@ -2630,6 +2632,19 @@ Future<void> _saveCurrentAsPresetLocal() async {
                 builder: (_) => FAQPage(accentColor: accentColor),
               ),
             ),
+          ),
+          Divider(color: accentColor.withOpacity(0.1), height: 1),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.school_outlined, color: accentColor),
+            title: const Text("앱 튜토리얼 다시 보기"),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+            onTap: () {
+              Navigator.pop(context); // 설정 창을 닫고 메인으로 돌아갑니다.
+              // 🔥 글로벌 키를 사용해서 TimerPage의 startTutorial() 함수를 강제로 실행합니다.
+              final timerState = globalTimerPageKey.currentState as TimerAppPageState?;
+              timerState?.startTutorial();
+            },
           ),
           Divider(color: accentColor.withOpacity(0.1), height: 1),
           ListTile(

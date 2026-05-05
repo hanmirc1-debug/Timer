@@ -11,6 +11,8 @@ import 'services/firebase_settings_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import 'pages/splash_page.dart'; // 🌟 [추가] 스플래시 페이지 가져오기
+// 🔥 핵심 수정: TimerAppPage에 접근할 수 있도록 키를 전역으로 빼냅니다!
+final GlobalKey<TimerAppPageState> globalTimerPageKey = GlobalKey<TimerAppPageState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -64,7 +66,7 @@ class _MainScreenState extends State<MainScreen> {
   DateTime? _touchStartTime;
 
   final GlobalKey stopwatchKey = GlobalKey();
-  final GlobalKey timerKey = GlobalKey();
+  //final GlobalKey timerKey = GlobalKey();
   final GlobalKey clockKey = GlobalKey();
   final GlobalKey menuKey = GlobalKey();
 
@@ -109,10 +111,11 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  void _handleShortTap() {
+void _handleShortTap() {
     if (isLocked) return;
     if (globalIsTimerMode.value) {
-      (timerKey.currentState as dynamic).toggle();
+      // 🔥 수정됨: timerKey 대신 방금 만든 전역 키인 globalTimerPageKey를 사용합니다!
+      (globalTimerPageKey.currentState as dynamic).toggle();
     } else {
       (stopwatchKey.currentState as dynamic).toggle();
     }
@@ -138,7 +141,8 @@ class _MainScreenState extends State<MainScreen> {
                         builder: (context, isTimer, child) {
                           return isTimer
                               ? TimerAppPage(
-                                  key: timerKey,
+                                  //key: timerKey,
+                                  key: globalTimerPageKey, // 🔥 핵심 수정: 전역 키로 연결!
                                   clockKey: clockKey,
                                   onRunningChanged: (running) {
                                     setState(() => isRunning = running);
@@ -230,25 +234,38 @@ class _MainScreenState extends State<MainScreen> {
                   isBackgroundTouched = false;
                 },
               ),
-              Positioned(
-                top: 15.0,
-                left: 20.0,
-                child: Visibility(
-                  visible: !isRunning,
-                  maintainSize: true,
-                  maintainAnimation: true,
-                  maintainState: true,
-                  child: ValueListenableBuilder<Color>(
-                    valueListenable: globalBgColor,
-                    builder: (context, color, _) {
-                      return FloatingGlassMenuButton(
-                        key: menuKey,
-                        backgroundColor: color,
-                      );
-                    },
-                  ),
-                ),
-              ),
+// main.dart 의 build 함수 내부
+
+Positioned(
+  top: 15.0,
+  left: 20.0,
+  child: ValueListenableBuilder<bool>(
+    valueListenable: globalIsTutorialActive, // 🔥 튜토리얼 상태 감시
+    builder: (context, isTutorial, child) {
+      return IgnorePointer(
+        ignoring: isTutorial, // 🔥 튜토리얼 중이면 터치 이벤트를 완전히 무시함
+        child: Opacity(
+          opacity: isTutorial ? 0.5 : 1.0, // 🔥 비활성화된 느낌을 주기 위해 약간 흐릿하게 (선택 사항)
+          child: Visibility(
+            visible: !isRunning,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: ValueListenableBuilder<Color>(
+              valueListenable: globalBgColor,
+              builder: (context, color, _) {
+                return FloatingGlassMenuButton(
+                  key: menuKey,
+                  backgroundColor: color,
+                );
+              },
+            ),
+          ),
+        ),
+      );
+    },
+  ),
+),
               Positioned(
                 top: 15.0,
                 right: 20.0,
