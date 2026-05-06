@@ -148,20 +148,23 @@ class _SettingsPageState extends State<SettingsPage> {
   User? _user;
 
   OverlayEntry? _previewOverlay;
-int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
+  int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
   int _unlockedClockMediaSlots = 1; // 시계 사진 슬롯
-  int _unlockedThemeSlots = 1; 
+  int _unlockedThemeSlots = 1;
 
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
   List<AppThemePreset> _localCustomPresets = [];
 
-// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
-Future<void> _loadCustomData() async {
+  // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
+  Future<void> _loadCustomData() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
       if (doc.exists && doc.data()!.containsKey('unlockedBgMediaSlots')) {
         _unlockedBgMediaSlots = doc.data()!['unlockedBgMediaSlots'] ?? 1;
         _unlockedClockMediaSlots = doc.data()!['unlockedClockMediaSlots'] ?? 1;
@@ -181,29 +184,39 @@ Future<void> _loadCustomData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _localBgMediaPaths = prefs.getStringList('local_bg_media_paths') ?? [];
-      _localClockMediaPaths = prefs.getStringList('local_clock_media_paths') ?? [];
+      _localClockMediaPaths =
+          prefs.getStringList('local_clock_media_paths') ?? [];
 
       final themeString = prefs.getString('local_custom_themes');
       if (themeString != null) {
         final List<dynamic> decoded = jsonDecode(themeString);
-        _localCustomPresets = decoded.map((data) => AppThemePreset(
+        _localCustomPresets = decoded
+            .map(
+              (data) => AppThemePreset(
                 bg: Color(data['bg']),
                 clock: Color(data['clock']),
                 digital: Color(data['digital']),
                 indicator: Color(data['indicator']),
                 bgVideo: data['bgVideo'] ?? "사용 안 함",
                 clockVideo: data['clockVideo'] ?? "사용 안 함", // 🔥 추가
-              )).toList();
+              ),
+            )
+            .toList();
       }
 
-      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
-      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
-      if (_localCustomPresets.length >= _unlockedThemeSlots) _unlockedThemeSlots = _localCustomPresets.length + 1;
+      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots)
+        _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
+      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots)
+        _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
+      if (_localCustomPresets.length >= _unlockedThemeSlots)
+        _unlockedThemeSlots = _localCustomPresets.length + 1;
     });
-  
   }
 
-  Future<void> _pickLocalImage(String type, {StateSetter? dialogSetState}) async {
+  Future<void> _pickLocalImage(
+    String type, {
+    StateSetter? dialogSetState,
+  }) async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image == null) return;
@@ -212,11 +225,13 @@ Future<void> _loadCustomData() async {
     setState(() {
       if (type == "배경색") {
         _localBgMediaPaths.add(image.path);
-        if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
+        if (_localBgMediaPaths.length >= _unlockedBgMediaSlots)
+          _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
         prefs.setStringList('local_bg_media_paths', _localBgMediaPaths);
       } else {
         _localClockMediaPaths.add(image.path);
-        if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
+        if (_localClockMediaPaths.length >= _unlockedClockMediaSlots)
+          _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
         prefs.setStringList('local_clock_media_paths', _localClockMediaPaths);
       }
     });
@@ -249,23 +264,28 @@ Future<void> _loadCustomData() async {
   }
 
   // ✅ 커스텀 테마 삭제 로직 (에러 3 해결: 복구됨)
-void _deleteTheme(int index) async {
+  void _deleteTheme(int index) async {
     setState(() {
       _localCustomPresets.removeAt(index);
     });
     final prefs = await SharedPreferences.getInstance();
-    final encoded = _localCustomPresets.map((t) => {
-          'bg': t.bg.value,
-          'clock': t.clock.value,
-          'digital': t.digital.value,
-          'indicator': t.indicator.value,
-          'bgVideo': t.bgVideo,
-          'clockVideo': t.clockVideo, // 🔥 추가
-        }).toList();
+    final encoded = _localCustomPresets
+        .map(
+          (t) => {
+            'bg': t.bg.value,
+            'clock': t.clock.value,
+            'digital': t.digital.value,
+            'indicator': t.indicator.value,
+            'bgVideo': t.bgVideo,
+            'clockVideo': t.clockVideo, // 🔥 추가
+          },
+        )
+        .toList();
     await prefs.setString('local_custom_themes', jsonEncode(encoded));
   }
-// ---------------- 여기까지가 함수 교체 끝 ----------------
-Future<void> _saveCurrentAsPresetLocal() async {
+
+  // ---------------- 여기까지가 함수 교체 끝 ----------------
+  Future<void> _saveCurrentAsPresetLocal() async {
     final newPreset = AppThemePreset(
       bg: globalBgColor.value,
       clock: globalClockColor.value,
@@ -283,17 +303,23 @@ Future<void> _saveCurrentAsPresetLocal() async {
     });
 
     final prefs = await SharedPreferences.getInstance();
-    final encoded = _localCustomPresets.map((t) => {
-      'bg': t.bg.value,
-      'clock': t.clock.value,
-      'digital': t.digital.value,
-      'indicator': t.indicator.value,
-      'bgVideo': t.bgVideo,
-      'clockVideo': t.clockVideo, // 🔥 추가
-    }).toList();
+    final encoded = _localCustomPresets
+        .map(
+          (t) => {
+            'bg': t.bg.value,
+            'clock': t.clock.value,
+            'digital': t.digital.value,
+            'indicator': t.indicator.value,
+            'bgVideo': t.bgVideo,
+            'clockVideo': t.clockVideo, // 🔥 추가
+          },
+        )
+        .toList();
     await prefs.setString('local_custom_themes', jsonEncode(encoded));
 
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
   }
 
   // ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
@@ -722,16 +748,21 @@ Future<void> _saveCurrentAsPresetLocal() async {
 
   Future<void> _rewardPoint(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-      await ref.set({
-        'point': FieldValue.increment(amount),
-      }, SetOptions(merge: true));
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      int current = prefs.getInt('point') ?? 0;
-      await prefs.setInt('point', current + amount);
+
+    if (user == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("로그인 후 광고 보상을 받을 수 있습니다.")));
+      return;
     }
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    await ref.set({
+      'point': FieldValue.increment(amount),
+    }, SetOptions(merge: true));
+
+    setState(() {});
   }
 
   void _showRewardAd() {
@@ -1185,26 +1216,35 @@ Future<void> _saveCurrentAsPresetLocal() async {
                             ),
                           ),
                           const SizedBox(height: 8),
-                         Builder(
+                          Builder(
                             builder: (context) {
                               // 🔥 현재 열린 팝업이 배경인지 시계인지 파악해서 리스트 지정
-                              int currentSlots = title == "배경색" ? _unlockedBgMediaSlots : _unlockedClockMediaSlots;
-                              List<String> currentList = title == "배경색" ? _localBgMediaPaths : _localClockMediaPaths;
+                              int currentSlots = title == "배경색"
+                                  ? _unlockedBgMediaSlots
+                                  : _unlockedClockMediaSlots;
+                              List<String> currentList = title == "배경색"
+                                  ? _localBgMediaPaths
+                                  : _localClockMediaPaths;
 
                               return GridView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: columns,
-                                  crossAxisSpacing: spacing,
-                                  mainAxisSpacing: spacing,
-                                  childAspectRatio: 1.0,
-                                ),
+                                gridDelegate:
+                                    SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: columns,
+                                      crossAxisSpacing: spacing,
+                                      mainAxisSpacing: spacing,
+                                      childAspectRatio: 1.0,
+                                    ),
                                 itemCount: currentSlots,
                                 itemBuilder: (context, index) {
                                   if (index < currentList.length) {
                                     final path = currentList[index];
-                                    bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
+                                    bool isSelected =
+                                        (title == "배경색"
+                                            ? globalBgVideoName.value
+                                            : globalClockVideoName.value) ==
+                                        path;
                                     return GestureDetector(
                                       onTap: () {
                                         if (title == "배경색") {
@@ -1212,25 +1252,40 @@ Future<void> _saveCurrentAsPresetLocal() async {
                                         } else if (title == "시계색") {
                                           globalClockVideoName.value = path;
                                           // 🔥 추가된 핵심 로직: 시계 사진 선택 시 '투명' 상태를 해제합니다!
-                                          if (globalClockColor.value == Colors.transparent) {
-                                            globalClockColor.value = const Color.fromARGB(255, 185, 70, 70); // 벽돌색으로 임시 변경
+                                          if (globalClockColor.value ==
+                                              Colors.transparent) {
+                                            globalClockColor.value =
+                                                const Color.fromARGB(
+                                                  255,
+                                                  185,
+                                                  70,
+                                                  70,
+                                                ); // 벽돌색으로 임시 변경
                                           }
                                         }
                                         Navigator.pop(context);
                                       },
-                                      onLongPress: () => _confirmDeletion("사진", () {
-                                        _deleteImage(title, index);
-                                        dialogSetState(() {});
-                                      }),
+                                      onLongPress: () =>
+                                          _confirmDeletion("사진", () {
+                                            _deleteImage(title, index);
+                                            dialogSetState(() {});
+                                          }),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                           border: Border.all(
-                                            color: isSelected ? accentColor : Colors.grey.shade300,
+                                            color: isSelected
+                                                ? accentColor
+                                                : Colors.grey.shade300,
                                             width: isSelected ? 3.0 : 1.0,
                                           ),
                                           image: DecorationImage(
-                                            image: kIsWeb ? NetworkImage(path) as ImageProvider : FileImage(File(path)),
+                                            image: kIsWeb
+                                                ? NetworkImage(path)
+                                                      as ImageProvider
+                                                : FileImage(File(path)),
                                             fit: BoxFit.cover,
                                           ),
                                         ),
@@ -1239,32 +1294,46 @@ Future<void> _saveCurrentAsPresetLocal() async {
                                   } else {
                                     // ✅ 빈 슬롯 (+ 버튼)
                                     return GestureDetector(
-                                      onTap: () => _pickLocalImage(title, dialogSetState: dialogSetState),
-                                      onLongPress: currentSlots > currentList.length + 1
+                                      onTap: () => _pickLocalImage(
+                                        title,
+                                        dialogSetState: dialogSetState,
+                                      ),
+                                      onLongPress:
+                                          currentSlots > currentList.length + 1
                                           ? () {
                                               _confirmDeletion("사진 슬롯", () {
                                                 setState(() {
-                                                  if (title == "배경색") _unlockedBgMediaSlots--;
-                                                  else _unlockedClockMediaSlots--;
+                                                  if (title == "배경색")
+                                                    _unlockedBgMediaSlots--;
+                                                  else
+                                                    _unlockedClockMediaSlots--;
                                                 });
-                                                dialogSetState(() {}); 
-                                                _updateSlotCount(); 
+                                                dialogSetState(() {});
+                                                _updateSlotCount();
                                               }, isSlot: true);
                                             }
                                           : null,
                                       child: Container(
                                         decoration: BoxDecoration(
                                           color: Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(12),
-                                          border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.grey.shade300,
+                                            width: 1.0,
+                                          ),
                                         ),
-                                        child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
+                                        child: Icon(
+                                          Icons.add_photo_alternate,
+                                          color: Colors.grey.shade400,
+                                        ),
                                       ),
                                     );
                                   }
                                 },
                               );
-                            }
+                            },
                           ),
                         ],
                       ),
@@ -1501,7 +1570,8 @@ Future<void> _saveCurrentAsPresetLocal() async {
       ),
     );
   }
-// ---------------- ✨ 바꿀 코드 ✨ ----------------
+
+  // ---------------- ✨ 바꿀 코드 ✨ ----------------
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
@@ -1510,7 +1580,6 @@ Future<void> _saveCurrentAsPresetLocal() async {
     return ValueListenableBuilder<Color>(
       valueListenable: notifier,
       builder: (context, color, _) {
-        
         // 🔥 [핵심 수정] 타이틀에 따라 사진/영상 변수를 정확히 매칭!
         // 디지털 시계, 테두리/시간은 사진 기능이 없으므로 무조건 "사용 안 함"이 됩니다.
         String videoName = "사용 안 함";
@@ -1521,10 +1590,11 @@ Future<void> _saveCurrentAsPresetLocal() async {
         }
 
         // "사용 안 함"이 아니고, 앱 내장 프리셋 이름도 아니면 '개인 로컬 사진'으로 판단
-        bool isLocalImage = videoName != "사용 안 함" && 
-                            videoName != "비 오는 밤 (Rain)" && 
-                            videoName != "벚꽃 (Cherry Blossom)";
-        
+        bool isLocalImage =
+            videoName != "사용 안 함" &&
+            videoName != "비 오는 밤 (Rain)" &&
+            videoName != "벚꽃 (Cherry Blossom)";
+
         // 아이콘은 사진/영상 기반이면 무엇이든 띄워줍니다.
         bool hasMedia = videoName != "사용 안 함";
 
@@ -1559,10 +1629,18 @@ Future<void> _saveCurrentAsPresetLocal() async {
                     ),
                   ),
                   child: color == Colors.transparent
-                      ? const Icon(Icons.format_color_reset, color: Colors.grey, size: 20)
+                      ? const Icon(
+                          Icons.format_color_reset,
+                          color: Colors.grey,
+                          size: 20,
+                        )
                       : (hasMedia
-                          ? const Icon(Icons.image, color: Colors.white, size: 20)
-                          : null),
+                            ? const Icon(
+                                Icons.image,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null),
                 ),
               ),
             ],
@@ -1918,11 +1996,41 @@ Future<void> _saveCurrentAsPresetLocal() async {
                       children: [
                         Text(
                           user.email ?? "사용자",
+
                           style: TextStyle(
                             fontSize: size.width * 0.04,
                             fontWeight: FontWeight.bold,
                             color: accentColor,
                           ),
+                        ),
+                        StreamBuilder<DocumentSnapshot>(
+                          stream: FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(user.uid)
+                              .snapshots(),
+                          builder: (context, snapshot) {
+                            int point = 0;
+
+                            if (snapshot.hasData && snapshot.data!.exists) {
+                              final data =
+                                  snapshot.data!.data()
+                                      as Map<String, dynamic>?;
+
+                              point = data?['point'] ?? 0;
+                            }
+
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                "포인트 : $point",
+                                style: TextStyle(
+                                  fontSize: size.width * 0.034,
+                                  fontWeight: FontWeight.w600,
+                                  color: accentColor.withOpacity(0.9),
+                                ),
+                              ),
+                            );
+                          },
                         ),
                         if (!user.emailVerified) ...[
                           Text(
@@ -2100,7 +2208,7 @@ Future<void> _saveCurrentAsPresetLocal() async {
           ),
         ],
       );
-// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
+      // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
     } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
@@ -2123,15 +2231,18 @@ Future<void> _saveCurrentAsPresetLocal() async {
           // ✅ 공통으로 사용할 프리셋 위젯 빌더
           Widget buildPresetItem(AppThemePreset theme, bool isSelected) {
             // 🔥 배경이 로컬 사진인지 체크
-            bool isLocalBg = theme.bgVideo != "사용 안 함" && 
-                             theme.bgVideo != "비 오는 밤 (Rain)" && 
-                             theme.bgVideo != "벚꽃 (Cherry Blossom)";
+            bool isLocalBg =
+                theme.bgVideo != "사용 안 함" &&
+                theme.bgVideo != "비 오는 밤 (Rain)" &&
+                theme.bgVideo != "벚꽃 (Cherry Blossom)";
             // 🔥 시계가 로컬 사진인지 체크
-            bool isLocalClock = theme.clockVideo != "사용 안 함" && 
-                                theme.clockVideo != "비 오는 밤 (Rain)" && 
-                                theme.clockVideo != "벚꽃 (Cherry Blossom)";
+            bool isLocalClock =
+                theme.clockVideo != "사용 안 함" &&
+                theme.clockVideo != "비 오는 밤 (Rain)" &&
+                theme.clockVideo != "벚꽃 (Cherry Blossom)";
 
-            bool hasAnyMedia = theme.bgVideo != "사용 안 함" || theme.clockVideo != "사용 안 함";
+            bool hasAnyMedia =
+                theme.bgVideo != "사용 안 함" || theme.clockVideo != "사용 안 함";
 
             return GestureDetector(
               onTap: () {
@@ -2295,7 +2406,11 @@ Future<void> _saveCurrentAsPresetLocal() async {
                           ),
                         ),
                         child: (hasBgImage || hasClockImage)
-                            ? const Icon(Icons.image, color: Colors.white, size: 20)
+                            ? const Icon(
+                                Icons.image,
+                                color: Colors.white,
+                                size: 20,
+                              )
                             : null,
                       ),
                     );
@@ -2354,7 +2469,7 @@ Future<void> _saveCurrentAsPresetLocal() async {
           );
         },
       );
-// ---------------- 여기까지 ----------------
+      // ---------------- 여기까지 ----------------
     } else if (index == 3) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2642,7 +2757,8 @@ Future<void> _saveCurrentAsPresetLocal() async {
             onTap: () {
               Navigator.pop(context); // 설정 창을 닫고 메인으로 돌아갑니다.
               // 🔥 글로벌 키를 사용해서 TimerPage의 startTutorial() 함수를 강제로 실행합니다.
-              final timerState = globalTimerPageKey.currentState as TimerAppPageState?;
+              final timerState =
+                  globalTimerPageKey.currentState as TimerAppPageState?;
               timerState?.startTutorial();
             },
           ),
