@@ -162,12 +162,15 @@ class _SettingsPageState extends State<SettingsPage> {
   int _unlockedClockMediaSlots = 1; // 시계 사진 슬롯
   int _unlockedThemeSlots = 0;
   static const int _customThemeSlotPrice = 1;
+  static const int _premiumAlarmPrice = 1;
+  static const int _premiumBgmPrice = 1;
 
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
   List<AppThemePreset> _localCustomPresets = [];
   Set<String> _unlockedSpecialThemes = {};
-
+  Set<String> _unlockedAlarmSounds = {};
+  Set<String> _unlockedBgmTracks = {};
   // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   Future<void> _loadCustomData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -276,6 +279,87 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<void> _loadUnlockedAudioOptions() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _unlockedAlarmSounds.clear();
+        _unlockedBgmTracks.clear();
+      });
+
+      final alarmIsLocked = _isAudioOptionLocked(
+        "alarm",
+        alarmOptions,
+        globalAlarmSound.value,
+      );
+
+      final bgmIsLocked = _isAudioOptionLocked(
+        "bgm",
+        bgmOptions,
+        globalBgmTrack.value,
+      );
+
+      if (alarmIsLocked && alarmOptions.isNotEmpty) {
+        globalAlarmSound.value = alarmOptions.first;
+      }
+
+      if (bgmIsLocked && bgmOptions.isNotEmpty) {
+        globalBgmTrack.value = bgmOptions.first;
+      }
+
+      saveSettings();
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+
+    final unlockedAlarmSounds = List<String>.from(
+      data?['unlockedAlarmSounds'] ?? [],
+    );
+
+    final unlockedBgmTracks = List<String>.from(
+      data?['unlockedBgmTracks'] ?? [],
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _unlockedAlarmSounds = unlockedAlarmSounds.toSet();
+      _unlockedBgmTracks = unlockedBgmTracks.toSet();
+    });
+
+    final alarmIsLocked = _isAudioOptionLocked(
+      "alarm",
+      alarmOptions,
+      globalAlarmSound.value,
+    );
+
+    final bgmIsLocked = _isAudioOptionLocked(
+      "bgm",
+      bgmOptions,
+      globalBgmTrack.value,
+    );
+
+    if (alarmIsLocked && alarmOptions.isNotEmpty) {
+      globalAlarmSound.value = alarmOptions.first;
+    }
+
+    if (bgmIsLocked && bgmOptions.isNotEmpty) {
+      globalBgmTrack.value = bgmOptions.first;
+    }
+
+    saveSettings();
+    FirebaseSettingsService.saveSettingsDebounced();
+  }
+
   Future<void> _pickLocalImage(
     String type, {
     StateSetter? dialogSetState,
@@ -311,6 +395,27 @@ class _SettingsPageState extends State<SettingsPage> {
         'unlockedThemeSlots': _unlockedThemeSlots,
       }, SetOptions(merge: true));
     }
+  }
+
+  bool _isFreeAudioOption(List<String> options, String option) {
+    if (options.isEmpty) return false;
+    return option == options.first;
+  }
+
+  bool _isAudioOptionLocked(String type, List<String> options, String option) {
+    if (_isFreeAudioOption(options, option)) {
+      return false;
+    }
+
+    if (type == "alarm") {
+      return !_unlockedAlarmSounds.contains(option);
+    }
+
+    if (type == "bgm") {
+      return !_unlockedBgmTracks.contains(option);
+    }
+
+    return true;
   }
 
   Future<bool> _tryUnlockCustomThemeSlot() async {
@@ -349,6 +454,63 @@ class _SettingsPageState extends State<SettingsPage> {
 
       setState(() {
         _unlockedThemeSlots = nextSlots;
+      });
+
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("포인트가 부족합니다.")));
+
+      return false;
+    }
+  }
+
+  Future<bool> _tryUnlockAudioOption({
+    required String type,
+    required String option,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    final int price = type == "alarm" ? _premiumAlarmPrice : _premiumBgmPrice;
+
+    final String fieldName = type == "alarm"
+        ? 'unlockedAlarmSounds'
+        : 'unlockedBgmTracks';
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        final data = snapshot.data() ?? {};
+
+        final int currentPoint = data['point'] ?? 0;
+
+        if (currentPoint < price) {
+          throw Exception('NOT_ENOUGH_POINT');
+        }
+
+        transaction.set(ref, {
+          'point': currentPoint - price,
+          fieldName: FieldValue.arrayUnion([option]),
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted) return false;
+
+      setState(() {
+        if (type == "alarm") {
+          _unlockedAlarmSounds.add(option);
+        } else {
+          _unlockedBgmTracks.add(option);
+        }
       });
 
       return true;
@@ -778,6 +940,187 @@ class _SettingsPageState extends State<SettingsPage> {
                               content: Text("커스텀 테마 슬롯이 추가되었습니다."),
                             ),
                           );
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text(
+                            "예",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAudioUnlockDialog({
+    required String type,
+    required String option,
+    required Color accentColor,
+    required ValueNotifier<String> notifier,
+    required Function(String) onPreview,
+  }) {
+    final int price = type == "alarm" ? _premiumAlarmPrice : _premiumBgmPrice;
+
+    final IconData icon = type == "alarm"
+        ? Icons.notifications_active
+        : Icons.music_note;
+
+    final String title = type == "alarm" ? "알림음을 구매하시겠습니까?" : "BGM을 구매하시겠습니까?";
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 42),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    height: 1.35,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                  ),
+                  child: Icon(icon, color: accentColor, size: 34),
+                ),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  option,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFC928),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "P",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      ": $price point",
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 22),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Text(
+                            "아니요",
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(context);
+
+                          final success = await _tryUnlockAudioOption(
+                            type: type,
+                            option: option,
+                          );
+
+                          if (!success) return;
+
+                          notifier.value = option;
+                          onPreview(option);
                         },
                         child: Container(
                           height: 44,
@@ -1341,13 +1684,13 @@ class _SettingsPageState extends State<SettingsPage> {
     _refreshUser();
     _loadFavorites(); // 🔥 추가
     _loadCustomData(); // 🔥 이 줄을 추가하세요!
-
     _loadUnlockedThemes();
+    _loadUnlockedAudioOptions();
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
       _loadCustomData(); // 🔥 여기도 추가!
-
       _loadUnlockedThemes();
+      _loadUnlockedAudioOptions();
     });
   }
 
@@ -1902,8 +2245,9 @@ class _SettingsPageState extends State<SettingsPage> {
     List<String> options,
     ValueNotifier<String> notifier,
     Color accentColor,
-    Function(String) onPreview,
-  ) {
+    Function(String) onPreview, {
+    required String type,
+  }) {
     showDialog(
       context: context,
       builder: (context) {
@@ -1958,6 +2302,11 @@ class _SettingsPageState extends State<SettingsPage> {
                           itemBuilder: (context, index) {
                             final option = options[index];
                             final isSelected = option == currentValue;
+                            final isLocked = _isAudioOptionLocked(
+                              type,
+                              options,
+                              option,
+                            );
 
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(
@@ -1971,7 +2320,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   ? accentColor.withOpacity(0.1)
                                   : Colors.transparent,
                               leading: Icon(
-                                title.contains("BGM")
+                                type == "bgm"
                                     ? Icons.music_note
                                     : Icons.notifications_active,
                                 color: isSelected
@@ -1992,8 +2341,45 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               trailing: isSelected
                                   ? Icon(Icons.check_circle, color: accentColor)
+                                  : isLocked
+                                  ? Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.lock,
+                                          size: 16,
+                                          color: Colors.black54,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          "${type == "alarm" ? _premiumAlarmPrice : _premiumBgmPrice}P",
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    )
                                   : null,
                               onTap: () {
+                                final user = FirebaseAuth.instance.currentUser;
+
+                                if (isLocked) {
+                                  if (user == null) {
+                                    return;
+                                  }
+
+                                  _showAudioUnlockDialog(
+                                    type: type,
+                                    option: option,
+                                    accentColor: accentColor,
+                                    notifier: notifier,
+                                    onPreview: onPreview,
+                                  );
+                                  return;
+                                }
+
                                 notifier.value = option;
                                 onPreview(option);
                               },
@@ -2032,8 +2418,9 @@ class _SettingsPageState extends State<SettingsPage> {
     List<String> options,
     ValueNotifier<String> notifier,
     Color accentColor,
-    Function(String) onPreview,
-  ) {
+    Function(String) onPreview, {
+    required String type,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -2054,6 +2441,7 @@ class _SettingsPageState extends State<SettingsPage> {
               notifier,
               accentColor,
               onPreview,
+              type: type,
             ),
             child: Container(
               padding: const EdgeInsets.symmetric(
@@ -3400,6 +3788,7 @@ class _SettingsPageState extends State<SettingsPage> {
             globalAlarmSound,
             accentColor,
             (val) => GlobalBgmManager.previewAlarmSound(val),
+            type: "alarm",
           ),
         ],
       );
@@ -3425,6 +3814,7 @@ class _SettingsPageState extends State<SettingsPage> {
             globalBgmTrack,
             accentColor,
             (val) => GlobalBgmManager.previewBgm(val),
+            type: "bgm",
           ),
         ],
       );
