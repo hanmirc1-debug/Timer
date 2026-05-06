@@ -147,9 +147,11 @@ class TimerAppPageState extends State<TimerAppPage>
     // 타이머 0초로 초기화 후 튜토리얼 1단계 시작
     stop();
     setState(() {
-      targetSeconds = 0.0;
-      currentSeconds = 0.0;
-      controller.value = 0.0;
+      targetSeconds = 60.0;
+      currentSeconds = 60.0;
+      // 🔥 [핵심 추가] duration도 60초에 맞게 세팅해 주어야 화면에 빨간색이 1.0(꽉 참) 비율로 제대로 그려집니다
+       controller.duration = const Duration(seconds: 60);
+      controller.value = 1.0;
       _tutorialStep = 1;
     });
   }
@@ -178,8 +180,54 @@ void _nextTutorialStep() {
       });
       return;
     }
+    // case 4
+        if (_tutorialStep == 3) {
+      // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
+      Animation<double> anim = Tween<double>(begin: 50.0, end: 0).animate(
+          CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut));
+      
+      anim.addListener(() {
+        setState(() {
+          targetSeconds = anim.value; 
+          currentSeconds = targetSeconds;
+          
+          // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
+          controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+          controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
+        });
+      });
+      _dragAnimController.forward(from: 0.0);
+      
+      setState(() {
+        _tutorialStep = 4; // "이런 식으로 맞춰집니다" 말풍선으로 변경
+      });
+      return;
+    }
+        // case 5
+        if (_tutorialStep == 4) {
+      // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
+      Animation<double> anim = Tween<double>(begin: 0, end: 50.0).animate(
+          CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut));
+      
+      anim.addListener(() {
+        setState(() {
+          targetSeconds = anim.value; 
+          currentSeconds = targetSeconds;
+          
+          // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
+          controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+          controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
+        });
+      });
+      _dragAnimController.forward(from: 0.0);
+      
+      setState(() {
+        _tutorialStep = 5; // "이런 식으로 맞춰집니다" 말풍선으로 변경
+      });
+      return;
+    }
     
-    if (_tutorialStep == 8) {
+    if (_tutorialStep == 9) {
       _showTutorialFinishDialog(); 
       return;
     }
