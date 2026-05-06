@@ -35,6 +35,12 @@ class TimerAppPageState extends State<TimerAppPage>
   bool alarmTriggered = false;
   bool hasStarted = false;
   bool isCompleted = false;
+  // 👇==== 새로 추가할 변수들 ====👇
+  double _savedResetSeconds = 60.0; // 🎯 리셋을 위해 시작 시점의 시간을 저장할 변수
+  double _dragStartY = 0.0; // 스와이프 시작 Y 좌표
+  DateTime? _dragStartTime; // 스와이프 시작 시간
+  bool _wasRunningWhenDragStarted = false; // 🎯 스와이프 시작 시점의 타이머 상태를 기억
+  // 👆========================👆
 
   // 🔥 튜토리얼 전용 변수들
   int _tutorialStep = 0; // 0이면 튜토리얼 아님
@@ -389,6 +395,10 @@ void _nextTutorialStep() {
     debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
 
+        // 👇==== 새로 추가: 시작할 때의 시간을 기억해둠! ====👇
+    _savedResetSeconds = targetSeconds; 
+    // 👆==========================================👆
+
     hasStarted = true;
     alarmTriggered = false;
     isAlarmPlaying = false;
@@ -586,9 +596,80 @@ void _nextTutorialStep() {
     }
   }
 
+// // 👇==== 정확히 이 위치에 붙여넣으세요! (toggle 함수 끝나는 곳과 build 함수 시작하는 곳 사이) ====👇
+//   // 🔄 타이머 초기화 (리셋) 함수 (아래로 스와이프 시 실행됨)
+//   void _resetTimer() {
+//     // 튜토리얼 중이거나 타이머가 이미 실행중일 때는 리셋되지 않음
+//     // (만약 잠금 기능 상태 변수가 따로 있다면 '|| isLocked' 를 여기에 추가해주세요)
+//     if (isRunning || _tutorialStep > 0) return;
+
+//     setState(() {
+//       // 드래그해서 맞춰둔 목표 시간(예: 50초)으로 되돌림
+//       currentSeconds = targetSeconds; 
+//       // 애니메이션 재생 시간도 50초에 맞춰서 다시 세팅
+//       controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+//       // 타이머 원형 색상을 다시 꽉 찬 상태(1.0)로 되돌림
+//       controller.value = 1.0; 
+//       isCompleted = false;
+//     });
+//   }
+//   // 👆===================================================================👆
+  // 🔄 타이머 초기화 (리셋) 함수
+  void _resetTimer() {
+    if (_tutorialStep > 0) return;
+
+    setState(() {
+      // 🎯 방금 스와이프 하느라 시계가 건드려져서 시간이 꼬였어도, 
+      // 시작할 때 저장해둔 시간으로 완벽 복원!
+      targetSeconds = _savedResetSeconds;
+      currentSeconds = targetSeconds;
+      controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+      controller.value = 1.0;
+      isCompleted = false;
+    });
+  }
+  
   @override
   Widget build(BuildContext context) {
-    return Stack(
+       return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (event) {
+        // 🎯 1. 화면에 손이 닿는 순간의 위치, 시간, 그리고 '현재 타이머가 돌아가고 있는지'를 기억합니다!
+        _dragStartY = event.position.dy;
+        _dragStartTime = DateTime.now();
+        _wasRunningWhenDragStarted = isRunning;
+      },
+      onPointerUp: (event) {
+        if (_dragStartTime == null || _tutorialStep > 0) return;
+
+        // 🎯 2. 스와이프를 시작할 때 타이머가 돌아가고 있었다면, 무조건 스와이프(리셋)를 무시합니다!
+        // (스와이프 도중에 main.dart 때문에 타이머가 꺼져버렸더라도 상관없이 차단됨)
+        if (_wasRunningWhenDragStarted) {
+            debugPrint("동작 중 스와이프 시도: 차단 완료!");
+            return;
+        }
+
+        final dy = event.position.dy - _dragStartY;
+        final dt = DateTime.now().difference(_dragStartTime!).inMilliseconds;
+
+        // y축으로 50픽셀 이상, 0.5초(500ms) 이내로 빠르게 내린 경우 = 아래로 스와이프!
+        if (dy > 50 && dt > 0 && dt < 500) {
+          final velocity = dy / (dt / 1000); // 픽셀/초 단위 속도 계산
+          
+          // [마우스 환경 대응] 크롬 테스트를 위해 속도 기준을 100으로 낮춤
+          if (velocity > 100) { 
+            debugPrint("fff! 완벽하게 스와이프 인식됨");
+
+            // 🎯 3. 빠른 스와이프 때문에 정지 상태에서 타이머가 실수로 켜졌다면, 다시 끄고 리셋 진행
+            if (isRunning) {
+                stop();
+            }
+            
+            _resetTimer();
+          }
+        }
+      },
+    child: Stack(
       children: [
         BaseClockLayout(
           key: widget.clockKey,
@@ -717,6 +798,6 @@ void _nextTutorialStep() {
             ),
           ),
       ],
-    );
+    ),);
   }
 }
