@@ -160,7 +160,8 @@ class _SettingsPageState extends State<SettingsPage> {
   OverlayEntry? _previewOverlay;
   int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
   int _unlockedClockMediaSlots = 1; // 시계 사진 슬롯
-  int _unlockedThemeSlots = 1;
+  int _unlockedThemeSlots = 0;
+  static const int _customThemeSlotPrice = 1;
 
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
@@ -228,8 +229,9 @@ class _SettingsPageState extends State<SettingsPage> {
       if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) {
         _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
       }
-
-      _unlockedThemeSlots = _localCustomPresets.length + 1;
+      if (_unlockedThemeSlots < _localCustomPresets.length) {
+        _unlockedThemeSlots = _localCustomPresets.length;
+      }
     });
   }
 
@@ -311,6 +313,56 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  Future<bool> _tryUnlockCustomThemeSlot() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    try {
+      int nextSlots = _unlockedThemeSlots;
+
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        final data = snapshot.data() ?? {};
+
+        final int currentPoint = data['point'] ?? 0;
+        final int currentSlots =
+            data['unlockedThemeSlots'] ?? _unlockedThemeSlots;
+
+        if (currentPoint < _customThemeSlotPrice) {
+          throw Exception('NOT_ENOUGH_POINT');
+        }
+
+        nextSlots = currentSlots + 1;
+
+        transaction.set(ref, {
+          'point': currentPoint - _customThemeSlotPrice,
+          'unlockedThemeSlots': nextSlots,
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted) return false;
+
+      setState(() {
+        _unlockedThemeSlots = nextSlots;
+      });
+
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("포인트가 부족합니다.")));
+
+      return false;
+    }
+  }
+
   void _deleteImage(String type, int index) async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
@@ -387,9 +439,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
     setState(() {
       _localCustomPresets.add(newPreset);
-      if (_localCustomPresets.length >= _unlockedThemeSlots) {
-        _unlockedThemeSlots = _localCustomPresets.length + 1;
-      }
     });
 
     final prefs = await SharedPreferences.getInstance();
@@ -574,6 +623,161 @@ class _SettingsPageState extends State<SettingsPage> {
                           if (!success) return;
 
                           setState(() {});
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text(
+                            "예",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showCustomThemeSlotUnlockDialog(Color accentColor) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 42),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "커스텀 테마 슬롯을\n추가하시겠습니까?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    height: 1.35,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                  ),
+                  child: Icon(Icons.add, color: accentColor, size: 34),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFC928),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "P",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      ": $_customThemeSlotPrice point",
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 22),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Text(
+                            "아니요",
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(context);
+
+                          final success = await _tryUnlockCustomThemeSlot();
+
+                          if (!success) return;
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("커스텀 테마 슬롯이 추가되었습니다."),
+                            ),
+                          );
                         },
                         child: Container(
                           height: 44,
@@ -2423,7 +2627,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                         _unlockedBgMediaSlots = 1;
                         _unlockedClockMediaSlots = 1;
-                        _unlockedThemeSlots = 1;
+                        _unlockedThemeSlots = 0;
                       });
                       await loadSettings(); // 🔥 기본값 다시 로드
 
@@ -2712,8 +2916,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (isLocked)
                           Positioned.fill(
                             child: Container(
-                              width: 56,
-                              height: 56,
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.35),
                                 borderRadius: BorderRadius.circular(12),
@@ -2771,26 +2973,23 @@ class _SettingsPageState extends State<SettingsPage> {
                 }).toList(),
               ),
               const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    "커스텀 테마",
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: accentColor.withOpacity(0.8),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Text(
+                "커스텀 테마",
+                style: TextStyle(
+                  fontSize: 13,
+                  color: accentColor.withOpacity(0.8),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
+
               const SizedBox(height: 8),
               Wrap(
                 spacing: 12.0,
                 runSpacing: 12.0,
-                children: List.generate(_unlockedThemeSlots, (index) {
+                children: List.generate(_unlockedThemeSlots + 1, (index) {
                   if (index < _localCustomPresets.length) {
                     final t = _localCustomPresets[index];
+
                     bool isSelected =
                         globalBgColor.value == t.bg &&
                         globalClockColor.value == t.clock &&
@@ -2809,7 +3008,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         globalDigitalColor.value = t.digital;
                         globalIndicatorColor.value = t.indicator;
                         globalBgVideoName.value = t.bgVideo;
-                        globalClockVideoName.value = t.clockVideo; // 🔥 추가
+                        globalClockVideoName.value = t.clockVideo;
                       },
                       onLongPress: () =>
                           _confirmDeletion("커스텀 테마", () => _deleteTheme(index)),
@@ -2828,7 +3027,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                             stops: const [0.5, 0.5],
-                            // 🔥 [핵심] 커스텀 테마도 사진 부위만 회색으로 표시!
                             colors: [
                               hasBgImage ? Colors.grey : t.bg,
                               hasClockImage ? Colors.grey : t.clock,
@@ -2844,16 +3042,19 @@ class _SettingsPageState extends State<SettingsPage> {
                             : null,
                       ),
                     );
-                  } else {
+                  }
+
+                  if (index < _unlockedThemeSlots) {
                     return GestureDetector(
                       onTap: _saveCurrentAsPresetLocal,
                       onLongPress:
-                          _unlockedThemeSlots > _localCustomPresets.length + 1
+                          _unlockedThemeSlots > _localCustomPresets.length
                           ? () {
                               _confirmDeletion("테마 슬롯", () {
                                 setState(() {
                                   _unlockedThemeSlots--;
                                 });
+
                                 _updateSlotCount();
                               }, isSlot: true);
                             }
@@ -2877,6 +3078,91 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     );
                   }
+
+                  return GestureDetector(
+                    onTap: () {
+                      final user = FirebaseAuth.instance.currentUser;
+
+                      if (user == null) {
+                        return;
+                      }
+
+                      _showCustomThemeSlotUnlockDialog(accentColor);
+                    },
+                    child: Stack(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.add,
+                            color: Colors.grey.shade400,
+                            size: 28,
+                          ),
+                        ),
+
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.35),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
+                          top: 5,
+                          right: 5,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.75),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.lock,
+                              color: Colors.white,
+                              size: 13,
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 5,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(
+                                "${_customThemeSlotPrice}P",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
                 }),
               ),
               const SizedBox(height: 24),
