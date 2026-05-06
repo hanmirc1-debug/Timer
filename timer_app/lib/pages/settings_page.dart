@@ -17,6 +17,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'timer_page.dart';
 import '../main.dart'; // 🔥 globalTimerPageKey를 가져오기 위해 필요합니다.
+import 'dart:convert';
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
@@ -42,7 +43,11 @@ class AppThemePreset {
   final Color digital;
   final Color indicator;
   final String bgVideo;
-  final String clockVideo; // 🔥 시계 사진 저장용 변수 추가!
+  final String clockVideo;
+
+  final String id;
+  final bool isPremium;
+  final int unlockPoint;
 
   const AppThemePreset({
     required this.bg,
@@ -50,7 +55,12 @@ class AppThemePreset {
     required this.digital,
     required this.indicator,
     this.bgVideo = "사용 안 함",
-    this.clockVideo = "사용 안 함", // 🔥 기본값 추가
+    this.clockVideo = "사용 안 함",
+
+    // 잠금 테마 전용 옵션
+    this.id = "",
+    this.isPremium = false,
+    this.unlockPoint = 0,
   });
 }
 
@@ -155,61 +165,112 @@ class _SettingsPageState extends State<SettingsPage> {
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
   List<AppThemePreset> _localCustomPresets = [];
+  Set<String> _unlockedSpecialThemes = {};
 
   // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   Future<void> _loadCustomData() async {
+    final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
+
+    List<AppThemePreset> loadedThemes = [];
 
     if (user != null) {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      if (doc.exists && doc.data()!.containsKey('unlockedBgMediaSlots')) {
-        _unlockedBgMediaSlots = doc.data()!['unlockedBgMediaSlots'] ?? 1;
-        _unlockedClockMediaSlots = doc.data()!['unlockedClockMediaSlots'] ?? 1;
-        _unlockedThemeSlots = doc.data()!['unlockedThemeSlots'] ?? 1;
-      } else {
-        await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-          'unlockedBgMediaSlots': 1,
-          'unlockedClockMediaSlots': 1,
-          'unlockedThemeSlots': 1,
-        }, SetOptions(merge: true));
-        _unlockedBgMediaSlots = 1;
-        _unlockedClockMediaSlots = 1;
-        _unlockedThemeSlots = 1;
+
+      final data = doc.data();
+
+      final List<dynamic> decoded = data?['customThemes'] ?? [];
+
+      loadedThemes = decoded.map((theme) {
+        return AppThemePreset(
+          bg: Color(theme['bg']),
+          clock: Color(theme['clock']),
+          digital: Color(theme['digital']),
+          indicator: Color(theme['indicator']),
+          bgVideo: theme['bgVideo'] ?? "사용 안 함",
+          clockVideo: theme['clockVideo'] ?? "사용 안 함",
+        );
+      }).toList();
+    } else {
+      final themeString = prefs.getString('local_custom_themes');
+
+      if (themeString != null) {
+        final List<dynamic> decoded = jsonDecode(themeString);
+
+        loadedThemes = decoded.map((data) {
+          return AppThemePreset(
+            bg: Color(data['bg']),
+            clock: Color(data['clock']),
+            digital: Color(data['digital']),
+            indicator: Color(data['indicator']),
+            bgVideo: data['bgVideo'] ?? "사용 안 함",
+            clockVideo: data['clockVideo'] ?? "사용 안 함",
+          );
+        }).toList();
       }
     }
 
-    final prefs = await SharedPreferences.getInstance();
     setState(() {
       _localBgMediaPaths = prefs.getStringList('local_bg_media_paths') ?? [];
+
       _localClockMediaPaths =
           prefs.getStringList('local_clock_media_paths') ?? [];
 
-      final themeString = prefs.getString('local_custom_themes');
-      if (themeString != null) {
-        final List<dynamic> decoded = jsonDecode(themeString);
-        _localCustomPresets = decoded
-            .map(
-              (data) => AppThemePreset(
-                bg: Color(data['bg']),
-                clock: Color(data['clock']),
-                digital: Color(data['digital']),
-                indicator: Color(data['indicator']),
-                bgVideo: data['bgVideo'] ?? "사용 안 함",
-                clockVideo: data['clockVideo'] ?? "사용 안 함", // 🔥 추가
-              ),
-            )
-            .toList();
+      _localCustomPresets = loadedThemes;
+
+      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) {
+        _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
       }
 
-      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots)
-        _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
-      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots)
+      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) {
         _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
-      if (_localCustomPresets.length >= _unlockedThemeSlots)
-        _unlockedThemeSlots = _localCustomPresets.length + 1;
+      }
+
+      _unlockedThemeSlots = _localCustomPresets.length + 1;
+    });
+  }
+
+  Future<void> _loadUnlockedThemes() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      if (!mounted) return;
+
+      setState(() {
+        _unlockedSpecialThemes.clear();
+      });
+
+      final isUsingSpecialTheme =
+          globalBgVideoName.value != "사용 안 함" ||
+          globalClockVideoName.value != "사용 안 함";
+
+      if (isUsingSpecialTheme) {
+        globalBgVideoName.value = "사용 안 함";
+        globalClockVideoName.value = "사용 안 함";
+        saveSettings();
+      }
+
+      return;
+    }
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+
+    final unlockedThemes = List<String>.from(
+      data?['unlockedSpecialThemes'] ?? [],
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _unlockedSpecialThemes = unlockedThemes.toSet();
     });
   }
 
@@ -281,7 +342,36 @@ class _SettingsPageState extends State<SettingsPage> {
           },
         )
         .toList();
-    await prefs.setString('local_custom_themes', jsonEncode(encoded));
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user != null) {
+      await _saveThemesToCloud();
+    } else {
+      await prefs.setString('local_custom_themes', jsonEncode(encoded));
+    }
+  }
+
+  Future<void> _saveThemesToCloud() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    final encoded = _localCustomPresets
+        .map(
+          (t) => {
+            'bg': t.bg.value,
+            'clock': t.clock.value,
+            'digital': t.digital.value,
+            'indicator': t.indicator.value,
+            'bgVideo': t.bgVideo,
+            'clockVideo': t.clockVideo,
+          },
+        )
+        .toList();
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'customThemes': encoded,
+    }, SetOptions(merge: true));
   }
 
   // ---------------- 여기까지가 함수 교체 끝 ----------------
@@ -315,11 +405,13 @@ class _SettingsPageState extends State<SettingsPage> {
           },
         )
         .toList();
-    await prefs.setString('local_custom_themes', jsonEncode(encoded));
+    final user = FirebaseAuth.instance.currentUser;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text("로컬에 테마가 저장되었습니다!")));
+    if (user != null) {
+      await _saveThemesToCloud();
+    } else {
+      await prefs.setString('local_custom_themes', jsonEncode(encoded));
+    }
   }
 
   // ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
@@ -352,6 +444,162 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showThemeUnlockDialog(AppThemePreset preset) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 42),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "구매하시겠습니까?",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 18),
+
+                // 스페셜 테마 카드에 보이는 아이콘과 동일한 형태
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      stops: const [0.5, 0.5],
+                      colors: [preset.bg, preset.clock],
+                    ),
+                  ),
+                  child: const Icon(Icons.image, color: Colors.white, size: 28),
+                ),
+
+                const SizedBox(height: 16),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFFFC928),
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: const Text(
+                        "P",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      ": ${preset.unlockPoint} point",
+                      style: const TextStyle(
+                        color: Colors.black87,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 22),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Text(
+                            "아니요",
+                            style: TextStyle(
+                              color: Colors.black54,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(context);
+
+                          final success = await _tryUnlockTheme(preset);
+
+                          if (!success) return;
+
+                          setState(() {});
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.black87,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Text(
+                            "예",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -506,66 +754,101 @@ class _SettingsPageState extends State<SettingsPage> {
 
   final List<AppThemePreset> _themePresets = [
     const AppThemePreset(
+      id: "0xFF252528",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFF252528),
       clock: Color.fromARGB(255, 185, 70, 70),
       digital: Color(0xFFE5E5EA),
       indicator: Color(0xFF8E8E93),
     ),
     const AppThemePreset(
+      id: "0xFF252528",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFF252528),
       clock: Color(0xFF4A4A4D),
       digital: Color(0xFFE5E5EA),
       indicator: Color(0xFF8E8E93),
     ),
     const AppThemePreset(
+      id: "0xFFF9F9F9",
+      isPremium: false,
+      unlockPoint: 0,
+
       bg: Color(0xFFF9F9F9),
       clock: Color(0xFFD32F2F),
       digital: Color(0xFF1C1C1E),
       indicator: Color(0xFFD32F2F),
     ),
     const AppThemePreset(
+      id: "0xFF1C2536",
+      isPremium: false,
+      unlockPoint: 0,
+
       bg: Color(0xFF1C2536),
       clock: Color(0xFF2D3C5A),
       digital: Color(0xFFFFFFFF),
       indicator: Color(0xFF8B9BB4),
     ),
     const AppThemePreset(
+      id: "0xFF1E2E26",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFF1E2E26),
       clock: Color(0xFF334A3E),
       digital: Color(0xFFE2E8E4),
       indicator: Color(0xFF88A094),
     ),
     const AppThemePreset(
+      id: "0xFFF4EFE6",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFFF4EFE6),
       clock: Color(0xFFD1C2A5),
       digital: Color(0xFF5C4E3A),
       indicator: Color(0xFF9E8E76),
     ),
     const AppThemePreset(
+      id: "0xFFE8F5E9",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFFE8F5E9),
       clock: Color(0xFF81C784),
       digital: Color(0xFF2E7D32),
       indicator: Color(0xFF388E3C),
     ),
     const AppThemePreset(
+      id: "0xFF2A2344",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFF2A2344),
       clock: Color(0xFF524582),
       digital: Color(0xFFE6E2F1),
       indicator: Color(0xFFA197C4),
     ),
     const AppThemePreset(
+      id: "0xFFFFF0E5",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFFFFF0E5),
       clock: Color(0xFFFF8A65),
       digital: Color(0xFF5D4037),
       indicator: Color(0xFF8D6E63),
     ),
     const AppThemePreset(
+      id: "0xFF0F172A",
+      isPremium: false,
+      unlockPoint: 0,
       bg: Color(0xFF0F172A),
       clock: Color(0xFF38BDF8),
       digital: Color(0xFFF8FAFC),
       indicator: Color(0xFF94A3B8),
     ),
     const AppThemePreset(
+      id: "rain",
+      isPremium: true,
+      unlockPoint: 1,
       bg: Color.fromARGB(255, 111, 184, 212),
       clock: Colors.transparent,
       digital: Color(0xFF9E9E9E),
@@ -573,6 +856,9 @@ class _SettingsPageState extends State<SettingsPage> {
       bgVideo: "비 오는 밤 (Rain)",
     ),
     const AppThemePreset(
+      id: "cherry",
+      isPremium: true,
+      unlockPoint: 1,
       bg: Color(0xFFFFB7C5),
       clock: Colors.transparent,
       digital: Color(0xFFFFB7C5),
@@ -796,6 +1082,50 @@ class _SettingsPageState extends State<SettingsPage> {
     _isAdReady = false;
   }
 
+  Future<void> _saveUnlockedThemes() async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) return;
+
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+      'unlockedSpecialThemes': _unlockedSpecialThemes.toList(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<bool> _tryUnlockTheme(AppThemePreset preset) async {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return false;
+    }
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    final doc = await ref.get();
+
+    final data = doc.data() ?? {};
+
+    int point = data['point'] ?? 0;
+
+    if (point < preset.unlockPoint) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("포인트 부족")));
+
+      return false;
+    }
+
+    await ref.set({
+      'point': point - preset.unlockPoint,
+    }, SetOptions(merge: true));
+
+    _unlockedSpecialThemes.add(preset.id);
+
+    await _saveUnlockedThemes();
+
+    return true;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -807,9 +1137,13 @@ class _SettingsPageState extends State<SettingsPage> {
     _refreshUser();
     _loadFavorites(); // 🔥 추가
     _loadCustomData(); // 🔥 이 줄을 추가하세요!
+
+    _loadUnlockedThemes();
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
       _loadCustomData(); // 🔥 여기도 추가!
+
+      _loadUnlockedThemes();
     });
   }
 
@@ -2077,9 +2411,19 @@ class _SettingsPageState extends State<SettingsPage> {
                       await AuthService.signOut();
                       final prefs = await SharedPreferences.getInstance();
                       await prefs.clear(); // 🔥 로컬 데이터 전부 초기화
-
+                      globalBgVideoName.value = "사용 안 함";
+                      globalClockVideoName.value = "사용 안 함";
                       setState(() {
-                        _favorites.clear(); // 🔥 핵심
+                        _favorites.clear();
+
+                        _localCustomPresets.clear();
+
+                        _localBgMediaPaths.clear();
+                        _localClockMediaPaths.clear();
+
+                        _unlockedBgMediaSlots = 1;
+                        _unlockedClockMediaSlots = 1;
+                        _unlockedThemeSlots = 1;
                       });
                       await loadSettings(); // 🔥 기본값 다시 로드
 
@@ -2330,14 +2674,100 @@ class _SettingsPageState extends State<SettingsPage> {
                 spacing: 12.0,
                 runSpacing: 12.0,
                 children: mediaPresets.map((t) {
-                  bool isSelected =
+                  final bool isSelected =
                       globalBgColor.value == t.bg &&
                       globalClockColor.value == t.clock &&
                       globalDigitalColor.value == t.digital &&
                       globalIndicatorColor.value == t.indicator &&
                       globalBgVideoName.value == t.bgVideo &&
                       globalClockVideoName.value == t.clockVideo;
-                  return buildPresetItem(t, isSelected);
+
+                  final bool isLocked =
+                      t.isPremium && !_unlockedSpecialThemes.contains(t.id);
+
+                  return GestureDetector(
+                    onTap: () {
+                      final user = FirebaseAuth.instance.currentUser;
+
+                      if (user == null) {
+                        return;
+                      }
+
+                      if (isLocked) {
+                        _showThemeUnlockDialog(t);
+                        return;
+                      }
+
+                      globalBgColor.value = t.bg;
+                      globalClockColor.value = t.clock;
+                      globalDigitalColor.value = t.digital;
+                      globalIndicatorColor.value = t.indicator;
+                      globalBgVideoName.value = t.bgVideo;
+                      globalClockVideoName.value = t.clockVideo;
+                    },
+                    child: Stack(
+                      children: [
+                        buildPresetItem(t, isSelected),
+
+                        if (isLocked)
+                          Positioned.fill(
+                            child: Container(
+                              width: 56,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.35),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+
+                        if (isLocked)
+                          Positioned(
+                            top: 5,
+                            right: 5,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lock,
+                                color: Colors.white,
+                                size: 13,
+                              ),
+                            ),
+                          ),
+
+                        if (isLocked)
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 5,
+                            child: Center(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withOpacity(0.75),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Text(
+                                  "${t.unlockPoint}P",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
                 }).toList(),
               ),
               const SizedBox(height: 20),
