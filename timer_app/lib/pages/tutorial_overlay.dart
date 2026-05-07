@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:math' as math;
 
 class TutorialOverlayWidget extends StatelessWidget {
   final int step;
@@ -21,7 +20,9 @@ class TutorialOverlayWidget extends StatelessWidget {
     Alignment align = Alignment.center;
     String arrowDir = "none";
     EdgeInsets padding = EdgeInsets.zero;
- Widget? specialEffectWidget;
+    
+    Widget? specialEffectWidget;
+    Alignment effectAlign = const Alignment(0, 0);
 
     // 단계별 반응형 설정
     switch (step) {
@@ -30,7 +31,7 @@ class TutorialOverlayWidget extends StatelessWidget {
         title = "드래그해서 시간 설정";
         desc = step == 1 
             ? "둥근 시계를 손가락으로 드래그하여\n원하는 시간을 조절하세요."
-            : "이런 식으로 시간이 맞춰집니다!";
+            : "이렇게 시간이 맞춰집니다!";
         if (isLandscape) {
           align = const Alignment(0.8, 0.0);
           arrowDir = "left";
@@ -47,7 +48,9 @@ class TutorialOverlayWidget extends StatelessWidget {
         align = isLandscape ? const Alignment(0.8, 0.4) : const Alignment(0, 0.7);
         padding = isLandscape ? const EdgeInsets.only(right: 20) : const EdgeInsets.symmetric(horizontal: 20);
         arrowDir = "none";
-        specialEffectWidget = const TouchEffectWidget(); // 💡 터치 이펙트 추가!
+        specialEffectWidget = const TouchEffectWidget();
+        // ★ 터치 이펙트 위치 지정
+        effectAlign = isLandscape ? const Alignment(0.0, -0.8) : const Alignment(0.7, -0.8);
         break;
       case 4:
         title = "완료 알림";
@@ -56,47 +59,69 @@ class TutorialOverlayWidget extends StatelessWidget {
         padding = isLandscape ? const EdgeInsets.only(right: 20) : const EdgeInsets.symmetric(horizontal: 20);
         arrowDir = "none";
         break;
-              case 5: // ★ 새로 추가된 케이스 (리셋 스와이프 안내)
+      case 5:
         title = "타이머 리셋";
         desc = "배경을 아래로 스와이프 하면\n설정 시간으로 리셋 됩니다.";
         if (isLandscape) {
           align = const Alignment(0.8, 0.0);
-          arrowDir = "left";
           padding = const EdgeInsets.only(right: 20);
+          effectAlign = const Alignment(-0.1, -0.8); // ★ 가로 모드: 스와이프 효과 가운데 위로 이동
         } else {
           align = const Alignment(0, 0.3); // 화면 중앙에서 약간 아래
-          arrowDir = "right"; // 말풍선 꼬리를 오른쪽으로
           padding = const EdgeInsets.symmetric(horizontal: 20);
+          effectAlign = const Alignment(0.8, -0.9); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이동
         }
-        specialEffectWidget = const SwipeDownEffectWidget(); // 💡 스와이프 이펙트 추가!
+        specialEffectWidget = const SwipeDownEffectWidget();
         break;
       case 6:
-        // 🔥 [수정] 디지털 숫자를 가리지 않도록 말풍선을 위로 올리고 아래를 가리키게 함
         title = "시간 직접 입력";
         desc = "디지털 숫자를 길게 꾹~ 누르면\n 직접 입력할 수 있어요.";
         if (isLandscape) {
           align = const Alignment(-0.8, 0);
           arrowDir = "right";
           padding = const EdgeInsets.only(right: 20);
+          effectAlign = const Alignment(0.55, 0.0); // ★ 가로 모드: 특수효과를 우측 디지털 시계 위로 이동
         } else {
           align = const Alignment(0, 0.10); // 화면 중앙보다 살짝 위
           arrowDir = "down"; // 아래(디지털 숫자 방향)를 가리킴
           padding = const EdgeInsets.symmetric(horizontal: 20);
+          effectAlign = const Alignment(0.0, 0.6); // ★ 세로 모드: 디지털 시계 위치로 터치 효과 이동
         }
+        specialEffectWidget = const TouchEffectWidget(); // 💡 디지털 시계 터치 이펙트 추가!
         break;
       case 7:
         title = "화면 잠금 켜기";
         desc = "빈 배경을 꾹~ 누르면 잠금 모드가 켜져서\n실수로 터치되는 것을 막아줍니다.";
+        if (isLandscape) {
         align = Alignment.center;
         padding = const EdgeInsets.symmetric(horizontal: 20);
         arrowDir = "none";
+        specialEffectWidget = const TouchEffectWidget();
+        effectAlign = const Alignment(-0.1, -0.8); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이
+        } else {
+        align = Alignment.center;
+        padding = const EdgeInsets.symmetric(horizontal: 20);
+        arrowDir = "none";
+        specialEffectWidget = const TouchEffectWidget();
+        effectAlign = const Alignment(0.8, -0.9); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이
+        }
         break;
       case 8:
         title = "화면 잠금 해제";
         desc = "다시 한번 배경을 꾹~ 누르면\n잠금 모드가 해제됩니다.";
+        if (isLandscape) {
         align = Alignment.center;
         padding = const EdgeInsets.symmetric(horizontal: 20);
         arrowDir = "none";
+        specialEffectWidget = const TouchEffectWidget();
+        effectAlign = const Alignment(-0.1, -0.8); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이
+        } else {
+        align = Alignment.center;
+        padding = const EdgeInsets.symmetric(horizontal: 20);
+        arrowDir = "none";
+        specialEffectWidget = const TouchEffectWidget();
+        effectAlign = const Alignment(0.8, -0.9); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이
+        }
         break;
       case 9:
         title = "다양한 설정과 테마";
@@ -173,7 +198,6 @@ class TutorialOverlayWidget extends StatelessWidget {
         ],
       );
     } else if (arrowDir == "down") {
-      // 🔥 [추가] 아래쪽을 가리키는 화살표 로직 추가
       tooltipWidget = Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -189,8 +213,7 @@ class TutorialOverlayWidget extends StatelessWidget {
           Flexible(child: bubbleContent),
         ],
       );
-    } 
-    else if (arrowDir == "right") {
+    } else if (arrowDir == "right") {
       tooltipWidget = Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -198,7 +221,7 @@ class TutorialOverlayWidget extends StatelessWidget {
           RotatedBox(quarterTurns: 1, child: const Icon(Icons.arrow_drop_up, color: Colors.white, size: 40)),
         ],
       );
-    }else {
+    } else {
       tooltipWidget = bubbleContent;
     }
 
@@ -219,8 +242,14 @@ class TutorialOverlayWidget extends StatelessWidget {
                   child: Icon(step == 7 ? Icons.lock : Icons.lock_open, color: Colors.white, size: 24),
                 ),
               ),
-                          // ★ 2. 여기에 특수효과 위젯 추가! ★
-            if (specialEffectWidget != null) specialEffectWidget!,
+            
+            // ★ 2. 여기에 특수효과 위젯 추가! (Positioned 대신 effectAlign을 이용한 반응형 정렬)
+            if (specialEffectWidget != null)
+              Align(
+                alignment: effectAlign,
+                child: specialEffectWidget!,
+              ),
+            
             Align(
               alignment: align,
               child: Padding(
@@ -238,85 +267,86 @@ class TutorialOverlayWidget extends StatelessWidget {
   }
 }
 
-// --- 여기서부터 파일 맨 아래에 추가 ---
+// --- 특수효과 위젯 (Positioned 제거 및 순수 애니메이션만 반환하도록 수정) ---
 
-// 1. 터치 특수효과 위젯 (Case 3용)
+// 1. 터치 특수효과 위젯
 class TouchEffectWidget extends StatefulWidget {
-  const TouchEffectWidget({Key? key}) : super(key: key);
+  const TouchEffectWidget({super.key});
   @override
   _TouchEffectWidgetState createState() => _TouchEffectWidgetState();
 }
 class _TouchEffectWidgetState extends State<TouchEffectWidget> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
   }
+  
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() { 
+    _ctrl.dispose(); 
+    super.dispose(); 
+  }
+  
   @override
   Widget build(BuildContext context) {
-    bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    return Positioned(
-      top: isLandscape ? 40 : 120, // 가로모드면 위쪽 가운데쯤, 세로면 배경 위쪽
-      right: isLandscape ? MediaQuery.of(context).size.width / 2 - 25 : 50,
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, child) {
-          return Opacity(
-            opacity: 1.0 - _ctrl.value,
-            child: Container(
-              width: 50 + (20 * _ctrl.value),
-              height: 50 + (20 * _ctrl.value),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.5),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: const Center(child: Icon(Icons.touch_app, color: Colors.white, size: 30)),
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return Opacity(
+          opacity: 1.0 - _ctrl.value,
+          child: Container(
+            width: 50 + (20 * _ctrl.value),
+            height: 50 + (20 * _ctrl.value),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.5),
+              border: Border.all(color: Colors.white, width: 2),
             ),
-          );
-        },
-      ),
+            child: const Center(child: Icon(Icons.touch_app, color: Colors.white, size: 30)),
+          ),
+        );
+      },
     );
   }
 }
 
-// 2. 아래로 스와이프 특수효과 위젯 (새로운 Case 5용)
+// 2. 아래로 스와이프 특수효과 위젯
 class SwipeDownEffectWidget extends StatefulWidget {
-  const SwipeDownEffectWidget({Key? key}) : super(key: key);
+  const SwipeDownEffectWidget({super.key});
   @override
   _SwipeDownEffectWidgetState createState() => _SwipeDownEffectWidgetState();
 }
 class _SwipeDownEffectWidgetState extends State<SwipeDownEffectWidget> with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
+  
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 1))..repeat();
   }
+  
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() { 
+    _ctrl.dispose(); 
+    super.dispose(); 
+  }
+  
   @override
   Widget build(BuildContext context) {
-    bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
-    return Positioned(
-      top: isLandscape ? 60 : 150, 
-      right: isLandscape ? MediaQuery.of(context).size.width / 4 : 60, // 가로모드면 오른쪽에서 1/4 지점쯤에 표시
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, child) {
-          return Transform.translate(
-            offset: Offset(0, 100 * _ctrl.value), // 위에서 아래로 100픽셀 이동
-            child: Opacity(
-              opacity: 1.0 - _ctrl.value, // 내려가면서 투명해짐
-              child: const Icon(Icons.swipe_down, color: Colors.white, size: 50),
-            ),
-          );
-        },
-      ),
+    return AnimatedBuilder(
+      animation: _ctrl,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, 100 * _ctrl.value), // 위에서 아래로 100픽셀 이동
+          child: Opacity(
+            opacity: 1.0 - _ctrl.value, // 내려가면서 투명해짐
+            child: const Icon(Icons.swipe_down, color: Colors.white, size: 50),
+          ),
+        );
+      },
     );
   }
 }
-// --- 여기까지 ---
