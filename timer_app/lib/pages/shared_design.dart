@@ -1149,7 +1149,7 @@ Widget analogClockWidget = GestureDetector(
                       size: Size(clockSize, clockSize),
                       painter: PieShadowPainter(drawnSeconds, maxScaleSeconds, isTimer),
                     ),
-                  // 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
+// 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
                   if (globalClockVideoName.value != "사용 안 함")
                     ClipPath(
                       clipper: ClockImageClipper(drawnSeconds, maxScaleSeconds, isTimer),
@@ -1159,9 +1159,13 @@ Widget analogClockWidget = GestureDetector(
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           image: DecorationImage(
-                            image: kIsWeb 
-                                ? NetworkImage(globalClockVideoName.value) as ImageProvider 
-                                : FileImage(File(globalClockVideoName.value)),
+                            image: (globalClockVideoName.value == "노을 (Sunset)")
+                                ? const AssetImage('assets/image/sunset.jpg')
+                                : (globalClockVideoName.value == "밤하늘 (Sky Moon)")
+                                    ? const AssetImage('assets/image/sky_moon.jpg')
+                                    : (kIsWeb 
+                                        ? NetworkImage(globalClockVideoName.value) as ImageProvider 
+                                        : FileImage(File(globalClockVideoName.value))),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -1421,13 +1425,20 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     bool isVideo = false;
 
     // 1. 고정 프리셋 영상 확인
+// 1. 고정 프리셋 영상 확인
     if (currentVal == "비 오는 밤 (Rain)") {
       targetPath = 'assets/video/rainwindow.mp4';
       isVideo = true;
     } else if (currentVal == "벚꽃 (Cherry Blossom)") {
       targetPath = 'assets/video/sakura.mp4';
       isVideo = true;
-    } 
+    } else if (currentVal == "노을 (Sunset)") {
+      targetPath = 'assets/image/sunset.jpg'; // 🔥 노을 연결
+      isVideo = false;
+    } else if (currentVal == "밤하늘 (Sky Moon)") {
+      targetPath = 'assets/image/sky_moon.jpg'; // 🔥 밤하늘 연결
+      isVideo = false;
+    }
     // 🌟 [핵심 추가] 프리셋이 아니면 사용자가 추가한 '사진/영상 경로'를 그대로 사용!
     else {
       targetPath = currentVal;

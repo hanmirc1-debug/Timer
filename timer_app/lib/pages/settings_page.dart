@@ -248,15 +248,29 @@ class _SettingsPageState extends State<SettingsPage> {
         _unlockedSpecialThemes.clear();
       });
 
-      final isUsingSpecialTheme =
-          globalBgVideoName.value != "사용 안 함" ||
-          globalClockVideoName.value != "사용 안 함";
+// 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
+          final isUsingPremiumBg =
+              globalBgVideoName.value == "비 오는 밤 (Rain)" ||
+              globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
 
-      if (isUsingSpecialTheme) {
-        globalBgVideoName.value = "사용 안 함";
-        globalClockVideoName.value = "사용 안 함";
-        saveSettings();
-      }
+          final isUsingPremiumClock =
+              globalClockVideoName.value == "비 오는 밤 (Rain)" ||
+              globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
+
+          bool changed = false;
+
+          if (isUsingPremiumBg) {
+            globalBgVideoName.value = "사용 안 함";
+            changed = true;
+          }
+          if (isUsingPremiumClock) {
+            globalClockVideoName.value = "사용 안 함";
+            changed = true;
+          }
+
+          if (changed) {
+            saveSettings();
+          }
 
       return;
     }
@@ -1459,6 +1473,16 @@ class _SettingsPageState extends State<SettingsPage> {
       color: Color(0xFFFFB7C5),
       video: "벚꽃 (Cherry Blossom)",
     ),
+    const ThemeItem(
+      name: "노을",
+      color: Colors.orange,
+      video: "노을 (Sunset)",
+    ),
+    const ThemeItem(
+      name: "밤하늘",
+      color: Colors.lightBlueAccent,
+      video: "밤하늘 (Sky Moon)",
+    ),
   ];
 
   void _showPomodoroHelpDialog(Color accentColor) {
@@ -2497,31 +2521,33 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ---------------- ✨ 바꿀 코드 ✨ ----------------
   Widget colorPicker(
     String title,
     ValueNotifier<Color> notifier,
     Color accentColor,
   ) {
-    return ValueListenableBuilder<Color>(
-      valueListenable: notifier,
-      builder: (context, color, _) {
-        // 🔥 [핵심 수정] 타이틀에 따라 사진/영상 변수를 정확히 매칭!
-        // 디지털 시계, 테두리/시간은 사진 기능이 없으므로 무조건 "사용 안 함"이 됩니다.
+    // 🔥 색상뿐만 아니라 배경/시계 사진이 바뀌는 것도 즉시 감지하여 100% 아이콘을 유지합니다.
+    return AnimatedBuilder(
+      animation: Listenable.merge([notifier, globalBgVideoName, globalClockVideoName]),
+      builder: (context, _) {
+        Color color = notifier.value;
         String videoName = "사용 안 함";
+
         if (title == "배경색") {
           videoName = globalBgVideoName.value;
         } else if (title == "시계색") {
           videoName = globalClockVideoName.value;
         }
 
-        // "사용 안 함"이 아니고, 앱 내장 프리셋 이름도 아니면 '개인 로컬 사진'으로 판단
+        // 🔥 노을, 밤하늘 예외 처리 필수! (안 그러면 갤러리 사진으로 착각해 회색 네모가 됨)
         bool isLocalImage =
             videoName != "사용 안 함" &&
             videoName != "비 오는 밤 (Rain)" &&
-            videoName != "벚꽃 (Cherry Blossom)";
+            videoName != "벚꽃 (Cherry Blossom)" &&
+            videoName != "노을 (Sunset)" &&
+            videoName != "밤하늘 (Sky Moon)";
 
-        // 아이콘은 사진/영상 기반이면 무엇이든 띄워줍니다.
+        // 영상이나 사진이 적용되어 있으면 무조건 아이콘 표시
         bool hasMedia = videoName != "사용 안 함";
 
         return Padding(
@@ -2543,7 +2569,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    // 🔥 개인 사진일 때만 회색으로 바꾸고, 스페셜 테마는 원래 색(color)을 보여줍니다!
+                    // 로컬 갤러리 사진일 때만 회색으로, 내장 사진(노을 등)이면 주황색 유지!
                     color: color == Colors.transparent
                         ? Colors.transparent
                         : (isLocalImage ? Colors.grey : color),
@@ -2561,12 +2587,12 @@ class _SettingsPageState extends State<SettingsPage> {
                           size: 20,
                         )
                       : (hasMedia
-                            ? const Icon(
-                                Icons.image,
-                                color: Colors.white,
-                                size: 20,
-                              )
-                            : null),
+                          ? const Icon(
+                              Icons.image,
+                              color: Colors.white,
+                              size: 20,
+                            )
+                          : null),
                 ),
               ),
             ],
@@ -3170,12 +3196,16 @@ class _SettingsPageState extends State<SettingsPage> {
             bool isLocalBg =
                 theme.bgVideo != "사용 안 함" &&
                 theme.bgVideo != "비 오는 밤 (Rain)" &&
-                theme.bgVideo != "벚꽃 (Cherry Blossom)";
+theme.bgVideo != "벚꽃 (Cherry Blossom)" &&
+                theme.bgVideo != "노을 (Sunset)" &&
+                theme.bgVideo != "밤하늘 (Sky Moon)"; // 🔥 새 사진 이름 추가!
             // 🔥 시계가 로컬 사진인지 체크
             bool isLocalClock =
                 theme.clockVideo != "사용 안 함" &&
                 theme.clockVideo != "비 오는 밤 (Rain)" &&
-                theme.clockVideo != "벚꽃 (Cherry Blossom)";
+                theme.clockVideo != "벚꽃 (Cherry Blossom)" &&
+                theme.clockVideo != "노을 (Sunset)" &&
+                theme.clockVideo != "밤하늘 (Sky Moon)"; // 🔥 새 사진 이름 추가!
 
             bool hasAnyMedia =
                 theme.bgVideo != "사용 안 함" || theme.clockVideo != "사용 안 함";
@@ -4200,6 +4230,12 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
       } else if (widget.videoName == "벚꽃 (Cherry Blossom)") {
         _assetPath = 'assets/video/sakura.mp4';
         _isVideo = true;
+      } else if (widget.videoName == "노을 (Sunset)") {
+        _assetPath = 'assets/image/sunset.jpg'; // 🔥 노을 사진 경로
+        _isVideo = false; // 사진이므로 false
+      } else if (widget.videoName == "밤하늘 (Sky Moon)") {
+        _assetPath = 'assets/image/sky_moon.jpg'; // 🔥 밤하늘 사진 경로
+        _isVideo = false; // 사진이므로 false
       }
 
       if (_isVideo && _assetPath.isNotEmpty) {
