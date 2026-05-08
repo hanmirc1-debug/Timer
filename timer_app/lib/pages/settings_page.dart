@@ -238,7 +238,44 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  Future<void> _loadUnlockedThemes() async {
+//   Future<void> _loadUnlockedThemes() async {
+//     final user = FirebaseAuth.instance.currentUser;
+
+//     if (user == null) {
+//       if (!mounted) return;
+
+//       setState(() {
+//         _unlockedSpecialThemes.clear();
+//       });
+
+// // 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
+//           final isUsingPremiumBg =
+//               globalBgVideoName.value == "비 오는 밤 (Rain)" ||
+//               globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
+
+//           final isUsingPremiumClock =
+//               globalClockVideoName.value == "비 오는 밤 (Rain)" ||
+//               globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
+
+//           bool changed = false;
+
+//           if (isUsingPremiumBg) {
+//             globalBgVideoName.value = "사용 안 함";
+//             changed = true;
+//           }
+//           if (isUsingPremiumClock) {
+//             globalClockVideoName.value = "사용 안 함";
+//             changed = true;
+//           }
+
+//           if (changed) {
+//             saveSettings();
+//           }
+
+//       return;
+//     }
+
+Future<void> _loadUnlockedThemes() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -248,30 +285,9 @@ class _SettingsPageState extends State<SettingsPage> {
         _unlockedSpecialThemes.clear();
       });
 
-// 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
-          final isUsingPremiumBg =
-              globalBgVideoName.value == "비 오는 밤 (Rain)" ||
-              globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
-
-          final isUsingPremiumClock =
-              globalClockVideoName.value == "비 오는 밤 (Rain)" ||
-              globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
-
-          bool changed = false;
-
-          if (isUsingPremiumBg) {
-            globalBgVideoName.value = "사용 안 함";
-            changed = true;
-          }
-          if (isUsingPremiumClock) {
-            globalClockVideoName.value = "사용 안 함";
-            changed = true;
-          }
-
-          if (changed) {
-            saveSettings();
-          }
-
+      // 🔥 회원님 말씀대로 배경 영상/사진 자체는 무료이므로 
+      // 앱이 멋대로 "사용 안 함"으로 강제 초기화해버리던 로직을 완전히 삭제했습니다!
+      
       return;
     }
 
