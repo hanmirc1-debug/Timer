@@ -286,7 +286,8 @@ void initSettingsListener() {
 final ValueNotifier<bool> globalVibrationEnabled = ValueNotifier<bool>(true);
 
 const Map<String, String> alarmSoundMap = {
-  "기본음": "audio/alarm/default.mp3",
+  "기본음1": "audio/alarm/default2.mp3",
+  "기본음2": "audio/alarm/default.mp3",
   "자전거 벨": "audio/alarm/bike.mp3",
   "빠른 알림 1": "audio/alarm/fast1.mp3",
   "빠른 알림 2": "audio/alarm/fast2.mp3",
@@ -301,12 +302,15 @@ const Map<String, String> alarmSoundMap = {
 final List<String> alarmOptions = [...alarmSoundMap.keys];
 
 String getAlarmPath(String name) {
-  return alarmSoundMap[name] ?? "audio/alarm/default.mp3";
+  return alarmSoundMap[name] ?? "audio/alarm/default2.mp3";
 }
 
 const Map<String, String> bgmMap = {
-  "빗소리": "audio/bgm/rain.mp3",
+  "강한 빗소리": "audio/bgm/rain.mp3",
+  "빗소리": "audio/bgm/soft_rain.mp3",
   "봄": "audio/bgm/spring.mp3",
+  "피아노1": "audio/bgm/piano1.mp3",
+  "피아노2": "audio/bgm/piano2.mp3",
 };
 final List<String> bgmOptions = [...bgmMap.keys];
 
@@ -368,7 +372,7 @@ class GlobalBgmManager {
   // 🔥 알람 미리듣기 (설정페이지용)
   static Future<void> previewAlarmSound(String soundName) async {
     debugPrint("🔥 previewAlarmSound CALLED");
-    final path = alarmSoundMap[soundName] ?? "audio/alarm/default.mp3";
+    final path = alarmSoundMap[soundName] ?? "audio/alarm/default2.mp3";
 
     await _alarmPlayer.stop();
     await _alarmPlayer.play(AssetSource(path));
