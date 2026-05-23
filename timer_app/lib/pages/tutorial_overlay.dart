@@ -123,15 +123,25 @@ class TutorialOverlayWidget extends StatelessWidget {
         effectAlign = const Alignment(0.8, -0.9); // ★ 세로 모드: 스와이프 효과 좀 더 오른쪽 위로 이
         }
         break;
-      case 9:
-        title = "다양한 설정과 테마";
-        desc = "왼쪽 위 메뉴 버튼을 눌러보세요.\n나만의 테마와 알람 설정을 할 수 있어요!";
-        align = Alignment.topLeft;
-        padding = EdgeInsets.only(
-          top: MediaQuery.of(context).padding.top + 60,
-          left: 20,
-        );
-        arrowDir = "up_left";
+case 9:
+        title = "설정";
+        desc = "왼쪽 위 메뉴 버튼을 눌러보세요.\n나만의 테마와 알람 설정등..을 할 수 있어요!";
+        
+        // 🔥 태블릿/스마트폰 대응을 위한 세밀한 위치 조정
+        if (isLandscape) {
+          // 가로모드일 때 메뉴 버튼 위치로 조정
+          align = const Alignment(-0.95, -0.85); 
+          padding = const EdgeInsets.only(top: 20, left: 10);
+          arrowDir = "up_left";
+        } else {
+          // 세로모드일 때 메뉴 버튼 위치로 조정
+          align = const Alignment(-0.9, -0.85); 
+          padding = EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 20,
+          );
+          arrowDir = "up_left";
+        }
         break;
     }
 

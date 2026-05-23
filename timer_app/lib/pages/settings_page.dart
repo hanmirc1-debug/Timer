@@ -2846,13 +2846,13 @@ Future<void> _loadUnlockedThemes() async {
         ),
         child: Row(
           children: [
-            Icon(icon, color: color, size: size.width * 0.06),
+            Icon(icon, color: color, size: size.width * 0.05),
             SizedBox(width: size.width * 0.03),
             Expanded(
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: size.width * 0.04,
+                  fontSize: size.width * 0.03,
                   fontWeight: FontWeight.w600,
                   color: color,
                 ),
@@ -2878,8 +2878,8 @@ Future<void> _loadUnlockedThemes() async {
       child: Text(
         text,
         style: TextStyle(
-          fontSize: size.width * 0.035,
-          fontWeight: FontWeight.bold,
+        fontSize: (size.width * 0.035).clamp(11.0, 15.0),          
+        fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -2929,10 +2929,12 @@ Future<void> _loadUnlockedThemes() async {
       },
     );
   }
-
-  // ✅ [복구] 계정 섹션 위젯
+// ✅ [복구] 계정 섹션 위젯 (반응형 폰트 적용 완료)
   Widget _buildAccountSection(Color accentColor) {
     final size = MediaQuery.of(context).size;
+    // 태블릿인지 확인 (너비 600 이상)
+    final bool isTablet = size.width > 600;
+    
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -2969,7 +2971,7 @@ Future<void> _loadUnlockedThemes() async {
                   final user = await AuthService.signInWithEmail(email, pw);
                   if (user != null) {
                     await FirebaseSettingsService.loadSettingsFromCloud();
-                    await _loadFavorites(); // 🔥 추가
+                    await _loadFavorites();
                   }
                 }
               }),
@@ -2984,9 +2986,9 @@ Future<void> _loadUnlockedThemes() async {
                       children: [
                         Text(
                           user.email ?? "사용자",
-
                           style: TextStyle(
-                            fontSize: size.width * 0.04,
+                            // 🔥 반응형 폰트 크기: 태블릿에서는 최대 18로 제한
+                            fontSize: (size.width * 0.04).clamp(14.0, 18.0),
                             fontWeight: FontWeight.bold,
                             color: accentColor,
                           ),
@@ -2998,21 +3000,17 @@ Future<void> _loadUnlockedThemes() async {
                               .snapshots(),
                           builder: (context, snapshot) {
                             int point = 0;
-
                             if (snapshot.hasData && snapshot.data!.exists) {
-                              final data =
-                                  snapshot.data!.data()
-                                      as Map<String, dynamic>?;
-
+                              final data = snapshot.data!.data() as Map<String, dynamic>?;
                               point = data?['point'] ?? 0;
                             }
-
                             return Padding(
                               padding: const EdgeInsets.only(top: 4),
                               child: Text(
                                 "포인트 : $point",
                                 style: TextStyle(
-                                  fontSize: size.width * 0.034,
+                                  // 🔥 포인트 텍스트도 동일하게 제한
+                                  fontSize: (size.width * 0.034).clamp(12.0, 16.0),
                                   fontWeight: FontWeight.w600,
                                   color: accentColor.withOpacity(0.9),
                                 ),
@@ -3025,7 +3023,7 @@ Future<void> _loadUnlockedThemes() async {
                             "이메일 인증 필요",
                             style: TextStyle(
                               color: Colors.red,
-                              fontSize: size.width * 0.03,
+                              fontSize: (size.width * 0.03).clamp(10.0, 14.0),
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -3033,19 +3031,12 @@ Future<void> _loadUnlockedThemes() async {
                             onPressed: () async {
                               final user = FirebaseAuth.instance.currentUser;
                               await user?.reload();
-                              final refreshedUser =
-                                  FirebaseAuth.instance.currentUser;
-                              setState(() {
-                                _user = refreshedUser;
-                              });
+                              final refreshedUser = FirebaseAuth.instance.currentUser;
+                              setState(() { _user = refreshedUser; });
                               if (refreshedUser?.emailVerified == true) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("인증 완료!")),
-                                );
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("인증 완료!")));
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("아직 인증 안됨")),
-                                );
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("아직 인증 안됨")));
                               }
                             },
                             child: const Text("인증 확인"),
@@ -3064,26 +3055,21 @@ Future<void> _loadUnlockedThemes() async {
                       await FirebaseSettingsService.saveSettingsToCloud();
                       await AuthService.signOut();
                       final prefs = await SharedPreferences.getInstance();
-                      await prefs.clear(); // 🔥 로컬 데이터 전부 초기화
+                      await prefs.clear();
                       globalBgVideoName.value = "사용 안 함";
                       globalClockVideoName.value = "사용 안 함";
                       setState(() {
                         _favorites.clear();
-
                         _localCustomPresets.clear();
-
                         _localBgMediaPaths.clear();
                         _localClockMediaPaths.clear();
-
                         _unlockedBgMediaSlots = 1;
                         _unlockedClockMediaSlots = 1;
                         _unlockedThemeSlots = 0;
                       });
-                      await loadSettings(); // 🔥 기본값 다시 로드
-
-                      await _loadFavorites(); // 🔥 추가
-
-                      setState(() {}); // 🔥 UI 갱신
+                      await loadSettings();
+                      await _loadFavorites();
+                      setState(() {});
                     }),
                   ),
                   SizedBox(width: size.width * 0.02),

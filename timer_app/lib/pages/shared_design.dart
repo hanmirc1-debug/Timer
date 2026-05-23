@@ -321,9 +321,9 @@ String getAlarmPath(String name) {
 }
 
 const Map<String, String> bgmMap = {
+  "봄": "audio/bgm/spring.mp3",
   "강한 빗소리": "audio/bgm/rain.mp3",
   "빗소리": "audio/bgm/soft_rain.mp3",
-  "봄": "audio/bgm/spring.mp3",
   "피아노1": "audio/bgm/piano1.mp3",
   "피아노2": "audio/bgm/piano2.mp3",
 };
@@ -393,7 +393,7 @@ class GlobalBgmManager {
   // 🔥 BGM 미리듣기 (설정페이지용)
   static Future<void> previewBgm(String soundName) async {
     debugPrint("🔥 previewBgm CALLED");
-    final path = bgmMap[soundName] ?? "audio/bgm/default.mp3";
+    final path = bgmMap[soundName] ?? "audio/bgm/spring.mp3";
 
     await _bgmPlayer.stop();
     await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
@@ -1126,8 +1126,8 @@ class BaseClockLayout extends StatelessWidget {
 
               if (digitalStyle == "flip" || digitalStyle == "segment") {
                 if (fontSizeStr == "small") fontMultiplier = 0.5;
-                if (fontSizeStr == "medium") fontMultiplier = 1.0;
-                if (fontSizeStr == "large") fontMultiplier = 1.6;
+                if (fontSizeStr == "medium") fontMultiplier = 0.8;
+                if (fontSizeStr == "large") fontMultiplier = 1.0;
               } else {
                 if (fontSizeStr == "small") fontMultiplier = 0.7;
                 if (fontSizeStr == "large") fontMultiplier = 1.3;
