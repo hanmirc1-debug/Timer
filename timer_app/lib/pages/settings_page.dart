@@ -2878,7 +2878,7 @@ class _SettingsPageState extends State<SettingsPage> {
               child: Text(
                 text,
                 style: TextStyle(
-                  fontSize: size.width * 0.03,
+                  fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: color,
                 ),
