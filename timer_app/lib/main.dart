@@ -11,6 +11,7 @@ import 'services/firebase_settings_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
 import 'pages/splash_page.dart'; // 🌟 [추가] 스플래시 페이지 가져오기
+import 'services/point_purchase_service.dart';
 // 🔥 핵심 수정: TimerAppPage에 접근할 수 있도록 키를 전역으로 빼냅니다!
 final GlobalKey<TimerAppPageState> globalTimerPageKey = GlobalKey<TimerAppPageState>();
 
@@ -20,6 +21,10 @@ void main() async {
 // 🌟 2. 기존 MobileAds 초기화 코드를 if (!kIsWeb) 으로 감싸기!
   if (!kIsWeb) {
     MobileAds.instance.initialize();
+  }
+    // (추가) IAP 결제 시스템 초기화
+  if (!kIsWeb) { // IAP는 웹을 지원하지 않습니다. 모바일에서만 초기화
+    await PointPurchaseService().init();
   }
   // 🔥 광고 초기화 (여기 추가)
   //await MobileAds.instance.initialize();
@@ -33,6 +38,7 @@ void main() async {
   initSettingsListener();
   // 🌟 여기에 뽀모도로 초기화 감지기 시작 코드를 한 줄 추가합니다!
   initPomodoroResetListener();
+  
   runApp(const MyApp());
 }
 

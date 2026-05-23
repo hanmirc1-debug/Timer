@@ -18,6 +18,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'timer_page.dart';
 import '../main.dart'; // 🔥 globalTimerPageKey를 가져오기 위해 필요합니다.
 import 'dart:convert';
+import '../services/point_service.dart';
+import '../pages/point_shop_page.dart'; 
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
@@ -156,6 +158,9 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isAdReady = false;
   bool _isLoadingAd = false;
   User? _user;
+
+    final PointService _pointService = PointService();
+  Set<String> _unlockedItemIds = {}; // ✅ 잠금 해제된 아이템 ID들 보관
 
   OverlayEntry? _previewOverlay;
   int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
@@ -1726,13 +1731,26 @@ Future<void> _loadUnlockedThemes() async {
     _loadCustomData(); // 🔥 이 줄을 추가하세요!
     _loadUnlockedThemes();
     _loadUnlockedAudioOptions();
+        _loadUnlockedItems(); // 🔥 추가: 포인트 잠금 해제 아이템 로드
+
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
       _loadCustomData(); // 🔥 여기도 추가!
       _loadUnlockedThemes();
       _loadUnlockedAudioOptions();
+            _loadUnlockedItems(); // 🔥 추가
+
     });
   }
+
+    // 🔥 추가된 부분 시작
+  Future<void> _loadUnlockedItems() async {
+    List<String> items = await _pointService.getUnlockedItems();
+    setState(() {
+      _unlockedItemIds = items.toSet();
+    });
+  }
+  // 🔥 추가된 부분 끝
 
   void _refreshUser() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -2697,8 +2715,7 @@ Future<void> _loadUnlockedThemes() async {
       },
     );
   }
-
-  @override
+@override
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
@@ -2712,6 +2729,34 @@ Future<void> _loadUnlockedThemes() async {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF9F9F9),
+            // 🔥 앱바 추가: 포인트 충전 버튼이 여기에 들어갑니다.
+            appBar: AppBar(
+              title: Text(
+                'SETTINGS',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: uiAccentColor,
+                ),
+              ),
+              backgroundColor: const Color(0xFFF9F9F9),
+              elevation: 0,
+              iconTheme: IconThemeData(color: uiAccentColor),
+              actions: [
+                // 🪙 상점으로 이동하는 버튼
+                TextButton.icon(
+                  onPressed: () {
+                    // 포인트 상점 페이지로 화면 이동!
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PointShopPage()),
+                    );
+                  },
+                  icon: const Icon(Icons.monetization_on, color: Colors.amber),
+                  label: const Text('포인트 충전', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
             body: SafeArea(
               child: Column(
                 children: [
@@ -2720,32 +2765,6 @@ Future<void> _loadUnlockedThemes() async {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: IconButton(
-                                  icon: Icon(
-                                    Icons.arrow_back_ios_new,
-                                    color: uiAccentColor,
-                                  ),
-                                  onPressed: () => Navigator.pop(context),
-                                ),
-                              ),
-                              Text(
-                                "SETTINGS",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: uiAccentColor,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -2807,6 +2826,7 @@ Future<void> _loadUnlockedThemes() async {
       ),
     );
   }
+
 
   Widget _loginButton(
     String text,
