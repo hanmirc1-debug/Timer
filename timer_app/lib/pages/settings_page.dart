@@ -19,7 +19,8 @@ import 'timer_page.dart';
 import '../main.dart'; // 🔥 globalTimerPageKey를 가져오기 위해 필요합니다.
 import 'dart:convert';
 import '../services/point_service.dart';
-import '../pages/point_shop_page.dart'; 
+import '../pages/point_shop_page.dart';
+import 'package:vibration/vibration.dart';
 
 // ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
@@ -159,7 +160,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoadingAd = false;
   User? _user;
 
-    final PointService _pointService = PointService();
+  final PointService _pointService = PointService();
   Set<String> _unlockedItemIds = {}; // ✅ 잠금 해제된 아이템 ID들 보관
 
   OverlayEntry? _previewOverlay;
@@ -243,44 +244,44 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-//   Future<void> _loadUnlockedThemes() async {
-//     final user = FirebaseAuth.instance.currentUser;
+  //   Future<void> _loadUnlockedThemes() async {
+  //     final user = FirebaseAuth.instance.currentUser;
 
-//     if (user == null) {
-//       if (!mounted) return;
+  //     if (user == null) {
+  //       if (!mounted) return;
 
-//       setState(() {
-//         _unlockedSpecialThemes.clear();
-//       });
+  //       setState(() {
+  //         _unlockedSpecialThemes.clear();
+  //       });
 
-// // 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
-//           final isUsingPremiumBg =
-//               globalBgVideoName.value == "비 오는 밤 (Rain)" ||
-//               globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
+  // // 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
+  //           final isUsingPremiumBg =
+  //               globalBgVideoName.value == "비 오는 밤 (Rain)" ||
+  //               globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
 
-//           final isUsingPremiumClock =
-//               globalClockVideoName.value == "비 오는 밤 (Rain)" ||
-//               globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
+  //           final isUsingPremiumClock =
+  //               globalClockVideoName.value == "비 오는 밤 (Rain)" ||
+  //               globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
 
-//           bool changed = false;
+  //           bool changed = false;
 
-//           if (isUsingPremiumBg) {
-//             globalBgVideoName.value = "사용 안 함";
-//             changed = true;
-//           }
-//           if (isUsingPremiumClock) {
-//             globalClockVideoName.value = "사용 안 함";
-//             changed = true;
-//           }
+  //           if (isUsingPremiumBg) {
+  //             globalBgVideoName.value = "사용 안 함";
+  //             changed = true;
+  //           }
+  //           if (isUsingPremiumClock) {
+  //             globalClockVideoName.value = "사용 안 함";
+  //             changed = true;
+  //           }
 
-//           if (changed) {
-//             saveSettings();
-//           }
+  //           if (changed) {
+  //             saveSettings();
+  //           }
 
-//       return;
-//     }
+  //       return;
+  //     }
 
-Future<void> _loadUnlockedThemes() async {
+  Future<void> _loadUnlockedThemes() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
@@ -290,9 +291,9 @@ Future<void> _loadUnlockedThemes() async {
         _unlockedSpecialThemes.clear();
       });
 
-      // 🔥 회원님 말씀대로 배경 영상/사진 자체는 무료이므로 
+      // 🔥 회원님 말씀대로 배경 영상/사진 자체는 무료이므로
       // 앱이 멋대로 "사용 안 함"으로 강제 초기화해버리던 로직을 완전히 삭제했습니다!
-      
+
       return;
     }
 
@@ -1494,11 +1495,7 @@ Future<void> _loadUnlockedThemes() async {
       color: Color(0xFFFFB7C5),
       video: "벚꽃 (Cherry Blossom)",
     ),
-    const ThemeItem(
-      name: "노을",
-      color: Colors.orange,
-      video: "노을 (Sunset)",
-    ),
+    const ThemeItem(name: "노을", color: Colors.orange, video: "노을 (Sunset)"),
     const ThemeItem(
       name: "밤하늘",
       color: Colors.lightBlueAccent,
@@ -1591,6 +1588,24 @@ Future<void> _loadUnlockedThemes() async {
   bool _isTappingTab = false;
 
   void _stopPreview() {}
+  void _previewHapticIntensity(String intensity) {
+    final String value = intensity.toUpperCase();
+
+    if (kIsWeb) return;
+    if (value == "NONE") return;
+
+    try {
+      if (value == "SOFT") {
+        Vibration.vibrate(duration: 20, amplitude: 80);
+      } else if (value == "MEDIUM") {
+        Vibration.vibrate(duration: 30, amplitude: 160);
+      } else if (value == "STRONG") {
+        Vibration.vibrate(duration: 40, amplitude: 255);
+      }
+    } catch (e) {
+      debugPrint("햅틱 미리보기 실패: $e");
+    }
+  }
 
   List<Map<String, dynamic>> _favorites = [];
 
@@ -1731,19 +1746,18 @@ Future<void> _loadUnlockedThemes() async {
     _loadCustomData(); // 🔥 이 줄을 추가하세요!
     _loadUnlockedThemes();
     _loadUnlockedAudioOptions();
-        _loadUnlockedItems(); // 🔥 추가: 포인트 잠금 해제 아이템 로드
+    _loadUnlockedItems(); // 🔥 추가: 포인트 잠금 해제 아이템 로드
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
       _loadCustomData(); // 🔥 여기도 추가!
       _loadUnlockedThemes();
       _loadUnlockedAudioOptions();
-            _loadUnlockedItems(); // 🔥 추가
-
+      _loadUnlockedItems(); // 🔥 추가
     });
   }
 
-    // 🔥 추가된 부분 시작
+  // 🔥 추가된 부분 시작
   Future<void> _loadUnlockedItems() async {
     List<String> items = await _pointService.getUnlockedItems();
     setState(() {
@@ -2562,7 +2576,11 @@ Future<void> _loadUnlockedThemes() async {
   ) {
     // 🔥 색상뿐만 아니라 배경/시계 사진이 바뀌는 것도 즉시 감지하여 100% 아이콘을 유지합니다.
     return AnimatedBuilder(
-      animation: Listenable.merge([notifier, globalBgVideoName, globalClockVideoName]),
+      animation: Listenable.merge([
+        notifier,
+        globalBgVideoName,
+        globalClockVideoName,
+      ]),
       builder: (context, _) {
         Color color = notifier.value;
         String videoName = "사용 안 함";
@@ -2621,12 +2639,12 @@ Future<void> _loadUnlockedThemes() async {
                           size: 20,
                         )
                       : (hasMedia
-                          ? const Icon(
-                              Icons.image,
-                              color: Colors.white,
-                              size: 20,
-                            )
-                          : null),
+                            ? const Icon(
+                                Icons.image,
+                                color: Colors.white,
+                                size: 20,
+                              )
+                            : null),
                 ),
               ),
             ],
@@ -2715,7 +2733,8 @@ Future<void> _loadUnlockedThemes() async {
       },
     );
   }
-@override
+
+  @override
   Widget build(BuildContext context) {
     return Listener(
       behavior: HitTestBehavior.translucent,
@@ -2749,11 +2768,19 @@ Future<void> _loadUnlockedThemes() async {
                     // 포인트 상점 페이지로 화면 이동!
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const PointShopPage()),
+                      MaterialPageRoute(
+                        builder: (context) => const PointShopPage(),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.monetization_on, color: Colors.amber),
-                  label: const Text('포인트 충전', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)),
+                  label: const Text(
+                    '포인트 충전',
+                    style: TextStyle(
+                      color: Colors.amber,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -2827,7 +2854,6 @@ Future<void> _loadUnlockedThemes() async {
     );
   }
 
-
   Widget _loginButton(
     String text,
     IconData icon,
@@ -2878,8 +2904,8 @@ Future<void> _loadUnlockedThemes() async {
       child: Text(
         text,
         style: TextStyle(
-        fontSize: (size.width * 0.035).clamp(11.0, 15.0),          
-        fontWeight: FontWeight.bold,
+          fontSize: (size.width * 0.035).clamp(11.0, 15.0),
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -2929,12 +2955,13 @@ Future<void> _loadUnlockedThemes() async {
       },
     );
   }
-// ✅ [복구] 계정 섹션 위젯 (반응형 폰트 적용 완료)
+
+  // ✅ [복구] 계정 섹션 위젯 (반응형 폰트 적용 완료)
   Widget _buildAccountSection(Color accentColor) {
     final size = MediaQuery.of(context).size;
     // 태블릿인지 확인 (너비 600 이상)
     final bool isTablet = size.width > 600;
-    
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -3001,7 +3028,9 @@ Future<void> _loadUnlockedThemes() async {
                           builder: (context, snapshot) {
                             int point = 0;
                             if (snapshot.hasData && snapshot.data!.exists) {
-                              final data = snapshot.data!.data() as Map<String, dynamic>?;
+                              final data =
+                                  snapshot.data!.data()
+                                      as Map<String, dynamic>?;
                               point = data?['point'] ?? 0;
                             }
                             return Padding(
@@ -3010,7 +3039,10 @@ Future<void> _loadUnlockedThemes() async {
                                 "포인트 : $point",
                                 style: TextStyle(
                                   // 🔥 포인트 텍스트도 동일하게 제한
-                                  fontSize: (size.width * 0.034).clamp(12.0, 16.0),
+                                  fontSize: (size.width * 0.034).clamp(
+                                    12.0,
+                                    16.0,
+                                  ),
                                   fontWeight: FontWeight.w600,
                                   color: accentColor.withOpacity(0.9),
                                 ),
@@ -3031,12 +3063,19 @@ Future<void> _loadUnlockedThemes() async {
                             onPressed: () async {
                               final user = FirebaseAuth.instance.currentUser;
                               await user?.reload();
-                              final refreshedUser = FirebaseAuth.instance.currentUser;
-                              setState(() { _user = refreshedUser; });
+                              final refreshedUser =
+                                  FirebaseAuth.instance.currentUser;
+                              setState(() {
+                                _user = refreshedUser;
+                              });
                               if (refreshedUser?.emailVerified == true) {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("인증 완료!")));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("인증 완료!")),
+                                );
                               } else {
-                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("아직 인증 안됨")));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("아직 인증 안됨")),
+                                );
                               }
                             },
                             child: const Text("인증 확인"),
@@ -3218,7 +3257,7 @@ Future<void> _loadUnlockedThemes() async {
             bool isLocalBg =
                 theme.bgVideo != "사용 안 함" &&
                 theme.bgVideo != "비 오는 밤 (Rain)" &&
-theme.bgVideo != "벚꽃 (Cherry Blossom)" &&
+                theme.bgVideo != "벚꽃 (Cherry Blossom)" &&
                 theme.bgVideo != "노을 (Sunset)" &&
                 theme.bgVideo != "밤하늘 (Sky Moon)"; // 🔥 새 사진 이름 추가!
             // 🔥 시계가 로컬 사진인지 체크
@@ -3711,6 +3750,7 @@ theme.bgVideo != "벚꽃 (Cherry Blossom)" &&
             options: const ["NONE", "SOFT", "MEDIUM", "STRONG"],
             notifier: globalHapticIntensity,
             accentColor: accentColor,
+            onSelected: _previewHapticIntensity,
           ),
         ],
       );
