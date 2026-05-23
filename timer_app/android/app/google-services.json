@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "231265814669-u3elumjpu9or0da8b6umaqo10529eefa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.timer_app",
+            "certificate_hash": "0b51e9eaa5b46e6deecdd7868348bc480c91c997"
+          }
+        },
+        {
           "client_id": "231265814669-ifrqri52too4as8lns4j5drnfsqa581m.apps.googleusercontent.com",
           "client_type": 3
         }
