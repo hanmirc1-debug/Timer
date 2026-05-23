@@ -23,10 +23,11 @@ class TimerAppPage extends StatefulWidget {
 }
 
 class TimerAppPageState extends State<TimerAppPage>
-    with TickerProviderStateMixin { // 🔥 TickerProviderStateMixin으로 변경 (애니메이션 컨트롤러 2개 사용)
+    with TickerProviderStateMixin {
+  // 🔥 TickerProviderStateMixin으로 변경 (애니메이션 컨트롤러 2개 사용)
   late AnimationController controller;
   late AnimationController _dragAnimController; // 🔥 튜토리얼 50초 드래그 시뮬레이션용 애니메이터
-  
+
   Timer? _vibrationTimer;
   double targetSeconds = globalTimerMaxSeconds.value;
   double currentSeconds = globalTimerMaxSeconds.value;
@@ -73,7 +74,10 @@ class TimerAppPageState extends State<TimerAppPage>
     });
 
     // 2. 튜토리얼 드래그 50초 애니메이션 컨트롤러
-    _dragAnimController = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
+    _dragAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
 
     // 글로벌 리스너 연결
     globalTimerMaxSeconds.addListener(_onMaxScaleChanged);
@@ -141,8 +145,8 @@ class TimerAppPageState extends State<TimerAppPage>
     globalClockVideoName.value = "사용 안 함";
     globalTimerMaxString.value = "60초 (1분)";
     globalTimerMaxSeconds.value = 60.0;
-    globalDisplayMode.value = "BOTH"; 
-    globalIndicatorMode.value = "NUMBER"; 
+    globalDisplayMode.value = "BOTH";
+    globalIndicatorMode.value = "NUMBER";
 
     // 타이머 0초로 초기화 후 튜토리얼 1단계 시작
     stop();
@@ -150,85 +154,94 @@ class TimerAppPageState extends State<TimerAppPage>
       targetSeconds = 60.0;
       currentSeconds = 60.0;
       // 🔥 [핵심 추가] duration도 60초에 맞게 세팅해 주어야 화면에 빨간색이 1.0(꽉 참) 비율로 제대로 그려집니다
-       controller.duration = const Duration(seconds: 60);
+      controller.duration = const Duration(seconds: 60);
       controller.value = 1.0;
       _tutorialStep = 1;
     });
   }
 
-void _nextTutorialStep() {
+  void _nextTutorialStep() {
     if (_tutorialStep == 1) {
       // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
       // begin: 1.0 (꽉 찬 상태) -> end: 50/60 (50초 지점까지 비워짐)
       Animation<double> anim = Tween<double>(begin: 60.0, end: 50.0).animate(
-          CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut));
-      
+        CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
+      );
+
       anim.addListener(() {
         setState(() {
           targetSeconds = anim.value; // 숫자는 60 -> 50으로 줄어듦
           currentSeconds = targetSeconds;
-          
+
           // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
-          controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+          controller.duration = Duration(
+            milliseconds: (targetSeconds * 1000).toInt(),
+          );
           controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
         });
       });
       _dragAnimController.forward(from: 0.0);
-      
+
       setState(() {
         _tutorialStep = 2; // "이런 식으로 맞춰집니다" 말풍선으로 변경
       });
       return;
     }
     // case 4
-        if (_tutorialStep == 3) {
+    if (_tutorialStep == 3) {
       // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
       Animation<double> anim = Tween<double>(begin: 50.0, end: 0).animate(
-          CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut));
-      
+        CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
+      );
+
       anim.addListener(() {
         setState(() {
-          targetSeconds = anim.value; 
+          targetSeconds = anim.value;
           currentSeconds = targetSeconds;
-          
+
           // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
-          controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+          controller.duration = Duration(
+            milliseconds: (targetSeconds * 1000).toInt(),
+          );
           controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
         });
       });
       _dragAnimController.forward(from: 0.0);
-      
+
       setState(() {
         _tutorialStep = 4; // "이런 식으로 맞춰집니다" 말풍선으로 변경
       });
       return;
     }
-        // case 5
-        if (_tutorialStep == 4) {
+    // case 5
+    if (_tutorialStep == 4) {
       // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
       Animation<double> anim = Tween<double>(begin: 0, end: 50.0).animate(
-          CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut));
-      
+        CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
+      );
+
       anim.addListener(() {
         setState(() {
-          targetSeconds = anim.value; 
+          targetSeconds = anim.value;
           currentSeconds = targetSeconds;
-          
+
           // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
-          controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+          controller.duration = Duration(
+            milliseconds: (targetSeconds * 1000).toInt(),
+          );
           controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
         });
       });
       _dragAnimController.forward(from: 0.0);
-      
+
       setState(() {
         _tutorialStep = 5; // "이런 식으로 맞춰집니다" 말풍선으로 변경
       });
       return;
     }
-    
+
     if (_tutorialStep == 9) {
-      _showTutorialFinishDialog(); 
+      _showTutorialFinishDialog();
       return;
     }
 
@@ -268,7 +281,9 @@ void _nextTutorialStep() {
       context: context,
       builder: (context) => CupertinoAlertDialog(
         title: const Text("앱 사용 준비 완료!"),
-        content: const Text("이제 나만의 타이머를 자유롭게 써보세요!\n\n(튜토리얼은 '설정 > 고객 센터'에서 언제든 다시 볼 수 있습니다.)"),
+        content: const Text(
+          "이제 나만의 타이머를 자유롭게 써보세요!\n\n(튜토리얼은 '설정 > 고객 센터'에서 언제든 다시 볼 수 있습니다.)",
+        ),
         actions: [
           CupertinoDialogAction(
             child: const Text("한 번 더 보기"),
@@ -306,13 +321,25 @@ void _nextTutorialStep() {
 
   void _syncPomodoroTime() {
     if (globalPomodoroState.value == PomodoroState.work) {
-      double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+      double min =
+          double.tryParse(
+            globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          25;
       _applyManualTime(min * 60);
     } else if (globalPomodoroState.value == PomodoroState.shortBreak) {
-      double min = double.tryParse(globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5;
+      double min =
+          double.tryParse(
+            globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          5;
       _applyManualTime(min * 60);
     } else {
-      double min = double.tryParse(globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 15;
+      double min =
+          double.tryParse(
+            globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          15;
       _applyManualTime(min * 60);
     }
   }
@@ -338,19 +365,40 @@ void _nextTutorialStep() {
 
   void _startVibrationLoop() {
     _vibrationTimer?.cancel();
+
+    if (!globalVibrationEnabled.value) return;
+
+    // 끝나자마자 바로 1회 진동
+    Vibration.vibrate(duration: 400, amplitude: 255);
+
     _vibrationTimer = Timer.periodic(const Duration(milliseconds: 700), (_) {
-      if (!isAlarmPlaying) {
+      if (!isAlarmPlaying || !globalVibrationEnabled.value) {
         _vibrationTimer?.cancel();
         return;
       }
+
       Vibration.vibrate(duration: 400, amplitude: 255);
     });
   }
 
   void _triggerAlarm() async {
     debugPrint("triggerAlarm called");
-    if (!globalAlarmEnabled.value) return;
+
     if (isAlarmPlaying) return;
+
+    final bool soundEnabled = globalAlarmEnabled.value;
+    final bool vibrationEnabled = globalVibrationEnabled.value;
+
+    debugPrint(
+      "alarm option => soundEnabled: $soundEnabled, vibrationEnabled: $vibrationEnabled",
+    );
+
+    // 알림음 OFF + 진동 OFF면 아무것도 안 함
+    if (!soundEnabled && !vibrationEnabled) {
+      isCompleted = true;
+      controller.stop();
+      return;
+    }
 
     isAlarmPlaying = true;
     isCompleted = true;
@@ -358,14 +406,15 @@ void _nextTutorialStep() {
 
     await GlobalBgmManager.stopBgm();
 
-    final option = globalAlarmSound.value;
-    if (option == "진동만") {
-      _startVibrationLoop();
-      return;
+    // 알림음 ON일 때만 소리 재생
+    if (soundEnabled) {
+      await GlobalBgmManager.playAlarmSound(globalAlarmSound.value);
     }
 
-    await GlobalBgmManager.playAlarmSound(option);
-    _startVibrationLoop();
+    // 진동 ON일 때만 진동 반복
+    if (vibrationEnabled) {
+      _startVibrationLoop();
+    }
   }
 
   void _checkAutoPomodoro() async {
@@ -397,16 +446,28 @@ void _nextTutorialStep() {
 
     if (globalPomodoroState.value == PomodoroState.work) {
       globalCompletedCycles.value++;
-      int cycleTarget = int.tryParse(globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
+      int cycleTarget =
+          int.tryParse(
+            globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          4;
 
       if (globalCompletedCycles.value > 0 &&
           globalCompletedCycles.value % cycleTarget == 0) {
         globalPomodoroState.value = PomodoroState.longBreak;
-        double min = double.tryParse(globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 15;
+        double min =
+            double.tryParse(
+              globalPomodoroLongBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            15;
         _applyManualTime(min * 60);
       } else {
         globalPomodoroState.value = PomodoroState.shortBreak;
-        double min = double.tryParse(globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 5;
+        double min =
+            double.tryParse(
+              globalPomodoroShortBreak.value.replaceAll(RegExp(r'[^0-9]'), ''),
+            ) ??
+            5;
         _applyManualTime(min * 60);
       }
 
@@ -415,14 +476,30 @@ void _nextTutorialStep() {
       if (globalPomodoroState.value == PomodoroState.longBreak) {
         String maxSessionStr = globalPomodoroMaxSessions.value;
         if (!maxSessionStr.contains("제한 없음")) {
-          int maxSessions = int.tryParse(maxSessionStr.replaceAll(RegExp(r'[^0-9]'), '')) ?? 1;
-          int cycleTarget = int.tryParse(globalPomodoroCycleCount.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
+          int maxSessions =
+              int.tryParse(maxSessionStr.replaceAll(RegExp(r'[^0-9]'), '')) ??
+              1;
+          int cycleTarget =
+              int.tryParse(
+                globalPomodoroCycleCount.value.replaceAll(
+                  RegExp(r'[^0-9]'),
+                  '',
+                ),
+              ) ??
+              4;
 
           if (globalCompletedCycles.value >= (maxSessions * cycleTarget)) {
             globalPomodoroState.value = PomodoroState.work;
             globalCompletedCycles.value = 0;
 
-            double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+            double min =
+                double.tryParse(
+                  globalPomodoroWorkTime.value.replaceAll(
+                    RegExp(r'[^0-9]'),
+                    '',
+                  ),
+                ) ??
+                25;
             _applyManualTime(min * 60);
 
             debugPrint("🍅 설정한 최대 뽀모도로 세션이 모두 종료되었습니다.");
@@ -432,7 +509,11 @@ void _nextTutorialStep() {
       }
 
       globalPomodoroState.value = PomodoroState.work;
-      double min = double.tryParse(globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 25;
+      double min =
+          double.tryParse(
+            globalPomodoroWorkTime.value.replaceAll(RegExp(r'[^0-9]'), ''),
+          ) ??
+          25;
       _applyManualTime(min * 60);
 
       if (globalPomodoroAutoWork.value) start();
@@ -443,15 +524,17 @@ void _nextTutorialStep() {
     debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
 
-        // 👇==== 새로 추가: 시작할 때의 시간을 기억해둠! ====👇
-    _savedResetSeconds = targetSeconds; 
+    // 👇==== 새로 추가: 시작할 때의 시간을 기억해둠! ====👇
+    _savedResetSeconds = targetSeconds;
     // 👆==========================================👆
 
     hasStarted = true;
     alarmTriggered = false;
     isAlarmPlaying = false;
 
-    controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+    controller.duration = Duration(
+      milliseconds: (targetSeconds * 1000).toInt(),
+    );
     if (isCompleted) {
       controller.value = 1.0;
       isCompleted = false;
@@ -472,7 +555,12 @@ void _nextTutorialStep() {
 
   void stop() {
     debugPrint("stop called");
+
     controller.stop();
+
+    _vibrationTimer?.cancel();
+    Vibration.cancel();
+
     setState(() => isRunning = false);
     widget.onRunningChanged(false);
 
@@ -499,7 +587,9 @@ void _nextTutorialStep() {
         targetSeconds = maxScale;
       }
       currentSeconds = targetSeconds;
-      controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+      controller.duration = Duration(
+        milliseconds: (targetSeconds * 1000).toInt(),
+      );
       controller.value = 1.0;
     });
   }
@@ -507,8 +597,12 @@ void _nextTutorialStep() {
   void _showTimeInputDialog() {
     if (isRunning || _tutorialStep > 0) return;
 
-    TextEditingController minController = TextEditingController(text: (targetSeconds ~/ 60).toString());
-    TextEditingController secController = TextEditingController(text: (targetSeconds % 60).toInt().toString());
+    TextEditingController minController = TextEditingController(
+      text: (targetSeconds ~/ 60).toString(),
+    );
+    TextEditingController secController = TextEditingController(
+      text: (targetSeconds % 60).toInt().toString(),
+    );
 
     showDialog(
       context: context,
@@ -524,10 +618,15 @@ void _nextTutorialStep() {
 
             return AlertDialog(
               backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               title: Text(
                 "시간 직접 입력",
-                style: TextStyle(color: globalClockColor.value, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: globalClockColor.value,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -539,36 +638,77 @@ void _nextTutorialStep() {
                         child: TextField(
                           controller: minController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                           decoration: InputDecoration(
                             labelText: "분 (Min)",
                             labelStyle: TextStyle(color: textColor),
                             border: const OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : Colors.grey)),
-                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : globalClockColor.value, width: 2)),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding
+                                    ? Colors.red
+                                    : globalClockColor.value,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           onChanged: (val) => setStateDialog(() {}),
                         ),
                       ),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: Text(":", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: textColor)),
+                        child: Text(
+                          ":",
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
                       ),
                       Expanded(
                         child: TextField(
                           controller: secController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: TextStyle(
+                            color: textColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                           decoration: InputDecoration(
                             labelText: "초 (Sec)",
                             labelStyle: TextStyle(color: textColor),
                             border: const OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : Colors.grey)),
-                            focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: isExceeding ? Colors.red : globalClockColor.value, width: 2)),
+                            enabledBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding ? Colors.red : Colors.grey,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderSide: BorderSide(
+                                color: isExceeding
+                                    ? Colors.red
+                                    : globalClockColor.value,
+                                width: 2,
+                              ),
+                            ),
                           ),
                           onChanged: (val) => setStateDialog(() {}),
                         ),
@@ -578,24 +718,48 @@ void _nextTutorialStep() {
                   if (isExceeding)
                     const Padding(
                       padding: EdgeInsets.only(top: 12.0),
-                      child: Text("120분 이하로 설정해주세요.", style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        "120분 이하로 설정해주세요.",
+                        style: TextStyle(
+                          color: Colors.red,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                 ],
               ),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text("취소", style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "취소",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: isExceeding ? Colors.grey.shade400 : globalClockColor.value),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isExceeding
+                        ? Colors.grey.shade400
+                        : globalClockColor.value,
+                  ),
                   onPressed: isExceeding
                       ? null
                       : () {
-                          if (totalInputSeconds > 0) _applyManualTime(totalInputSeconds);
+                          if (totalInputSeconds > 0)
+                            _applyManualTime(totalInputSeconds);
                           Navigator.pop(context);
                         },
-                  child: const Text("적용", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    "적용",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             );
@@ -608,15 +772,21 @@ void _nextTutorialStep() {
   void _applyManualTime(double inputSec) {
     setState(() {
       if (!globalPomodoroMode.value) {
-        if (inputSec <= 60) globalTimerMaxString.value = "60초 (1분)";
-        else if (inputSec <= 120) globalTimerMaxString.value = "120초 (2분)";
-        else if (inputSec <= 3600) globalTimerMaxString.value = "60분";
-        else globalTimerMaxString.value = "120분";
+        if (inputSec <= 60)
+          globalTimerMaxString.value = "60초 (1분)";
+        else if (inputSec <= 120)
+          globalTimerMaxString.value = "120초 (2분)";
+        else if (inputSec <= 3600)
+          globalTimerMaxString.value = "60분";
+        else
+          globalTimerMaxString.value = "120분";
       }
 
       targetSeconds = inputSec;
       currentSeconds = targetSeconds;
-      controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+      controller.duration = Duration(
+        milliseconds: (targetSeconds * 1000).toInt(),
+      );
       controller.value = 1.0;
     });
   }
@@ -626,9 +796,10 @@ void _nextTutorialStep() {
     if (_tutorialStep > 0) return; // 🔥 튜토리얼 중에는 터치 작동 방지
 
     final now = DateTime.now();
-    if (_lastToggleTime != null && now.difference(_lastToggleTime!).inMilliseconds < 300) {
+    if (_lastToggleTime != null &&
+        now.difference(_lastToggleTime!).inMilliseconds < 300) {
       debugPrint("고스트 터치 방어 완료!");
-      return; 
+      return;
     }
     _lastToggleTime = now;
 
@@ -644,42 +815,44 @@ void _nextTutorialStep() {
     }
   }
 
-// // 👇==== 정확히 이 위치에 붙여넣으세요! (toggle 함수 끝나는 곳과 build 함수 시작하는 곳 사이) ====👇
-//   // 🔄 타이머 초기화 (리셋) 함수 (아래로 스와이프 시 실행됨)
-//   void _resetTimer() {
-//     // 튜토리얼 중이거나 타이머가 이미 실행중일 때는 리셋되지 않음
-//     // (만약 잠금 기능 상태 변수가 따로 있다면 '|| isLocked' 를 여기에 추가해주세요)
-//     if (isRunning || _tutorialStep > 0) return;
+  // // 👇==== 정확히 이 위치에 붙여넣으세요! (toggle 함수 끝나는 곳과 build 함수 시작하는 곳 사이) ====👇
+  //   // 🔄 타이머 초기화 (리셋) 함수 (아래로 스와이프 시 실행됨)
+  //   void _resetTimer() {
+  //     // 튜토리얼 중이거나 타이머가 이미 실행중일 때는 리셋되지 않음
+  //     // (만약 잠금 기능 상태 변수가 따로 있다면 '|| isLocked' 를 여기에 추가해주세요)
+  //     if (isRunning || _tutorialStep > 0) return;
 
-//     setState(() {
-//       // 드래그해서 맞춰둔 목표 시간(예: 50초)으로 되돌림
-//       currentSeconds = targetSeconds; 
-//       // 애니메이션 재생 시간도 50초에 맞춰서 다시 세팅
-//       controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
-//       // 타이머 원형 색상을 다시 꽉 찬 상태(1.0)로 되돌림
-//       controller.value = 1.0; 
-//       isCompleted = false;
-//     });
-//   }
-//   // 👆===================================================================👆
+  //     setState(() {
+  //       // 드래그해서 맞춰둔 목표 시간(예: 50초)으로 되돌림
+  //       currentSeconds = targetSeconds;
+  //       // 애니메이션 재생 시간도 50초에 맞춰서 다시 세팅
+  //       controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+  //       // 타이머 원형 색상을 다시 꽉 찬 상태(1.0)로 되돌림
+  //       controller.value = 1.0;
+  //       isCompleted = false;
+  //     });
+  //   }
+  //   // 👆===================================================================👆
   // 🔄 타이머 초기화 (리셋) 함수
   void _resetTimer() {
     if (_tutorialStep > 0) return;
 
     setState(() {
-      // 🎯 방금 스와이프 하느라 시계가 건드려져서 시간이 꼬였어도, 
+      // 🎯 방금 스와이프 하느라 시계가 건드려져서 시간이 꼬였어도,
       // 시작할 때 저장해둔 시간으로 완벽 복원!
       targetSeconds = _savedResetSeconds;
       currentSeconds = targetSeconds;
-      controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
+      controller.duration = Duration(
+        milliseconds: (targetSeconds * 1000).toInt(),
+      );
       controller.value = 1.0;
       isCompleted = false;
     });
   }
-  
+
   @override
   Widget build(BuildContext context) {
-       return Listener(
+    return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
         // 🎯 1. 화면에 손이 닿는 순간의 위치, 시간, 그리고 '현재 타이머가 돌아가고 있는지'를 기억합니다!
@@ -693,8 +866,8 @@ void _nextTutorialStep() {
         // 🎯 2. 스와이프를 시작할 때 타이머가 돌아가고 있었다면, 무조건 스와이프(리셋)를 무시합니다!
         // (스와이프 도중에 main.dart 때문에 타이머가 꺼져버렸더라도 상관없이 차단됨)
         if (_wasRunningWhenDragStarted) {
-            debugPrint("동작 중 스와이프 시도: 차단 완료!");
-            return;
+          debugPrint("동작 중 스와이프 시도: 차단 완료!");
+          return;
         }
 
         final dy = event.position.dy - _dragStartY;
@@ -703,149 +876,201 @@ void _nextTutorialStep() {
         // y축으로 50픽셀 이상, 0.5초(500ms) 이내로 빠르게 내린 경우 = 아래로 스와이프!
         if (dy > 50 && dt > 0 && dt < 500) {
           final velocity = dy / (dt / 1000); // 픽셀/초 단위 속도 계산
-          
+
           // [마우스 환경 대응] 크롬 테스트를 위해 속도 기준을 100으로 낮춤
-          if (velocity > 100) { 
+          if (velocity > 100) {
             debugPrint("fff! 완벽하게 스와이프 인식됨");
 
             // 🎯 3. 빠른 스와이프 때문에 정지 상태에서 타이머가 실수로 켜졌다면, 다시 끄고 리셋 진행
             if (isRunning) {
-                stop();
+              stop();
             }
-            
+
             _resetTimer();
           }
         }
       },
-    child: Stack(
-      children: [
-        BaseClockLayout(
-          key: widget.clockKey,
-          isRunning: isRunning,
-          onTapToggle: toggle,
-          onPanUpdate: (!isRunning && !globalPomodoroMode.value) ? updateStartTime : null,
-          drawnSeconds: currentSeconds,
-          maxScaleSeconds: globalPomodoroMode.value ? _getPomodoroMaxScale(targetSeconds) : globalTimerMaxSeconds.value,
-          isTimer: true,
-          digitalSeconds: currentSeconds,
-          onDigitalLongPress: globalPomodoroMode.value ? null : () => _showTimeInputDialog(),
-        ),
-        
-        Positioned(
-          top: MediaQuery.of(context).padding.top + 20,
-          left: 0,
-          right: 0,
-          child: ValueListenableBuilder<bool>(
-            valueListenable: globalPomodoroMode,
-            builder: (context, isPomodoro, child) {
-              if (!isPomodoro) return const SizedBox.shrink();
+      child: Stack(
+        children: [
+          BaseClockLayout(
+            key: widget.clockKey,
+            isRunning: isRunning,
+            onTapToggle: toggle,
+            onPanUpdate: (!isRunning && !globalPomodoroMode.value)
+                ? updateStartTime
+                : null,
+            drawnSeconds: currentSeconds,
+            maxScaleSeconds: globalPomodoroMode.value
+                ? _getPomodoroMaxScale(targetSeconds)
+                : globalTimerMaxSeconds.value,
+            isTimer: true,
+            digitalSeconds: currentSeconds,
+            onDigitalLongPress: globalPomodoroMode.value
+                ? null
+                : () => _showTimeInputDialog(),
+          ),
 
-              return ValueListenableBuilder<PomodoroState>(
-                valueListenable: globalPomodoroState,
-                builder: (context, state, child) {
-                  return ValueListenableBuilder<Color>(
-                    valueListenable: globalClockColor,
-                    builder: (context, clockColor, child) {
-                      return ValueListenableBuilder<int>(
-                        valueListenable: globalCompletedCycles,
-                        builder: (context, cycles, child) {
-                          return ValueListenableBuilder<String>(
-                            valueListenable: globalPomodoroCycleCount,
-                            builder: (context, cycleSetting, child) {
-                              return ValueListenableBuilder<String>(
-                                valueListenable: globalPomodoroMaxSessions,
-                                builder: (context, sessionSetting, child) {
-                                  String statusText = (state == PomodoroState.work)
-                                      ? "집중 모드"
-                                      : (state == PomodoroState.shortBreak ? "짧은 휴식" : "긴 휴식");
-                                  IconData icon = (state == PomodoroState.work)
-                                      ? Icons.local_fire_department
-                                      : (state == PomodoroState.shortBreak ? Icons.coffee : Icons.hotel);
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 20,
+            left: 0,
+            right: 0,
+            child: ValueListenableBuilder<bool>(
+              valueListenable: globalPomodoroMode,
+              builder: (context, isPomodoro, child) {
+                if (!isPomodoro) return const SizedBox.shrink();
 
-                                  int cycleTarget = int.tryParse(cycleSetting.replaceAll(RegExp(r'[^0-9]'), '')) ?? 4;
-                                  int displayCycle = (state == PomodoroState.work)
-                                      ? (cycles % cycleTarget) + 1
-                                      : (cycles > 0 ? ((cycles - 1) % cycleTarget) + 1 : 1);
-                                  int displaySession = (state == PomodoroState.work)
-                                      ? (cycles ~/ cycleTarget) + 1
-                                      : (cycles > 0 ? ((cycles - 1) ~/ cycleTarget) + 1 : 1);
-                                  String totalSessions = sessionSetting.contains("제한 없음")
-                                      ? "제한 없음"
-                                      : sessionSetting.replaceAll(RegExp(r'[^0-9]'), '');
+                return ValueListenableBuilder<PomodoroState>(
+                  valueListenable: globalPomodoroState,
+                  builder: (context, state, child) {
+                    return ValueListenableBuilder<Color>(
+                      valueListenable: globalClockColor,
+                      builder: (context, clockColor, child) {
+                        return ValueListenableBuilder<int>(
+                          valueListenable: globalCompletedCycles,
+                          builder: (context, cycles, child) {
+                            return ValueListenableBuilder<String>(
+                              valueListenable: globalPomodoroCycleCount,
+                              builder: (context, cycleSetting, child) {
+                                return ValueListenableBuilder<String>(
+                                  valueListenable: globalPomodoroMaxSessions,
+                                  builder: (context, sessionSetting, child) {
+                                    String statusText =
+                                        (state == PomodoroState.work)
+                                        ? "집중 모드"
+                                        : (state == PomodoroState.shortBreak
+                                              ? "짧은 휴식"
+                                              : "긴 휴식");
+                                    IconData icon =
+                                        (state == PomodoroState.work)
+                                        ? Icons.local_fire_department
+                                        : (state == PomodoroState.shortBreak
+                                              ? Icons.coffee
+                                              : Icons.hotel);
 
-                                  return Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.06),
-                                        borderRadius: BorderRadius.circular(16),
-                                      ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(icon, size: 16, color: clockColor),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                "뽀모도로 - $statusText ($displayCycle/$cycleTarget)",
-                                                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: clockColor),
+                                    int cycleTarget =
+                                        int.tryParse(
+                                          cycleSetting.replaceAll(
+                                            RegExp(r'[^0-9]'),
+                                            '',
+                                          ),
+                                        ) ??
+                                        4;
+                                    int displayCycle =
+                                        (state == PomodoroState.work)
+                                        ? (cycles % cycleTarget) + 1
+                                        : (cycles > 0
+                                              ? ((cycles - 1) % cycleTarget) + 1
+                                              : 1);
+                                    int displaySession =
+                                        (state == PomodoroState.work)
+                                        ? (cycles ~/ cycleTarget) + 1
+                                        : (cycles > 0
+                                              ? ((cycles - 1) ~/ cycleTarget) +
+                                                    1
+                                              : 1);
+                                    String totalSessions =
+                                        sessionSetting.contains("제한 없음")
+                                        ? "제한 없음"
+                                        : sessionSetting.replaceAll(
+                                            RegExp(r'[^0-9]'),
+                                            '',
+                                          );
+
+                                    return Center(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 10,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.06),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  icon,
+                                                  size: 16,
+                                                  color: clockColor,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(
+                                                  "뽀모도로 - $statusText ($displayCycle/$cycleTarget)",
+                                                  style: TextStyle(
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: clockColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              "세션 (현재/최대) : $displaySession / $totalSessions",
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: clockColor.withOpacity(
+                                                  0.7,
+                                                ),
+                                                fontWeight: FontWeight.w600,
                                               ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            "세션 (현재/최대) : $displaySession / $totalSessions",
-                                            style: TextStyle(fontSize: 13, color: clockColor.withOpacity(0.7), fontWeight: FontWeight.w600),
-                                          ),
-                                        ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                },
-                              );
-                            },
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              );
-            },
-          ),
-        ),
-
-        if (isAlarmPlaying)
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                GlobalBgmManager.stopAllSound();
-                _vibrationTimer?.cancel();
-                setState(() {
-                  isAlarmPlaying = false;
-                  isRunning = false;
-                  widget.onRunningChanged(false);
-                });
-                if (globalPomodoroMode.value) {
-                  _handlePomodoroNextStep();
-                }
+                                    );
+                                  },
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
+                );
               },
-              child: Container(color: Colors.transparent),
             ),
           ),
 
-        // 🔥 [튜토리얼용 오버레이 위치] 화면 전체를 덮어씌웁니다.
-        if (_tutorialStep > 0)
-          Positioned.fill(
-            child: TutorialOverlayWidget(
-              step: _tutorialStep,
-              onTap: _nextTutorialStep,
+          if (isAlarmPlaying)
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  GlobalBgmManager.stopAllSound();
+                  _vibrationTimer?.cancel();
+                  Vibration.cancel();
+
+                  setState(() {
+                    isAlarmPlaying = false;
+                    isRunning = false;
+                    widget.onRunningChanged(false);
+                  });
+                  if (globalPomodoroMode.value) {
+                    _handlePomodoroNextStep();
+                  }
+                },
+                child: Container(color: Colors.transparent),
+              ),
             ),
-          ),
-      ],
-    ),);
+
+          // 🔥 [튜토리얼용 오버레이 위치] 화면 전체를 덮어씌웁니다.
+          if (_tutorialStep > 0)
+            Positioned.fill(
+              child: TutorialOverlayWidget(
+                step: _tutorialStep,
+                onTap: _nextTutorialStep,
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

@@ -25,7 +25,9 @@ ValueNotifier<String> globalPomodoroCycleCount = ValueNotifier<String>("4번");
 ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>(
   "제한 없음",
 );
-ValueNotifier<bool> globalIsTutorialActive = ValueNotifier(false); // 🔥 튜토리얼 진행 여부
+ValueNotifier<bool> globalIsTutorialActive = ValueNotifier(
+  false,
+); // 🔥 튜토리얼 진행 여부
 // 뽀모도로 자동 시작 설정
 ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(
   false,
@@ -154,11 +156,24 @@ Future<void> loadSettings() async {
 
 void initSettingsListener() {
   bool _lastVibrationState = globalVibrationEnabled.value;
-  globalVibrationEnabled.addListener(() {
-    // 🔥 OFF → ON 바뀌는 순간만 진동
-    Vibration.vibrate(duration: 80, amplitude: 255);
 
-    _lastVibrationState = globalVibrationEnabled.value;
+  globalVibrationEnabled.addListener(() async {
+    final bool currentState = globalVibrationEnabled.value;
+
+    // OFF → ON 바뀌는 순간에만 테스트 진동 1회
+    if (!_lastVibrationState && currentState) {
+      try {
+        final hasVibrator = await Vibration.hasVibrator() ?? false;
+
+        if (hasVibrator) {
+          Vibration.vibrate(duration: 120, amplitude: 255);
+        }
+      } catch (e) {
+        debugPrint("진동 테스트 실패: $e");
+      }
+    }
+
+    _lastVibrationState = currentState;
 
     saveSettings();
     FirebaseSettingsService.saveSettingsDebounced();
@@ -357,9 +372,6 @@ class GlobalBgmManager {
   static Future<void> playAlarmSound(String soundName) async {
     debugPrint("🔥 playAlarmSound CALLED");
     // 🔥 진동 추가
-    if (globalVibrationEnabled.value) {
-      Vibration.vibrate(pattern: [0, 500, 200, 500], amplitude: 255);
-    }
 
     final path = alarmSoundMap[soundName];
     if (path == null) return;
@@ -522,14 +534,15 @@ class SharedClockPainter extends CustomPainter {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = min(size.width, size.height) * 0.5;
 
-if (globalClockColor.value != Colors.transparent && globalClockVideoName.value == "사용 안 함") {
+    if (globalClockColor.value != Colors.transparent &&
+        globalClockVideoName.value == "사용 안 함") {
       final shadowPaint = Paint()
         ..color = Colors.black.withOpacity(0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
       canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
 
-// 🔥 [핵심 수정] BgColor(배경색) -> ClockColor(시계색) 으로 변경!
-      //final facePaint = Paint()..color = globalClockColor.value; 
+      // 🔥 [핵심 수정] BgColor(배경색) -> ClockColor(시계색) 으로 변경!
+      //final facePaint = Paint()..color = globalClockColor.value;
       //canvas.drawCircle(center, radius, facePaint);
     }
 
@@ -562,8 +575,8 @@ if (globalClockColor.value != Colors.transparent && globalClockVideoName.value =
     final paintArc = Paint()
       ..color = arcColor
       ..style = PaintingStyle.fill;
-if (drawnSeconds > 0 && globalClockVideoName.value == "사용 안 함") {
-        canvas.drawArc(
+    if (drawnSeconds > 0 && globalClockVideoName.value == "사용 안 함") {
+      canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius * 0.98),
         startAngle,
         sweepAngle,
@@ -1121,7 +1134,7 @@ class BaseClockLayout extends StatelessWidget {
               }
             }
             final digitalFontSize = baseFontSize * fontMultiplier;
-Widget analogClockWidget = GestureDetector(
+            Widget analogClockWidget = GestureDetector(
               behavior: HitTestBehavior.opaque,
               onPanStart: onPanStart != null ? (_) => onPanStart!() : null,
               onPanUpdate: onPanUpdate != null
@@ -1151,12 +1164,20 @@ Widget analogClockWidget = GestureDetector(
                   if (globalClockVideoName.value != "사용 안 함")
                     CustomPaint(
                       size: Size(clockSize, clockSize),
-                      painter: PieShadowPainter(drawnSeconds, maxScaleSeconds, isTimer),
+                      painter: PieShadowPainter(
+                        drawnSeconds,
+                        maxScaleSeconds,
+                        isTimer,
+                      ),
                     ),
-// 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
+                  // 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
                   if (globalClockVideoName.value != "사용 안 함")
                     ClipPath(
-                      clipper: ClockImageClipper(drawnSeconds, maxScaleSeconds, isTimer),
+                      clipper: ClockImageClipper(
+                        drawnSeconds,
+                        maxScaleSeconds,
+                        isTimer,
+                      ),
                       child: Container(
                         width: clockSize,
                         height: clockSize,
@@ -1165,11 +1186,15 @@ Widget analogClockWidget = GestureDetector(
                           image: DecorationImage(
                             image: (globalClockVideoName.value == "노을 (Sunset)")
                                 ? const AssetImage('assets/image/sunset.jpg')
-                                : (globalClockVideoName.value == "밤하늘 (Sky Moon)")
-                                    ? const AssetImage('assets/image/sky_moon.jpg')
-                                    : (kIsWeb 
-                                        ? NetworkImage(globalClockVideoName.value) as ImageProvider 
-                                        : FileImage(File(globalClockVideoName.value))),
+                                : (globalClockVideoName.value ==
+                                      "밤하늘 (Sky Moon)")
+                                ? const AssetImage('assets/image/sky_moon.jpg')
+                                : (kIsWeb
+                                      ? NetworkImage(globalClockVideoName.value)
+                                            as ImageProvider
+                                      : FileImage(
+                                          File(globalClockVideoName.value),
+                                        )),
                             fit: BoxFit.cover,
                           ),
                         ),
@@ -1182,7 +1207,7 @@ Widget analogClockWidget = GestureDetector(
                     height: clockSize,
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.transparent, 
+                      color: Colors.transparent,
                     ),
                     child: CustomPaint(
                       key: analogClockHitKey,
@@ -1246,7 +1271,8 @@ Widget analogClockWidget = GestureDetector(
 
             return GestureDetector(
               //behavior: HitTestBehavior.deferToChild,
-              behavior: HitTestBehavior.translucent, // 🔥 핵심 수정: 시계 빈 공간을 터치해도 무시되지 않고 정상 작동하게 만듦
+              behavior: HitTestBehavior
+                  .translucent, // 🔥 핵심 수정: 시계 빈 공간을 터치해도 무시되지 않고 정상 작동하게 만듦
               onTap: onTapToggle,
               child: SizedBox(
                 width: availableWidth,
@@ -1412,7 +1438,8 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     globalBgVideoName.addListener(_updateVideoState);
     _updateVideoState();
   }
-// ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
+
+  // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   void _updateVideoState() {
     String currentVal = globalBgVideoName.value;
 
@@ -1429,7 +1456,7 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     bool isVideo = false;
 
     // 1. 고정 프리셋 영상 확인
-// 1. 고정 프리셋 영상 확인
+    // 1. 고정 프리셋 영상 확인
     if (currentVal == "비 오는 밤 (Rain)") {
       targetPath = 'assets/video/rainwindow.mp4';
       isVideo = true;
@@ -1457,7 +1484,7 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       if (isVideo) {
         _videoController?.dispose();
         _hasError = false;
-        
+
         // 에셋인지 로컬 파일인지 구분해서 로드
         if (targetPath.startsWith('assets/')) {
           _videoController = VideoPlayerController.asset(targetPath);
@@ -1465,15 +1492,18 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
           _videoController = VideoPlayerController.file(File(targetPath));
         }
 
-        _videoController!.initialize().then((_) {
-          _videoController!.setVolume(0.0);
-          _videoController!.setLooping(true);
-          _videoController!.play();
-          if (mounted) setState(() {});
-        }).catchError((e) {
-          debugPrint("비디오 재생 에러: $e");
-          if (mounted) setState(() => _hasError = true);
-        });
+        _videoController!
+            .initialize()
+            .then((_) {
+              _videoController!.setVolume(0.0);
+              _videoController!.setLooping(true);
+              _videoController!.play();
+              if (mounted) setState(() {});
+            })
+            .catchError((e) {
+              debugPrint("비디오 재생 에러: $e");
+              if (mounted) setState(() => _hasError = true);
+            });
       } else {
         _videoController?.dispose();
         _videoController = null;
@@ -1481,7 +1511,7 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       }
     }
   }
-// ---------------- 여기까지 교체 끝 ----------------
+  // ---------------- 여기까지 교체 끝 ----------------
 
   @override
   void dispose() {
@@ -1520,12 +1550,13 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
           ),
 
         if (!_isCurrentVideo && _currentBgPath.isNotEmpty)
-Positioned.fill(
+          Positioned.fill(
             child: _currentBgPath.startsWith('assets/')
                 ? Image.asset(_currentBgPath, fit: BoxFit.cover)
-                : (kIsWeb 
-                    ? Image.network(_currentBgPath, fit: BoxFit.cover) 
-                    : Image.file(File(_currentBgPath), fit: BoxFit.cover)),),
+                : (kIsWeb
+                      ? Image.network(_currentBgPath, fit: BoxFit.cover)
+                      : Image.file(File(_currentBgPath), fit: BoxFit.cover)),
+          ),
 
         // 🌸 [핵심 추가] 벚꽃 테마일 때만 터치를 통과하는(IgnorePointer) 애니메이션을 화면 꽉 차게 띄웁니다!
         if (isCherryBlossom)
@@ -1583,7 +1614,7 @@ class ClockImageClipper extends CustomClipper<Path> {
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final path = Path();
-    
+
     if (drawnSeconds <= 0) return path; // 남은 시간이 없으면 모두 투명하게 만듦
     if (drawnSeconds >= maxScaleSeconds) {
       path.addOval(Rect.fromCircle(center: center, radius: radius));
@@ -1593,7 +1624,8 @@ class ClockImageClipper extends CustomClipper<Path> {
     // 타이머와 스톱워치 모드에 따라 부채꼴 각도 계산
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     double startAngle = isTimer
-        ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
+        ? -pi / 2 +
+              ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
         : -pi / 2;
 
     // 부채꼴 모양 경로 생성
@@ -1611,10 +1643,11 @@ class ClockImageClipper extends CustomClipper<Path> {
   @override
   bool shouldReclip(ClockImageClipper oldClipper) {
     return oldClipper.drawnSeconds != drawnSeconds ||
-           oldClipper.maxScaleSeconds != maxScaleSeconds ||
-           oldClipper.isTimer != isTimer;
+        oldClipper.maxScaleSeconds != maxScaleSeconds ||
+        oldClipper.isTimer != isTimer;
   }
 }
+
 // 🔥 깎여나가는 사진 모양에 맞춰 똑같이 잘리는 똑똑한 그림자 화가!
 class PieShadowPainter extends CustomPainter {
   final double drawnSeconds;
@@ -1626,7 +1659,7 @@ class PieShadowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (drawnSeconds <= 0) return;
-    
+
     final center = Offset(size.width / 2, size.height / 2);
     final radius = size.width / 2;
     final path = Path();
@@ -1636,10 +1669,16 @@ class PieShadowPainter extends CustomPainter {
     } else {
       final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
       double startAngle = isTimer
-          ? -pi / 2 + ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
+          ? -pi / 2 +
+                ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
           : -pi / 2;
       path.moveTo(center.dx, center.dy);
-      path.arcTo(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false);
+      path.arcTo(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+      );
       path.close();
     }
 
@@ -1655,7 +1694,7 @@ class PieShadowPainter extends CustomPainter {
   @override
   bool shouldRepaint(PieShadowPainter oldDelegate) {
     return oldDelegate.drawnSeconds != drawnSeconds ||
-           oldDelegate.maxScaleSeconds != maxScaleSeconds ||
-           oldDelegate.isTimer != isTimer;
+        oldDelegate.maxScaleSeconds != maxScaleSeconds ||
+        oldDelegate.isTimer != isTimer;
   }
 }
