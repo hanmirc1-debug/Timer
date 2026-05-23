@@ -8,6 +8,9 @@ import 'package:vibration/vibration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/cupertino.dart';
 import 'tutorial_overlay.dart'; // 방금 만든 파일 임포트!
+import 'package:flutter/foundation.dart';
+import 'package:sound_mode/sound_mode.dart';
+import 'package:sound_mode/utils/ringer_mode_statuses.dart';
 
 class TimerAppPage extends StatefulWidget {
   final ValueChanged<bool> onRunningChanged;
@@ -20,6 +23,13 @@ class TimerAppPage extends StatefulWidget {
 
   @override
   State<TimerAppPage> createState() => TimerAppPageState(); // 🔥 상태를 외부에서 접근할 수 있도록 퍼블릭으로 변경
+}
+
+class _EffectiveAlertState {
+  final bool sound;
+  final bool vibration;
+
+  const _EffectiveAlertState({required this.sound, required this.vibration});
 }
 
 class TimerAppPageState extends State<TimerAppPage>
@@ -363,17 +373,62 @@ class TimerAppPageState extends State<TimerAppPage>
     }
   }
 
-  void _startVibrationLoop() {
+  Future<_EffectiveAlertState> _getEffectiveAlertState() async {
+    final bool appSoundEnabled = globalAlarmEnabled.value;
+    final bool appVibrationEnabled = globalVibrationEnabled.value;
+
+    if (kIsWeb) {
+      return _EffectiveAlertState(
+        sound: appSoundEnabled,
+        vibration: appVibrationEnabled,
+      );
+    }
+
+    try {
+      final RingerModeStatus ringerStatus = await SoundMode.ringerModeStatus;
+
+      // 폰 무음 모드: 앱 설정과 관계없이 소리/진동 모두 차단
+      if (ringerStatus == RingerModeStatus.silent) {
+        return const _EffectiveAlertState(sound: false, vibration: false);
+      }
+
+      // 폰 진동 모드: 소리는 차단, 앱 진동 ON일 때만 진동
+      if (ringerStatus == RingerModeStatus.vibrate) {
+        return _EffectiveAlertState(
+          sound: false,
+          vibration: appVibrationEnabled,
+        );
+      }
+
+      // 폰 일반 모드: 앱 내부 설정 그대로 적용
+      if (ringerStatus == RingerModeStatus.normal) {
+        return _EffectiveAlertState(
+          sound: appSoundEnabled,
+          vibration: appVibrationEnabled,
+        );
+      }
+    } catch (e) {
+      debugPrint("폰 소리 모드 확인 실패: $e");
+    }
+
+    // 확인 실패 시 기존 앱 설정 기준으로 동작
+    return _EffectiveAlertState(
+      sound: appSoundEnabled,
+      vibration: appVibrationEnabled,
+    );
+  }
+
+  void _startVibrationLoop({required bool allowVibration}) {
     _vibrationTimer?.cancel();
 
-    if (!globalVibrationEnabled.value) return;
+    if (!allowVibration) return;
 
-    // 끝나자마자 바로 1회 진동
     Vibration.vibrate(duration: 400, amplitude: 255);
 
     _vibrationTimer = Timer.periodic(const Duration(milliseconds: 700), (_) {
-      if (!isAlarmPlaying || !globalVibrationEnabled.value) {
+      if (!isAlarmPlaying || !allowVibration || !globalVibrationEnabled.value) {
         _vibrationTimer?.cancel();
+        Vibration.cancel();
         return;
       }
 
@@ -386,17 +441,22 @@ class TimerAppPageState extends State<TimerAppPage>
 
     if (isAlarmPlaying) return;
 
-    final bool soundEnabled = globalAlarmEnabled.value;
-    final bool vibrationEnabled = globalVibrationEnabled.value;
+    final effectiveAlert = await _getEffectiveAlertState();
 
     debugPrint(
-      "alarm option => soundEnabled: $soundEnabled, vibrationEnabled: $vibrationEnabled",
+      "effective alert => sound: ${effectiveAlert.sound}, vibration: ${effectiveAlert.vibration}",
     );
 
-    // 알림음 OFF + 진동 OFF면 아무것도 안 함
-    if (!soundEnabled && !vibrationEnabled) {
+    // 폰 설정 + 앱 설정 기준으로 아무것도 울리면 안 되는 상태
+    if (!effectiveAlert.sound && !effectiveAlert.vibration) {
       isCompleted = true;
       controller.stop();
+
+      setState(() {
+        isRunning = false;
+      });
+
+      widget.onRunningChanged(false);
       return;
     }
 
@@ -404,16 +464,20 @@ class TimerAppPageState extends State<TimerAppPage>
     isCompleted = true;
     controller.stop();
 
+    setState(() {
+      isRunning = false;
+    });
+
+    widget.onRunningChanged(false);
+
     await GlobalBgmManager.stopBgm();
 
-    // 알림음 ON일 때만 소리 재생
-    if (soundEnabled) {
+    if (effectiveAlert.sound) {
       await GlobalBgmManager.playAlarmSound(globalAlarmSound.value);
     }
 
-    // 진동 ON일 때만 진동 반복
-    if (vibrationEnabled) {
-      _startVibrationLoop();
+    if (effectiveAlert.vibration) {
+      _startVibrationLoop(allowVibration: true);
     }
   }
 
@@ -431,6 +495,7 @@ class TimerAppPageState extends State<TimerAppPage>
 
       GlobalBgmManager.stopAllSound();
       _vibrationTimer?.cancel();
+      Vibration.cancel();
       setState(() {
         isAlarmPlaying = false;
         isRunning = false;
