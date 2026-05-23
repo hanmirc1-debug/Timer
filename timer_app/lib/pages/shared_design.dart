@@ -1113,8 +1113,8 @@ class BaseClockLayout extends StatelessWidget {
 
               if (digitalStyle == "flip" || digitalStyle == "segment") {
                 if (fontSizeStr == "small") fontMultiplier = 0.5;
-                if (fontSizeStr == "medium") fontMultiplier = 1.0;
-                if (fontSizeStr == "large") fontMultiplier = 1.6;
+                if (fontSizeStr == "medium") fontMultiplier = 0.8;
+                if (fontSizeStr == "large") fontMultiplier = 1.0;
               } else {
                 if (fontSizeStr == "small") fontMultiplier = 0.7;
                 if (fontSizeStr == "large") fontMultiplier = 1.3;
