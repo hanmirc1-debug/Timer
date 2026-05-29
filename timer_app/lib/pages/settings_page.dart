@@ -3493,7 +3493,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (index == 0) {
       sectionContent = _buildAccountSection(accentColor);
-    } else if (index == 1) {
+   } else if (index == 1) {
       sectionContent = Column(
         children: [
           if (_favorites.isEmpty)
@@ -3578,17 +3578,34 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => _showAddFavoriteDialog(accentColor),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.1),
-                shape: BoxShape.circle,
+          // 🔥 여기서 5개 이상일 경우 MAX 텍스트를, 아닐 경우 + 버튼을 보여줍니다.
+          if (_favorites.length >= 5)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                "MAX",
+                style: TextStyle(
+                  color: accentColor, // 메뉴 글자들과 색상 맞춤
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  letterSpacing: 1.5, // 글자 간격을 살짝 넓혀서 보기 좋게 설정
+                ),
               ),
-              child: Icon(Icons.add, size: 32, color: accentColor),
+            )
+          else
+            GestureDetector(
+              onTap: () {
+                _showAddFavoriteDialog(accentColor);
+              },
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.add, size: 32, color: accentColor),
+              ),
             ),
-          ),
         ],
       );
       // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
