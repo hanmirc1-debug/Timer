@@ -30,13 +30,17 @@ class ThemeItem {
   final String name;
   final Color? color;
   final String? video;
-  final bool isLocked;
+  final bool isPremium;
+  final String id;
+  final int unlockPoint;
 
   const ThemeItem({
     required this.name,
     this.color,
     this.video,
-    this.isLocked = false,
+    this.isPremium = false,
+    this.id = "",
+    this.unlockPoint = 0,
   });
 }
 
@@ -164,12 +168,15 @@ class _SettingsPageState extends State<SettingsPage> {
   Set<String> _unlockedItemIds = {}; // ✅ 잠금 해제된 아이템 ID들 보관
 
   OverlayEntry? _previewOverlay;
-  int _unlockedBgMediaSlots = 1; // 배경 사진 슬롯
-  int _unlockedClockMediaSlots = 1; // 시계 사진 슬롯
+  int _unlockedBgMediaSlots = 0; // 배경 사진 슬롯
+  int _unlockedClockMediaSlots = 0; // 시계 사진 슬롯
   int _unlockedThemeSlots = 0;
-  static const int _customThemeSlotPrice = 1;
-  static const int _premiumAlarmPrice = 1;
-  static const int _premiumBgmPrice = 1;
+  static const int _customThemeSlotPrice = 200;
+  static const int _premiumAlarmPrice = 300;
+  static const int _premiumBgmPrice = 300;
+  static const int _specialThemePrice = 500;
+  static const int _customPhotoSlotPrice = 400;
+  static const int _specialBgPrice = 300;
 
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
@@ -194,6 +201,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
       final List<dynamic> decoded = data?['customThemes'] ?? [];
 
+      _unlockedBgMediaSlots = data?['unlockedBgMediaSlots'] ?? 0;
+      _unlockedClockMediaSlots = data?['unlockedClockMediaSlots'] ?? 0;
+      _unlockedThemeSlots = data?['unlockedThemeSlots'] ?? 0;
+
       loadedThemes = decoded.map((theme) {
         return AppThemePreset(
           bg: Color(theme['bg']),
@@ -206,6 +217,10 @@ class _SettingsPageState extends State<SettingsPage> {
       }).toList();
     } else {
       final themeString = prefs.getString('local_custom_themes');
+
+      _unlockedBgMediaSlots = prefs.getInt('unlockedBgMediaSlots') ?? 0;
+      _unlockedClockMediaSlots = prefs.getInt('unlockedClockMediaSlots') ?? 0;
+      _unlockedThemeSlots = prefs.getInt('unlockedThemeSlots') ?? 0;
 
       if (themeString != null) {
         final List<dynamic> decoded = jsonDecode(themeString);
@@ -231,12 +246,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
       _localCustomPresets = loadedThemes;
 
-      if (_localBgMediaPaths.length >= _unlockedBgMediaSlots) {
-        _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
+      if (_localBgMediaPaths.length > _unlockedBgMediaSlots) {
+        _unlockedBgMediaSlots = _localBgMediaPaths.length;
       }
 
-      if (_localClockMediaPaths.length >= _unlockedClockMediaSlots) {
-        _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
+      if (_localClockMediaPaths.length > _unlockedClockMediaSlots) {
+        _unlockedClockMediaSlots = _localClockMediaPaths.length;
       }
       if (_unlockedThemeSlots < _localCustomPresets.length) {
         _unlockedThemeSlots = _localCustomPresets.length;
@@ -408,13 +423,9 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       if (type == "배경색") {
         _localBgMediaPaths.add(image.path);
-        if (_localBgMediaPaths.length >= _unlockedBgMediaSlots)
-          _unlockedBgMediaSlots = _localBgMediaPaths.length + 1;
         prefs.setStringList('local_bg_media_paths', _localBgMediaPaths);
       } else {
         _localClockMediaPaths.add(image.path);
-        if (_localClockMediaPaths.length >= _unlockedClockMediaSlots)
-          _unlockedClockMediaSlots = _localClockMediaPaths.length + 1;
         prefs.setStringList('local_clock_media_paths', _localClockMediaPaths);
       }
     });
@@ -423,6 +434,11 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _updateSlotCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('unlockedBgMediaSlots', _unlockedBgMediaSlots);
+    await prefs.setInt('unlockedClockMediaSlots', _unlockedClockMediaSlots);
+    await prefs.setInt('unlockedThemeSlots', _unlockedThemeSlots);
+
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
@@ -502,6 +518,280 @@ class _SettingsPageState extends State<SettingsPage> {
 
       return false;
     }
+  }
+
+  Future<bool> _tryUnlockMediaSlot(String type) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+
+    try {
+      int nextSlots = 1;
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        final data = snapshot.data() ?? {};
+
+        final int currentPoint = data['point'] ?? 0;
+        final int currentSlots = type == "배경색"
+            ? (data['unlockedBgMediaSlots'] ?? _unlockedBgMediaSlots)
+            : (data['unlockedClockMediaSlots'] ?? _unlockedClockMediaSlots);
+
+        if (currentPoint < _customPhotoSlotPrice) {
+          throw Exception('NOT_ENOUGH_POINT');
+        }
+
+        nextSlots = currentSlots + 1;
+
+        transaction.set(ref, {
+          'point': currentPoint - _customPhotoSlotPrice,
+          type == "배경색" ? 'unlockedBgMediaSlots' : 'unlockedClockMediaSlots': nextSlots,
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted) return false;
+
+      setState(() {
+        if (type == "배경색") _unlockedBgMediaSlots = nextSlots;
+        else _unlockedClockMediaSlots = nextSlots;
+      });
+
+      _updateSlotCount();
+
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("포인트가 부족합니다.")));
+      return false;
+    }
+  }
+
+  void _showMediaSlotUnlockDialog(String type, Color accentColor, StateSetter dialogSetState) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 42),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.18),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  "$type 사진 슬롯을\n추가하시겠습니까?",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 18,
+                    height: 1.35,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                  ),
+                  child: Icon(Icons.add_photo_alternate, color: accentColor, size: 34),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(color: Color(0xFFFFC928), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: const Text("P", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      ": $_customPhotoSlotPrice point",
+                      style: TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: const Text("아니요", style: TextStyle(color: Colors.black54, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final success = await _tryUnlockMediaSlot(type);
+                          if (!success) return;
+                          dialogSetState(() {});
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("$type 사진 슬롯이 추가되었습니다.")));
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(14)),
+                          child: const Text("예", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<bool> _tryUnlockSpecialMedia(ThemeItem item) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
+    try {
+      await FirebaseFirestore.instance.runTransaction((transaction) async {
+        final snapshot = await transaction.get(ref);
+        final data = snapshot.data() ?? {};
+        final int currentPoint = data['point'] ?? 0;
+
+        if (currentPoint < item.unlockPoint) throw Exception('NOT_ENOUGH_POINT');
+
+        transaction.set(ref, {
+          'point': currentPoint - item.unlockPoint,
+        }, SetOptions(merge: true));
+      });
+
+      if (!mounted) return false;
+      setState(() {
+        _unlockedSpecialThemes.add(item.id);
+      });
+      await _saveUnlockedThemes();
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("포인트가 부족합니다.")));
+      return false;
+    }
+  }
+
+  void _showSpecialMediaUnlockDialog(ThemeItem item, Color accentColor, StateSetter dialogSetState) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 42),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.18), blurRadius: 18, offset: const Offset(0, 8)),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text("구매하시겠습니까?", textAlign: TextAlign.center, style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 18),
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: item.color ?? Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: Colors.grey.shade300, width: 1),
+                  ),
+                  child: const Icon(Icons.wallpaper, color: Colors.white, size: 28),
+                ),
+                const SizedBox(height: 16),
+                Text(item.name, style: const TextStyle(color: Colors.black87, fontSize: 15, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(color: Color(0xFFFFC928), shape: BoxShape.circle),
+                      alignment: Alignment.center,
+                      child: const Text("P", style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w900)),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(": ${item.unlockPoint} point", style: const TextStyle(color: Colors.black87, fontSize: 16, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+                const SizedBox(height: 22),
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(14), border: Border.all(color: Colors.grey.shade300)),
+                          child: const Text("아니요", style: TextStyle(color: Colors.black54, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          Navigator.pop(context);
+                          final success = await _tryUnlockSpecialMedia(item);
+                          if (!success) return;
+                          dialogSetState(() {});
+                        },
+                        child: Container(
+                          height: 44,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(color: Colors.black87, borderRadius: BorderRadius.circular(14)),
+                          child: const Text("예", style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<bool> _tryUnlockAudioOption({
@@ -1259,7 +1549,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ElevatedButton(
             onPressed: _isAdReady ? _showRewardAd : null,
             child: Text(
-              _isAdReady ? "+15 포인트" : (_isLoadingAd ? "광고 로딩중..." : "광고 준비중"),
+              _isAdReady ? "+100 포인트" : (_isLoadingAd ? "광고 로딩중..." : "광고 준비중"),
             ),
           ),
         ],
@@ -1431,7 +1721,7 @@ class _SettingsPageState extends State<SettingsPage> {
     const AppThemePreset(
       id: "rain",
       isPremium: true,
-      unlockPoint: 1,
+      unlockPoint: 300,
       bg: Color.fromARGB(255, 111, 184, 212),
       clock: Colors.transparent,
       digital: Color(0xFF9E9E9E),
@@ -1441,7 +1731,7 @@ class _SettingsPageState extends State<SettingsPage> {
     const AppThemePreset(
       id: "cherry",
       isPremium: true,
-      unlockPoint: 1,
+      unlockPoint: 300,
       bg: Color(0xFFFFB7C5),
       clock: Colors.transparent,
       digital: Color(0xFFFFB7C5),
@@ -1489,17 +1779,33 @@ class _SettingsPageState extends State<SettingsPage> {
       name: "비 오는 밤",
       color: Color.fromARGB(255, 111, 184, 212),
       video: "비 오는 밤 (Rain)",
+      isPremium: true,
+      id: "rain",
+      unlockPoint: 300,
     ),
     const ThemeItem(
       name: "벚꽃",
       color: Color(0xFFFFB7C5),
       video: "벚꽃 (Cherry Blossom)",
+      isPremium: true,
+      id: "cherry",
+      unlockPoint: 300,
     ),
-    const ThemeItem(name: "노을", color: Colors.orange, video: "노을 (Sunset)"),
+    const ThemeItem(
+      name: "노을",
+      color: Colors.orange,
+      video: "노을 (Sunset)",
+      isPremium: true,
+      id: "sunset",
+      unlockPoint: 300,
+    ),
     const ThemeItem(
       name: "밤하늘",
       color: Colors.lightBlueAccent,
       video: "밤하늘 (Sky Moon)",
+      isPremium: true,
+      id: "skymoon",
+      unlockPoint: 300,
     ),
   ];
 
@@ -1682,7 +1988,7 @@ class _SettingsPageState extends State<SettingsPage> {
     );
     ad.show(
       onUserEarnedReward: (ad, reward) async {
-        await _rewardPoint(15);
+        await _rewardPoint(100);
       },
     );
     _rewardedAd = null;
@@ -2033,6 +2339,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 itemBuilder: (context, index) {
                   final item = items[index];
                   bool isSelected = false;
+                  bool isLocked = item.isPremium && !_unlockedSpecialThemes.contains(item.id);
 
                   if (title == "배경색") {
                     if (item.video != null) {
@@ -2051,7 +2358,10 @@ class _SettingsPageState extends State<SettingsPage> {
 
                   return GestureDetector(
                     onTap: () {
-                      if (item.isLocked) return;
+                      if (isLocked) {
+                        _showSpecialMediaUnlockDialog(item, accentColor, dialogSetState);
+                        return;
+                      }
                       if (item.color != null) colorNotifier.value = item.color!;
                       if (title == "배경색")
                         globalBgVideoName.value = item.video ?? "사용 안 함";
@@ -2100,6 +2410,51 @@ class _SettingsPageState extends State<SettingsPage> {
                             Icons.wallpaper,
                             color: Colors.white,
                             size: 20,
+                          ),
+                        if (isLocked)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.35),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                          ),
+                        if (isLocked)
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.all(3),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.lock,
+                                color: Colors.white,
+                                size: 10,
+                              ),
+                            ),
+                          ),
+                        if (isLocked)
+                          Positioned(
+                            bottom: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.75),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                "${item.unlockPoint}P",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -2171,7 +2526,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(height: 8),
                           Builder(
                             builder: (context) {
-                              // 🔥 현재 열린 팝업이 배경인지 시계인지 파악해서 리스트 지정
                               int currentSlots = title == "배경색"
                                   ? _unlockedBgMediaSlots
                                   : _unlockedClockMediaSlots;
@@ -2182,105 +2536,111 @@ class _SettingsPageState extends State<SettingsPage> {
                               return GridView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                gridDelegate:
-                                    SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: columns,
-                                      crossAxisSpacing: spacing,
-                                      mainAxisSpacing: spacing,
-                                      childAspectRatio: 1.0,
-                                    ),
-                                itemCount: currentSlots,
+                                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: columns,
+                                  crossAxisSpacing: spacing,
+                                  mainAxisSpacing: spacing,
+                                  childAspectRatio: 1.0,
+                                ),
+                                itemCount: currentList.length + 1,
                                 itemBuilder: (context, index) {
                                   if (index < currentList.length) {
                                     final path = currentList[index];
-                                    bool isSelected =
-                                        (title == "배경색"
-                                            ? globalBgVideoName.value
-                                            : globalClockVideoName.value) ==
-                                        path;
+                                    bool isSelected = (title == "배경색" ? globalBgVideoName.value : globalClockVideoName.value) == path;
                                     return GestureDetector(
                                       onTap: () {
                                         if (title == "배경색") {
                                           globalBgVideoName.value = path;
                                         } else if (title == "시계색") {
                                           globalClockVideoName.value = path;
-                                          // 🔥 추가된 핵심 로직: 시계 사진 선택 시 '투명' 상태를 해제합니다!
-                                          if (globalClockColor.value ==
-                                              Colors.transparent) {
-                                            globalClockColor.value =
-                                                const Color.fromARGB(
-                                                  255,
-                                                  185,
-                                                  70,
-                                                  70,
-                                                ); // 벽돌색으로 임시 변경
+                                          if (globalClockColor.value == Colors.transparent) {
+                                            globalClockColor.value = const Color.fromARGB(255, 185, 70, 70);
                                           }
                                         }
                                         Navigator.pop(context);
                                       },
-                                      onLongPress: () =>
-                                          _confirmDeletion("사진", () {
-                                            _deleteImage(title, index);
-                                            dialogSetState(() {});
-                                          }),
+                                      onLongPress: () => _confirmDeletion("사진", () {
+                                        _deleteImage(title, index);
+                                        dialogSetState(() {});
+                                      }),
                                       child: Container(
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                          borderRadius: BorderRadius.circular(12),
                                           border: Border.all(
-                                            color: isSelected
-                                                ? accentColor
-                                                : Colors.grey.shade300,
+                                            color: isSelected ? accentColor : Colors.grey.shade300,
                                             width: isSelected ? 3.0 : 1.0,
                                           ),
                                           image: DecorationImage(
-                                            image: kIsWeb
-                                                ? NetworkImage(path)
-                                                      as ImageProvider
-                                                : FileImage(File(path)),
+                                            image: kIsWeb ? NetworkImage(path) as ImageProvider : FileImage(File(path)),
                                             fit: BoxFit.cover,
                                           ),
                                         ),
                                       ),
                                     );
                                   } else {
-                                    // ✅ 빈 슬롯 (+ 버튼)
+                                    // + Button (Slot)
+                                    bool isSlotLocked = currentList.length >= currentSlots;
                                     return GestureDetector(
-                                      onTap: () => _pickLocalImage(
-                                        title,
-                                        dialogSetState: dialogSetState,
-                                      ),
-                                      onLongPress:
-                                          currentSlots > currentList.length + 1
+                                      onTap: () {
+                                        if (isSlotLocked) {
+                                          _showMediaSlotUnlockDialog(title, accentColor, dialogSetState);
+                                        } else {
+                                          _pickLocalImage(title, dialogSetState: dialogSetState);
+                                        }
+                                      },
+                                      onLongPress: currentSlots > currentList.length + 1
                                           ? () {
                                               _confirmDeletion("사진 슬롯", () {
                                                 setState(() {
-                                                  if (title == "배경색")
-                                                    _unlockedBgMediaSlots--;
-                                                  else
-                                                    _unlockedClockMediaSlots--;
+                                                  if (title == "배경색") _unlockedBgMediaSlots--;
+                                                  else _unlockedClockMediaSlots--;
                                                 });
                                                 dialogSetState(() {});
                                                 _updateSlotCount();
                                               }, isSlot: true);
                                             }
                                           : null,
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Container(
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade100,
+                                              borderRadius: BorderRadius.circular(12),
+                                              border: Border.all(color: Colors.grey.shade300, width: 1.0),
+                                            ),
+                                            child: Icon(Icons.add_photo_alternate, color: Colors.grey.shade400),
                                           ),
-                                          border: Border.all(
-                                            color: Colors.grey.shade300,
-                                            width: 1.0,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.add_photo_alternate,
-                                          color: Colors.grey.shade400,
-                                        ),
+                                          if (isSlotLocked)
+                                            Positioned.fill(
+                                              child: Container(
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black.withOpacity(0.35),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                              ),
+                                            ),
+                                          if (isSlotLocked)
+                                            Positioned(
+                                              top: 4, right: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(3),
+                                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.75), shape: BoxShape.circle),
+                                                child: const Icon(Icons.lock, color: Colors.white, size: 10),
+                                              ),
+                                            ),
+                                          if (isSlotLocked)
+                                            Positioned(
+                                              bottom: 4,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.75), borderRadius: BorderRadius.circular(8)),
+                                                child: Text("$_customPhotoSlotPrice" + "P", style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ),
+                                        ],
                                       ),
                                     );
                                   }
@@ -3102,8 +3462,8 @@ class _SettingsPageState extends State<SettingsPage> {
                         _localCustomPresets.clear();
                         _localBgMediaPaths.clear();
                         _localClockMediaPaths.clear();
-                        _unlockedBgMediaSlots = 1;
-                        _unlockedClockMediaSlots = 1;
+                        _unlockedBgMediaSlots = 0;
+                        _unlockedClockMediaSlots = 0;
                         _unlockedThemeSlots = 0;
                       });
                       await loadSettings();

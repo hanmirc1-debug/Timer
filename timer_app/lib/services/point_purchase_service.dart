@@ -18,9 +18,8 @@ class PointPurchaseService {
   // 판매할 상품 ID 목록 (구글 플레이콘솔 / 애플 앱스토어에 등록된 ID와 일치해야 함)
   final Set<String> _productIds = {
     'point_1000',
-    'point_3300',
-    'point_6000',
-    'point_12000',
+    'point_3000',
+    'point_5000',
   };
 
   // UI에 전달할 상태 변수들
@@ -104,9 +103,8 @@ class PointPurchaseService {
     int grantedPoints = 0;
     switch (purchaseDetails.productID) {
       case 'point_1000': grantedPoints = 1000; break;
-      case 'point_3300': grantedPoints = 3300; break;
-      case 'point_6000': grantedPoints = 6000; break;
-      case 'point_12000': grantedPoints = 12000; break;
+      case 'point_3000': grantedPoints = 3000; break;
+      case 'point_5000': grantedPoints = 5000; break;
       default: return;
     }
 

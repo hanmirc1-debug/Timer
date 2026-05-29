@@ -30,7 +30,7 @@ class TutorialOverlayWidget extends StatelessWidget {
       case 2:
         title = "드래그해서 시간 설정";
         desc = step == 1 
-            ? "둥근 시계를 손가락으로 드래그하여\n원하는 시간을 조절하세요."
+            ? "시계를 드래그하여 시간을 조절하세요."
             : "이렇게 시간이 맞춰집니다!";
         if (isLandscape) {
           align = const Alignment(0.8, 0.0);
