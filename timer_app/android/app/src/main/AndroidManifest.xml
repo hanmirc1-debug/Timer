@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="timer_app"
+        android:label="ONE TIMER"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
             <!-- 🔥🔥🔥 이거 추가 -->
