@@ -12,12 +12,8 @@ import 'package:vibration/vibration.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 
-// shared_design.dart 파일 내부에 추가
-
-// 뽀모도로 활성화 여부
 ValueNotifier<bool> globalPomodoroMode = ValueNotifier<bool>(false);
 
-// 뽀모도로 시간 및 사이클 설정
 ValueNotifier<String> globalPomodoroWorkTime = ValueNotifier<String>("25분");
 ValueNotifier<String> globalPomodoroShortBreak = ValueNotifier<String>("5분");
 ValueNotifier<String> globalPomodoroLongBreak = ValueNotifier<String>("15분");
@@ -27,18 +23,14 @@ ValueNotifier<String> globalPomodoroMaxSessions = ValueNotifier<String>(
 );
 ValueNotifier<bool> globalIsTutorialActive = ValueNotifier(
   false,
-); // 🔥 튜토리얼 진행 여부
-// 뽀모도로 자동 시작 설정
+);
 ValueNotifier<bool> globalPomodoroAutoWork = ValueNotifier<bool>(
   false,
-); // 집중 모드 자동 시작
+);
 ValueNotifier<bool> globalPomodoroAutoBreak = ValueNotifier<bool>(
   true,
-); // 휴식 모드 자동 시작
+);
 
-// =========================================================
-// 🌟 0. 앱 전체 공유 설정값
-// =========================================================
 final ValueNotifier<bool> globalIsTimerMode = ValueNotifier<bool>(true);
 final ValueNotifier<String> globalDisplayMode = ValueNotifier<String>("BOTH");
 final ValueNotifier<String> globalIndicatorMode = ValueNotifier<String>(
@@ -70,7 +62,6 @@ final ValueNotifier<String> globalTimerMaxString = ValueNotifier<String>(
 final ValueNotifier<double> globalTimerMaxSeconds = ValueNotifier<double>(60.0);
 
 final ValueNotifier<String> globalBgVideoName = ValueNotifier<String>("사용 안 함");
-// 🔥 이 줄을 추가하세요! (시계 이미지/영상용 변수)
 ValueNotifier<String> globalClockVideoName = ValueNotifier("사용 안 함");
 
 final ValueNotifier<Color> globalBgColor = ValueNotifier(
@@ -160,7 +151,6 @@ void initSettingsListener() {
   globalVibrationEnabled.addListener(() async {
     final bool currentState = globalVibrationEnabled.value;
 
-    // OFF → ON 바뀌는 순간에만 테스트 진동 1회
     if (!_lastVibrationState && currentState) {
       try {
         final hasVibrator = await Vibration.hasVibrator() ?? false;
@@ -331,7 +321,7 @@ final List<String> bgmOptions = [...bgmMap.keys];
 
 class GlobalBgmManager {
   static final AudioPlayer _bgmPlayer = AudioPlayer();
-  static final AudioPlayer _alarmPlayer = AudioPlayer(); // 🔥 분리
+  static final AudioPlayer _alarmPlayer = AudioPlayer();
 
   static bool _isInitialized = false;
 
@@ -347,15 +337,12 @@ class GlobalBgmManager {
     _updateBgm();
   }
 
-  // 🔥 전체 정지
   static Future<void> stopAllSound() async {
     await _bgmPlayer.stop();
     await _alarmPlayer.stop();
   }
 
-  // 🔥 BGM 재생
   static Future<void> playBgm(String name) async {
-    debugPrint("🔥 playBgm CALLED");
     final path = bgmMap[name];
     if (path == null) return;
 
@@ -368,31 +355,23 @@ class GlobalBgmManager {
     await _bgmPlayer.stop();
   }
 
-  // 🔥 알람 재생 (핵심)
   static Future<void> playAlarmSound(String soundName) async {
-    debugPrint("🔥 playAlarmSound CALLED");
-    // 🔥 진동 추가
-
     final path = alarmSoundMap[soundName];
     if (path == null) return;
 
     await _alarmPlayer.stop();
-    await _alarmPlayer.setReleaseMode(ReleaseMode.loop); // 🔥 핵심
+    await _alarmPlayer.setReleaseMode(ReleaseMode.loop);
     await _alarmPlayer.play(AssetSource(path));
   }
 
-  // 🔥 알람 미리듣기 (설정페이지용)
   static Future<void> previewAlarmSound(String soundName) async {
-    debugPrint("🔥 previewAlarmSound CALLED");
     final path = alarmSoundMap[soundName] ?? "audio/alarm/default2.mp3";
 
     await _alarmPlayer.stop();
     await _alarmPlayer.play(AssetSource(path));
   }
 
-  // 🔥 BGM 미리듣기 (설정페이지용)
   static Future<void> previewBgm(String soundName) async {
-    debugPrint("🔥 previewBgm CALLED");
     final path = bgmMap[soundName] ?? "audio/bgm/spring.mp3";
 
     await _bgmPlayer.stop();
@@ -400,16 +379,15 @@ class GlobalBgmManager {
     await _bgmPlayer.play(AssetSource(path));
   }
 
-  // 🔥 BGM 자동 업데이트
   static Future<void> _updateBgm() async {
     if (globalBgmEnabled.value) {
       String option = globalBgmTrack.value;
 
-      final path = bgmMap[option]; // 🔥 map 사용
+      final path = bgmMap[option];
 
       if (path != null) {
         try {
-          await _bgmPlayer.stop(); // 🔥 추가 (중복 방지)
+          await _bgmPlayer.stop();
           await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
           await _bgmPlayer.play(AssetSource(path));
         } catch (e) {
@@ -430,10 +408,8 @@ class DragHapticManager {
       String intensity = globalHapticIntensity.value.toUpperCase();
       if (intensity == "NONE") return;
 
-      // 🔥 핵심 수정 1: 웹(Chrome)으로 실행 중일 때는 진동 명령을 아예 스킵합니다!
       if (kIsWeb) return;
 
-      // 🔥 핵심 수정 2: 모바일에서도 혹시 모를 진동 에러로 앱이 멈추는 것을 방지합니다.
       try {
         if (intensity == "SOFT") {
           Vibration.vibrate(duration: 20, amplitude: 80);
@@ -499,9 +475,8 @@ class FloatingGlassMenuButton extends StatelessWidget {
             icon: Icon(
               Icons.more_horiz,
               size: isLandscape
-                  ? base *
-                        0.05 // 🔥 가로모드 작게
-                  : base * 0.07, // 🔥 세로모드 유지
+                  ? base * 0.05
+                  : base * 0.07,
               color: iconColor,
             ),
             onPressed: () {
@@ -540,10 +515,6 @@ class SharedClockPainter extends CustomPainter {
         ..color = Colors.black.withOpacity(0.5)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);
       canvas.drawCircle(center + const Offset(4, 4), radius, shadowPaint);
-
-      // 🔥 [핵심 수정] BgColor(배경색) -> ClockColor(시계색) 으로 변경!
-      //final facePaint = Paint()..color = globalClockColor.value;
-      //canvas.drawCircle(center, radius, facePaint);
     }
 
     final highlightPaint = Paint()
@@ -1117,7 +1088,6 @@ class BaseClockLayout extends StatelessWidget {
                     : availableHeight * 0.15;
               } else if (displayMode == "both") {
                 if (isLandscape) {
-                  // 🔥 가로모드에서는 width 기준으로
                   baseFontSize = availableWidth * 0.12;
                 } else {
                   baseFontSize = availableHeight * 0.12;
@@ -1160,7 +1130,6 @@ class BaseClockLayout extends StatelessWidget {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // 🔥 1. 새롭게 추가된 부분: 부채꼴 모양에 맞춰 완벽하게 생기는 입체 그림자!
                   if (globalClockVideoName.value != "사용 안 함")
                     CustomPaint(
                       size: Size(clockSize, clockSize),
@@ -1170,7 +1139,6 @@ class BaseClockLayout extends StatelessWidget {
                         isTimer,
                       ),
                     ),
-                  // 🔥 핵심 1: 시간이 줄어듦에 따라 부채꼴 모양으로 잘려나가는 시계 사진!
                   if (globalClockVideoName.value != "사용 안 함")
                     ClipPath(
                       clipper: ClockImageClipper(
@@ -1201,7 +1169,6 @@ class BaseClockLayout extends StatelessWidget {
                       ),
                     ),
 
-                  // 🔥 핵심 2: 터치 인식을 유지하면서 그 위에 눈금/숫자를 그리는 투명 CustomPaint
                   Container(
                     width: clockSize,
                     height: clockSize,
@@ -1270,9 +1237,8 @@ class BaseClockLayout extends StatelessWidget {
             }
 
             return GestureDetector(
-              //behavior: HitTestBehavior.deferToChild,
               behavior: HitTestBehavior
-                  .translucent, // 🔥 핵심 수정: 시계 빈 공간을 터치해도 무시되지 않고 정상 작동하게 만듦
+                  .translucent,
               onTap: onTapToggle,
               child: SizedBox(
                 width: availableWidth,
@@ -1287,9 +1253,6 @@ class BaseClockLayout extends StatelessWidget {
   }
 }
 
-// =========================================================
-// 🌸 1. 벚꽃잎 데이터 모델
-// =========================================================
 class CherryBlossomPetal {
   double x;
   double y;
@@ -1308,9 +1271,6 @@ class CherryBlossomPetal {
   });
 }
 
-// =========================================================
-// 🌸 2. 벚꽃 애니메이션 오버레이 (바람에 흩날리는 효과)
-// =========================================================
 class CherryBlossomOverlay extends StatefulWidget {
   const CherryBlossomOverlay({super.key});
 
@@ -1322,7 +1282,7 @@ class _CherryBlossomOverlayState extends State<CherryBlossomOverlay>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   final List<CherryBlossomPetal> _petals = [];
-  final int _petalCount = 35; // 흩날리는 벚꽃잎 개수
+  final int _petalCount = 35;
   final Random _random = Random();
 
   @override
@@ -1333,7 +1293,6 @@ class _CherryBlossomOverlayState extends State<CherryBlossomOverlay>
       duration: const Duration(seconds: 10),
     )..repeat();
 
-    // 화면 아무 곳이나 벚꽃잎 초기 배치
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final size = MediaQuery.of(context).size;
       for (int i = 0; i < _petalCount; i++) {
@@ -1371,9 +1330,6 @@ class _CherryBlossomOverlayState extends State<CherryBlossomOverlay>
   }
 }
 
-// =========================================================
-// 🌸 3. 벚꽃잎 그리기 붓 (Painter)
-// =========================================================
 class CherryBlossomPainter extends CustomPainter {
   final List<CherryBlossomPetal> petals;
   final Random random;
@@ -1384,17 +1340,15 @@ class CherryBlossomPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
       ..color = const Color(0xFFFFB7C5)
-          .withOpacity(0.8) // 예쁜 연분홍색
+          .withOpacity(0.8)
       ..style = PaintingStyle.fill;
 
     for (var petal in petals) {
-      // 아래로, 그리고 살짝 대각선으로 떨어짐
       petal.y += petal.speed;
       petal.x += sin(petal.angle) * 1.5;
-      petal.spin += 0.02; // 빙글빙글 돌기
-      petal.angle += 0.01; // 바람에 흔들리기
+      petal.spin += 0.02;
+      petal.angle += 0.01;
 
-      // 바닥으로 떨어지면 다시 위로 올려보냄
       if (petal.y > size.height + 20) {
         petal.y = -20;
         petal.x = random.nextDouble() * size.width;
@@ -1402,7 +1356,6 @@ class CherryBlossomPainter extends CustomPainter {
       if (petal.x > size.width + 20) petal.x = -20;
       if (petal.x < -20) petal.x = size.width + 20;
 
-      // 벚꽃잎 모양 그려주기 (타원을 살짝 비틀어서 표현)
       canvas.save();
       canvas.translate(petal.x, petal.y);
       canvas.rotate(petal.spin);
@@ -1416,9 +1369,6 @@ class CherryBlossomPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
-// =========================================================
-// 🌟 동영상/사진 + 벚꽃 효과를 지원하는 완벽한 배경 위젯!
-// =========================================================
 class GlobalVideoBackground extends StatefulWidget {
   final Widget child;
   const GlobalVideoBackground({super.key, required this.child});
@@ -1439,7 +1389,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     _updateVideoState();
   }
 
-  // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   void _updateVideoState() {
     String currentVal = globalBgVideoName.value;
 
@@ -1455,8 +1404,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
     String targetPath = "";
     bool isVideo = false;
 
-    // 1. 고정 프리셋 영상 확인
-    // 1. 고정 프리셋 영상 확인
     if (currentVal == "비 오는 밤 (Rain)") {
       targetPath = 'assets/video/rainwindow.mp4';
       isVideo = true;
@@ -1464,16 +1411,14 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       targetPath = 'assets/video/sakura.mp4';
       isVideo = true;
     } else if (currentVal == "노을 (Sunset)") {
-      targetPath = 'assets/image/sunset.jpg'; // 🔥 노을 연결
+      targetPath = 'assets/image/sunset.jpg';
       isVideo = false;
     } else if (currentVal == "밤하늘 (Sky Moon)") {
-      targetPath = 'assets/image/sky_moon.jpg'; // 🔥 밤하늘 연결
+      targetPath = 'assets/image/sky_moon.jpg';
       isVideo = false;
     }
-    // 🌟 [핵심 추가] 프리셋이 아니면 사용자가 추가한 '사진/영상 경로'를 그대로 사용!
     else {
       targetPath = currentVal;
-      // 파일명에 mp4가 들어있으면 비디오로 간주
       isVideo = currentVal.toLowerCase().contains(".mp4");
     }
 
@@ -1485,7 +1430,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
         _videoController?.dispose();
         _hasError = false;
 
-        // 에셋인지 로컬 파일인지 구분해서 로드
         if (targetPath.startsWith('assets/')) {
           _videoController = VideoPlayerController.asset(targetPath);
         } else {
@@ -1511,7 +1455,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
       }
     }
   }
-  // ---------------- 여기까지 교체 끝 ----------------
 
   @override
   void dispose() {
@@ -1522,7 +1465,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
 
   @override
   Widget build(BuildContext context) {
-    // 현재 "벚꽃" 테마가 켜져있는지 확인
     bool isCherryBlossom = globalBgVideoName.value.contains("벚꽃");
 
     return Stack(
@@ -1558,7 +1500,6 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
                       : Image.file(File(_currentBgPath), fit: BoxFit.cover)),
           ),
 
-        // 🌸 [핵심 추가] 벚꽃 테마일 때만 터치를 통과하는(IgnorePointer) 애니메이션을 화면 꽉 차게 띄웁니다!
         if (isCherryBlossom)
           const Positioned.fill(
             child: IgnorePointer(child: CherryBlossomOverlay()),
@@ -1570,38 +1511,27 @@ class _GlobalVideoBackgroundState extends State<GlobalVideoBackground> {
   }
 }
 
-// shared_design.dart 파일 하단에 추가
 enum PomodoroState { work, shortBreak, longBreak }
 
 ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(
   PomodoroState.work,
 );
-ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0); // 완료된 뽀모도로 횟수
+ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0);
 
-// shared_design.dart 파일 하단에 추가
-
-/// 뽀모도로 상태를 처음부터 다시 시작하도록 초기화하는 함수
 void resetPomodoroStatus() {
-  globalPomodoroState.value = PomodoroState.work; // 다시 '집중 모드'로
-  globalCompletedCycles.value = 0; // 완료 횟수 0으로
-
-  // 현재 설정된 '집중 시간'을 파싱해서 타이머 시간도 리셋 (옵션)
-  // 예: "25분" -> 25 * 60 초로 세팅하는 로직을 호출하거나 변수 직접 수정
+  globalPomodoroState.value = PomodoroState.work;
+  globalCompletedCycles.value = 0;
 }
-// shared_design.dart 파일 내 변수 선언 아래쪽에 추가
 
 void initPomodoroResetListener() {
   globalPomodoroMode.addListener(() {
     if (globalPomodoroMode.value == false) {
-      // 뽀모도로가 꺼지면 묻지도 따지지도 않고 초기화!
       globalPomodoroState.value = PomodoroState.work;
       globalCompletedCycles.value = 0;
-      debugPrint("🍅 뽀모도로 상태가 초기화되었습니다.");
     }
   });
 }
 
-// 🔥 사진을 타이머 부채꼴 모양으로 잘라주는 전용 클리퍼 (파일 맨 아래에 추가)
 class ClockImageClipper extends CustomClipper<Path> {
   final double drawnSeconds;
   final double maxScaleSeconds;
@@ -1615,20 +1545,18 @@ class ClockImageClipper extends CustomClipper<Path> {
     final radius = size.width / 2;
     final path = Path();
 
-    if (drawnSeconds <= 0) return path; // 남은 시간이 없으면 모두 투명하게 만듦
+    if (drawnSeconds <= 0) return path;
     if (drawnSeconds >= maxScaleSeconds) {
       path.addOval(Rect.fromCircle(center: center, radius: radius));
-      return path; // 시간이 꽉 찼으면 둥근 사진 전체를 보여줌
+      return path;
     }
 
-    // 타이머와 스톱워치 모드에 따라 부채꼴 각도 계산
     final sweepAngle = (drawnSeconds / maxScaleSeconds) * 2 * pi;
     double startAngle = isTimer
         ? -pi / 2 +
               ((maxScaleSeconds - drawnSeconds) / maxScaleSeconds) * 2 * pi
         : -pi / 2;
 
-    // 부채꼴 모양 경로 생성
     path.moveTo(center.dx, center.dy);
     path.arcTo(
       Rect.fromCircle(center: center, radius: radius),
@@ -1648,7 +1576,6 @@ class ClockImageClipper extends CustomClipper<Path> {
   }
 }
 
-// 🔥 깎여나가는 사진 모양에 맞춰 똑같이 잘리는 똑똑한 그림자 화가!
 class PieShadowPainter extends CustomPainter {
   final double drawnSeconds;
   final double maxScaleSeconds;
@@ -1682,7 +1609,6 @@ class PieShadowPainter extends CustomPainter {
       path.close();
     }
 
-    // 기존 그림자 세팅과 완벽히 동일하게 적용 (오른쪽 아래 4,4 이동 / 블러 15)
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.5)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 15.0);

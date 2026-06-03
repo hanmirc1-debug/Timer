@@ -10,24 +10,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'services/firebase_settings_service.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart';
-import 'pages/splash_page.dart'; // 🌟 [추가] 스플래시 페이지 가져오기
+import 'pages/splash_page.dart';
 import 'services/point_purchase_service.dart';
-// 🔥 핵심 수정: TimerAppPage에 접근할 수 있도록 키를 전역으로 빼냅니다!
+
 final GlobalKey<TimerAppPageState> globalTimerPageKey = GlobalKey<TimerAppPageState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-// 🌟 2. 기존 MobileAds 초기화 코드를 if (!kIsWeb) 으로 감싸기!
+
   if (!kIsWeb) {
     MobileAds.instance.initialize();
   }
-    // (추가) IAP 결제 시스템 초기화
-  if (!kIsWeb) { // IAP는 웹을 지원하지 않습니다. 모바일에서만 초기화
+  if (!kIsWeb) {
     await PointPurchaseService().init();
   }
-  // 🔥 광고 초기화 (여기 추가)
-  //await MobileAds.instance.initialize();
   final user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {
@@ -36,7 +33,6 @@ void main() async {
     await loadSettings();
   }
   initSettingsListener();
-  // 🌟 여기에 뽀모도로 초기화 감지기 시작 코드를 한 줄 추가합니다!
   initPomodoroResetListener();
   
   runApp(const MyApp());
@@ -72,7 +68,6 @@ class _MainScreenState extends State<MainScreen> {
   DateTime? _touchStartTime;
 
   final GlobalKey stopwatchKey = GlobalKey();
-  //final GlobalKey timerKey = GlobalKey();
   final GlobalKey clockKey = GlobalKey();
   final GlobalKey menuKey = GlobalKey();
 
@@ -120,7 +115,6 @@ class _MainScreenState extends State<MainScreen> {
 void _handleShortTap() {
     if (isLocked) return;
     if (globalIsTimerMode.value) {
-      // 🔥 수정됨: timerKey 대신 방금 만든 전역 키인 globalTimerPageKey를 사용합니다!
       (globalTimerPageKey.currentState as dynamic).toggle();
     } else {
       (stopwatchKey.currentState as dynamic).toggle();
@@ -147,8 +141,7 @@ void _handleShortTap() {
                         builder: (context, isTimer, child) {
                           return isTimer
                               ? TimerAppPage(
-                                  //key: timerKey,
-                                  key: globalTimerPageKey, // 🔥 핵심 수정: 전역 키로 연결!
+                                  key: globalTimerPageKey,
                                   clockKey: clockKey,
                                   onRunningChanged: (running) {
                                     setState(() => isRunning = running);
@@ -170,7 +163,6 @@ void _handleShortTap() {
               Listener(
                 behavior: HitTestBehavior.translucent,
                 onPointerDown: (event) {
-                  // 1. 세팅 메뉴를 건드렸는지 확인
                   if (menuKey.currentContext != null) {
                     final RenderBox menuBox =
                         menuKey.currentContext!.findRenderObject() as RenderBox;
@@ -191,7 +183,6 @@ void _handleShortTap() {
 
                   bool isHitClock = false;
 
-                  // 🌟 2. 아날로그 시계(동그라미)를 건드렸는지 정밀 검사!
                   if (analogClockHitKey.currentContext != null) {
                     final box =
                         analogClockHitKey.currentContext!.findRenderObject()
@@ -209,7 +200,6 @@ void _handleShortTap() {
                     if (distance <= radius) isHitClock = true;
                   }
 
-                  // 🌟 3. 디지털 시계(네모 글자)를 건드렸는지 정밀 검사!
                   if (digitalClockHitKey.currentContext != null) {
                     final box =
                         digitalClockHitKey.currentContext!.findRenderObject()
@@ -219,13 +209,11 @@ void _handleShortTap() {
                     if (rect.contains(event.position)) isHitClock = true;
                   }
 
-                  // 시계 부품 중 하나라도 건드렸다면 배경 터치가 아니므로 잠금 취소!
                   if (isHitClock) {
                     isBackgroundTouched = false;
                     return;
                   }
 
-                  // 🌟 완벽하게 텅 빈 배경을 눌렀을 때만 잠금 시작!
                   isBackgroundTouched = true;
                   _touchStartTime = DateTime.now();
                   _startLockTimer();
@@ -240,18 +228,17 @@ void _handleShortTap() {
                   isBackgroundTouched = false;
                 },
               ),
-// main.dart 의 build 함수 내부
 
 Positioned(
   top: 15.0,
   left: 20.0,
   child: ValueListenableBuilder<bool>(
-    valueListenable: globalIsTutorialActive, // 🔥 튜토리얼 상태 감시
+    valueListenable: globalIsTutorialActive,
     builder: (context, isTutorial, child) {
       return IgnorePointer(
-        ignoring: isTutorial, // 🔥 튜토리얼 중이면 터치 이벤트를 완전히 무시함
+        ignoring: isTutorial,
         child: Opacity(
-          opacity: isTutorial ? 0.5 : 1.0, // 🔥 비활성화된 느낌을 주기 위해 약간 흐릿하게 (선택 사항)
+          opacity: isTutorial ? 0.5 : 1.0,
           child: Visibility(
             visible: !isRunning,
             maintainSize: true,

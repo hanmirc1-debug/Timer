@@ -7,7 +7,7 @@ import 'shared_design.dart';
 import 'package:vibration/vibration.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/cupertino.dart';
-import 'tutorial_overlay.dart'; // 방금 만든 파일 임포트!
+import 'tutorial_overlay.dart';
 import 'package:flutter/foundation.dart';
 import 'package:sound_mode/sound_mode.dart';
 import 'package:sound_mode/utils/ringer_mode_statuses.dart';
@@ -22,7 +22,7 @@ class TimerAppPage extends StatefulWidget {
   });
 
   @override
-  State<TimerAppPage> createState() => TimerAppPageState(); // 🔥 상태를 외부에서 접근할 수 있도록 퍼블릭으로 변경
+  State<TimerAppPage> createState() => TimerAppPageState();
 }
 
 class _EffectiveAlertState {
@@ -34,9 +34,8 @@ class _EffectiveAlertState {
 
 class TimerAppPageState extends State<TimerAppPage>
     with TickerProviderStateMixin {
-  // 🔥 TickerProviderStateMixin으로 변경 (애니메이션 컨트롤러 2개 사용)
   late AnimationController controller;
-  late AnimationController _dragAnimController; // 🔥 튜토리얼 50초 드래그 시뮬레이션용 애니메이터
+  late AnimationController _dragAnimController;
 
   Timer? _vibrationTimer;
   double targetSeconds = globalTimerMaxSeconds.value;
@@ -46,16 +45,13 @@ class TimerAppPageState extends State<TimerAppPage>
   bool alarmTriggered = false;
   bool hasStarted = false;
   bool isCompleted = false;
-  // 👇==== 새로 추가할 변수들 ====👇
-  double _savedResetSeconds = 60.0; // 🎯 리셋을 위해 시작 시점의 시간을 저장할 변수
-  double _dragStartY = 0.0; // 스와이프 시작 Y 좌표
-  DateTime? _dragStartTime; // 스와이프 시작 시간
-  bool _wasRunningWhenDragStarted = false; // 🎯 스와이프 시작 시점의 타이머 상태를 기억
-  // 👆========================👆
+  double _savedResetSeconds = 60.0;
+  double _dragStartY = 0.0;
+  DateTime? _dragStartTime;
+  bool _wasRunningWhenDragStarted = false;
 
-  // 🔥 튜토리얼 전용 변수들
-  int _tutorialStep = 0; // 0이면 튜토리얼 아님
-  Map<String, dynamic> _savedSettings = {}; // 기존 유저 설정 임시 저장용
+  int _tutorialStep = 0;
+  Map<String, dynamic> _savedSettings = {};
 
   @override
   void initState() {
@@ -75,7 +71,6 @@ class TimerAppPageState extends State<TimerAppPage>
           !alarmTriggered &&
           hasStarted) {
         controller.stop();
-        debugPrint("🔥 DISMISSED");
 
         alarmTriggered = true;
         _triggerAlarm();
@@ -83,7 +78,6 @@ class TimerAppPageState extends State<TimerAppPage>
       }
     });
 
-    // 2. 튜토리얼 드래그 50초 애니메이션 컨트롤러
     _dragAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -100,7 +94,6 @@ class TimerAppPageState extends State<TimerAppPage>
       _syncPomodoroTime();
     }
 
-    // 🔥 처음 접속한 유저인지 확인하고 튜토리얼 시작
     _checkFirstTimeTutorial();
   }
 
@@ -116,9 +109,6 @@ class TimerAppPageState extends State<TimerAppPage>
     super.dispose();
   }
 
-  // =========================================================
-  // 🌟 [추가됨] 튜토리얼 로직
-  // =========================================================
   void _checkFirstTimeTutorial() async {
     final prefs = await SharedPreferences.getInstance();
     bool hasSeen = prefs.getBool('has_seen_tutorial') ?? false;
@@ -129,10 +119,8 @@ class TimerAppPageState extends State<TimerAppPage>
     }
   }
 
-  // 🔥 설정창에서 "다시 보기"를 눌렀을 때 호출할 수 있는 퍼블릭 함수
   void startTutorial() {
-    globalIsTutorialActive.value = true; // 🔥 추가: 튜토리얼 시작 알림
-    // 1. 현재 사용자의 개인 설정을 임시로 저장해둡니다.
+    globalIsTutorialActive.value = true;
     _savedSettings = {
       'bg': globalBgColor.value,
       'clock': globalClockColor.value,
@@ -146,7 +134,6 @@ class TimerAppPageState extends State<TimerAppPage>
       'indicatorMode': globalIndicatorMode.value,
     };
 
-    // 2. 튜토리얼용 디폴트 테마로 강제 변신! (벽돌색 테마 & 60초)
     globalBgColor.value = const Color(0xFF252528);
     globalClockColor.value = const Color.fromARGB(255, 185, 70, 70);
     globalDigitalColor.value = const Color(0xFFE5E5EA);
@@ -158,12 +145,10 @@ class TimerAppPageState extends State<TimerAppPage>
     globalDisplayMode.value = "BOTH";
     globalIndicatorMode.value = "NUMBER";
 
-    // 타이머 0초로 초기화 후 튜토리얼 1단계 시작
     stop();
     setState(() {
       targetSeconds = 60.0;
       currentSeconds = 60.0;
-      // 🔥 [핵심 추가] duration도 60초에 맞게 세팅해 주어야 화면에 빨간색이 1.0(꽉 참) 비율로 제대로 그려집니다
       controller.duration = const Duration(seconds: 60);
       controller.value = 1.0;
       _tutorialStep = 1;
@@ -172,34 +157,29 @@ class TimerAppPageState extends State<TimerAppPage>
 
   void _nextTutorialStep() {
     if (_tutorialStep == 1) {
-      // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
-      // begin: 1.0 (꽉 찬 상태) -> end: 50/60 (50초 지점까지 비워짐)
       Animation<double> anim = Tween<double>(begin: 60.0, end: 50.0).animate(
         CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
       );
 
       anim.addListener(() {
         setState(() {
-          targetSeconds = anim.value; // 숫자는 60 -> 50으로 줄어듦
+          targetSeconds = anim.value;
           currentSeconds = targetSeconds;
 
-          // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
           controller.duration = Duration(
             milliseconds: (targetSeconds * 1000).toInt(),
           );
-          controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
+          controller.value = 1.0;
         });
       });
       _dragAnimController.forward(from: 0.0);
 
       setState(() {
-        _tutorialStep = 2; // "이런 식으로 맞춰집니다" 말풍선으로 변경
+        _tutorialStep = 2;
       });
       return;
     }
-    // case 4
     if (_tutorialStep == 3) {
-      // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
       Animation<double> anim = Tween<double>(begin: 50.0, end: 0).animate(
         CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
       );
@@ -209,23 +189,20 @@ class TimerAppPageState extends State<TimerAppPage>
           targetSeconds = anim.value;
           currentSeconds = targetSeconds;
 
-          // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
           controller.duration = Duration(
             milliseconds: (targetSeconds * 1000).toInt(),
           );
-          controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
+          controller.value = 1.0;
         });
       });
       _dragAnimController.forward(from: 0.0);
 
       setState(() {
-        _tutorialStep = 4; // "이런 식으로 맞춰집니다" 말풍선으로 변경
+        _tutorialStep = 4;
       });
       return;
     }
-    // case 5
     if (_tutorialStep == 4) {
-      // 🔥 수정: 60초(꽉 참)에서 50초(10초만큼 비워짐)로 가는 애니메이션
       Animation<double> anim = Tween<double>(begin: 0, end: 50.0).animate(
         CurvedAnimation(parent: _dragAnimController, curve: Curves.easeInOut),
       );
@@ -235,17 +212,16 @@ class TimerAppPageState extends State<TimerAppPage>
           targetSeconds = anim.value;
           currentSeconds = targetSeconds;
 
-          // 타이머 눈금 상에서 50초 위치를 가리키도록 설정
           controller.duration = Duration(
             milliseconds: (targetSeconds * 1000).toInt(),
           );
-          controller.value = 1.0; // reverse 모드이므로 1.0이면 해당 시간만큼 색이 칠해진 상태
+          controller.value = 1.0;
         });
       });
       _dragAnimController.forward(from: 0.0);
 
       setState(() {
-        _tutorialStep = 5; // "이런 식으로 맞춰집니다" 말풍선으로 변경
+        _tutorialStep = 5;
       });
       return;
     }
@@ -261,8 +237,7 @@ class TimerAppPageState extends State<TimerAppPage>
   }
 
   void _endTutorial() async {
-    globalIsTutorialActive.value = false; // 🔥 추가: 튜토리얼 종료 알림
-    // 튜토리얼이 끝나면 저장해뒀던 유저의 원래 테마와 설정을 완벽히 복구합니다.
+    globalIsTutorialActive.value = false;
     globalBgColor.value = _savedSettings['bg'];
     globalClockColor.value = _savedSettings['clock'];
     globalDigitalColor.value = _savedSettings['digital'];
@@ -279,7 +254,6 @@ class TimerAppPageState extends State<TimerAppPage>
 
     setState(() {
       _tutorialStep = 0;
-      // 시간 원래대로 초기화
       targetSeconds = globalTimerMaxSeconds.value;
       currentSeconds = targetSeconds;
       controller.value = 1.0;
@@ -299,7 +273,7 @@ class TimerAppPageState extends State<TimerAppPage>
             child: const Text("한 번 더 보기"),
             onPressed: () {
               Navigator.pop(context);
-              startTutorial(); // 튜토리얼 처음부터 다시 시작
+              startTutorial();
             },
           ),
           CupertinoDialogAction(
@@ -307,14 +281,13 @@ class TimerAppPageState extends State<TimerAppPage>
             child: const Text("타이머 시작하기"),
             onPressed: () {
               Navigator.pop(context);
-              _endTutorial(); // 튜토리얼 종료 및 복구
+              _endTutorial();
             },
           ),
         ],
       ),
     );
   }
-  // =========================================================
 
   void _onPomodoroModeChanged() {
     if (globalPomodoroMode.value && !isRunning) {
@@ -387,12 +360,10 @@ class TimerAppPageState extends State<TimerAppPage>
     try {
       final RingerModeStatus ringerStatus = await SoundMode.ringerModeStatus;
 
-      // 폰 무음 모드: 앱 설정과 관계없이 소리/진동 모두 차단
       if (ringerStatus == RingerModeStatus.silent) {
         return const _EffectiveAlertState(sound: false, vibration: false);
       }
 
-      // 폰 진동 모드: 소리는 차단, 앱 진동 ON일 때만 진동
       if (ringerStatus == RingerModeStatus.vibrate) {
         return _EffectiveAlertState(
           sound: false,
@@ -400,7 +371,6 @@ class TimerAppPageState extends State<TimerAppPage>
         );
       }
 
-      // 폰 일반 모드: 앱 내부 설정 그대로 적용
       if (ringerStatus == RingerModeStatus.normal) {
         return _EffectiveAlertState(
           sound: appSoundEnabled,
@@ -411,7 +381,6 @@ class TimerAppPageState extends State<TimerAppPage>
       debugPrint("폰 소리 모드 확인 실패: $e");
     }
 
-    // 확인 실패 시 기존 앱 설정 기준으로 동작
     return _EffectiveAlertState(
       sound: appSoundEnabled,
       vibration: appVibrationEnabled,
@@ -437,17 +406,10 @@ class TimerAppPageState extends State<TimerAppPage>
   }
 
   void _triggerAlarm() async {
-    debugPrint("triggerAlarm called");
-
     if (isAlarmPlaying) return;
 
     final effectiveAlert = await _getEffectiveAlertState();
 
-    debugPrint(
-      "effective alert => sound: ${effectiveAlert.sound}, vibration: ${effectiveAlert.vibration}",
-    );
-
-    // 폰 설정 + 앱 설정 기준으로 아무것도 울리면 안 되는 상태
     if (!effectiveAlert.sound && !effectiveAlert.vibration) {
       isCompleted = true;
       controller.stop();
@@ -567,7 +529,6 @@ class TimerAppPageState extends State<TimerAppPage>
                 25;
             _applyManualTime(min * 60);
 
-            debugPrint("🍅 설정한 최대 뽀모도로 세션이 모두 종료되었습니다.");
             return;
           }
         }
@@ -586,12 +547,9 @@ class TimerAppPageState extends State<TimerAppPage>
   }
 
   void start() {
-    debugPrint("start called with targetSeconds: $targetSeconds");
     if (targetSeconds <= 0) return;
 
-    // 👇==== 새로 추가: 시작할 때의 시간을 기억해둠! ====👇
     _savedResetSeconds = targetSeconds;
-    // 👆==========================================👆
 
     hasStarted = true;
     alarmTriggered = false;
@@ -619,8 +577,6 @@ class TimerAppPageState extends State<TimerAppPage>
   }
 
   void stop() {
-    debugPrint("stop called");
-
     controller.stop();
 
     _vibrationTimer?.cancel();
@@ -633,7 +589,7 @@ class TimerAppPageState extends State<TimerAppPage>
   }
 
   void updateStartTime(Offset localPosition, Size size) {
-    if (_tutorialStep > 0) return; // 🔥 튜토리얼 중에는 드래그 방지
+    if (_tutorialStep > 0) return;
 
     final center = Offset(size.width / 2, size.height / 2);
     final dx = localPosition.dx - center.dx;
@@ -858,12 +814,11 @@ class TimerAppPageState extends State<TimerAppPage>
 
   DateTime? _lastToggleTime;
   void toggle() {
-    if (_tutorialStep > 0) return; // 🔥 튜토리얼 중에는 터치 작동 방지
+    if (_tutorialStep > 0) return;
 
     final now = DateTime.now();
     if (_lastToggleTime != null &&
         now.difference(_lastToggleTime!).inMilliseconds < 300) {
-      debugPrint("고스트 터치 방어 완료!");
       return;
     }
     _lastToggleTime = now;
@@ -880,31 +835,10 @@ class TimerAppPageState extends State<TimerAppPage>
     }
   }
 
-  // // 👇==== 정확히 이 위치에 붙여넣으세요! (toggle 함수 끝나는 곳과 build 함수 시작하는 곳 사이) ====👇
-  //   // 🔄 타이머 초기화 (리셋) 함수 (아래로 스와이프 시 실행됨)
-  //   void _resetTimer() {
-  //     // 튜토리얼 중이거나 타이머가 이미 실행중일 때는 리셋되지 않음
-  //     // (만약 잠금 기능 상태 변수가 따로 있다면 '|| isLocked' 를 여기에 추가해주세요)
-  //     if (isRunning || _tutorialStep > 0) return;
-
-  //     setState(() {
-  //       // 드래그해서 맞춰둔 목표 시간(예: 50초)으로 되돌림
-  //       currentSeconds = targetSeconds;
-  //       // 애니메이션 재생 시간도 50초에 맞춰서 다시 세팅
-  //       controller.duration = Duration(milliseconds: (targetSeconds * 1000).toInt());
-  //       // 타이머 원형 색상을 다시 꽉 찬 상태(1.0)로 되돌림
-  //       controller.value = 1.0;
-  //       isCompleted = false;
-  //     });
-  //   }
-  //   // 👆===================================================================👆
-  // 🔄 타이머 초기화 (리셋) 함수
   void _resetTimer() {
     if (_tutorialStep > 0) return;
 
     setState(() {
-      // 🎯 방금 스와이프 하느라 시계가 건드려져서 시간이 꼬였어도,
-      // 시작할 때 저장해둔 시간으로 완벽 복원!
       targetSeconds = _savedResetSeconds;
       currentSeconds = targetSeconds;
       controller.duration = Duration(
@@ -920,7 +854,6 @@ class TimerAppPageState extends State<TimerAppPage>
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (event) {
-        // 🎯 1. 화면에 손이 닿는 순간의 위치, 시간, 그리고 '현재 타이머가 돌아가고 있는지'를 기억합니다!
         _dragStartY = event.position.dy;
         _dragStartTime = DateTime.now();
         _wasRunningWhenDragStarted = isRunning;
@@ -928,25 +861,17 @@ class TimerAppPageState extends State<TimerAppPage>
       onPointerUp: (event) {
         if (_dragStartTime == null || _tutorialStep > 0) return;
 
-        // 🎯 2. 스와이프를 시작할 때 타이머가 돌아가고 있었다면, 무조건 스와이프(리셋)를 무시합니다!
-        // (스와이프 도중에 main.dart 때문에 타이머가 꺼져버렸더라도 상관없이 차단됨)
         if (_wasRunningWhenDragStarted) {
-          debugPrint("동작 중 스와이프 시도: 차단 완료!");
           return;
         }
 
         final dy = event.position.dy - _dragStartY;
         final dt = DateTime.now().difference(_dragStartTime!).inMilliseconds;
 
-        // y축으로 50픽셀 이상, 0.5초(500ms) 이내로 빠르게 내린 경우 = 아래로 스와이프!
         if (dy > 50 && dt > 0 && dt < 500) {
-          final velocity = dy / (dt / 1000); // 픽셀/초 단위 속도 계산
-
-          // [마우스 환경 대응] 크롬 테스트를 위해 속도 기준을 100으로 낮춤
+          final velocity = dy / (dt / 1000);
           if (velocity > 100) {
-            debugPrint("fff! 완벽하게 스와이프 인식됨");
 
-            // 🎯 3. 빠른 스와이프 때문에 정지 상태에서 타이머가 실수로 켜졌다면, 다시 끄고 리셋 진행
             if (isRunning) {
               stop();
             }
@@ -1126,7 +1051,6 @@ class TimerAppPageState extends State<TimerAppPage>
               ),
             ),
 
-          // 🔥 [튜토리얼용 오버레이 위치] 화면 전체를 덮어씌웁니다.
           if (_tutorialStep > 0)
             Positioned.fill(
               child: TutorialOverlayWidget(

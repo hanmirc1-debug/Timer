@@ -11,18 +11,16 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:video_player/video_player.dart';
-import 'package:flutter/foundation.dart'; // ✅ kIsWeb 사용을 위해 꼭 필요
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'timer_page.dart';
-import '../main.dart'; // 🔥 globalTimerPageKey를 가져오기 위해 필요합니다.
-import 'dart:convert';
+import '../main.dart';
 import '../services/point_service.dart';
 import '../pages/point_shop_page.dart';
 import 'package:vibration/vibration.dart';
 
-// ✅ 고객센터 페이지 이동을 위한 임포트 (만약 파일명이 다르다면 수정해주세요)
 import 'notice_page.dart';
 import 'faq_page.dart';
 
@@ -165,7 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
   User? _user;
 
   final PointService _pointService = PointService();
-  Set<String> _unlockedItemIds = {}; // ✅ 잠금 해제된 아이템 ID들 보관
+  Set<String> _unlockedItemIds = {};
 
   OverlayEntry? _previewOverlay;
   int _unlockedBgMediaSlots = 0; // 배경 사진 슬롯
@@ -184,7 +182,6 @@ class _SettingsPageState extends State<SettingsPage> {
   Set<String> _unlockedSpecialThemes = {};
   Set<String> _unlockedAlarmSounds = {};
   Set<String> _unlockedBgmTracks = {};
-  // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
   Future<void> _loadCustomData() async {
     final prefs = await SharedPreferences.getInstance();
     final user = FirebaseAuth.instance.currentUser;
@@ -259,43 +256,6 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  //   Future<void> _loadUnlockedThemes() async {
-  //     final user = FirebaseAuth.instance.currentUser;
-
-  //     if (user == null) {
-  //       if (!mounted) return;
-
-  //       setState(() {
-  //         _unlockedSpecialThemes.clear();
-  //       });
-
-  // // 🔥 노을, 밤하늘, 내 갤러리 사진은 무료이므로 절대 강제로 지우지 않게 방어합니다!
-  //           final isUsingPremiumBg =
-  //               globalBgVideoName.value == "비 오는 밤 (Rain)" ||
-  //               globalBgVideoName.value == "벚꽃 (Cherry Blossom)";
-
-  //           final isUsingPremiumClock =
-  //               globalClockVideoName.value == "비 오는 밤 (Rain)" ||
-  //               globalClockVideoName.value == "벚꽃 (Cherry Blossom)";
-
-  //           bool changed = false;
-
-  //           if (isUsingPremiumBg) {
-  //             globalBgVideoName.value = "사용 안 함";
-  //             changed = true;
-  //           }
-  //           if (isUsingPremiumClock) {
-  //             globalClockVideoName.value = "사용 안 함";
-  //             changed = true;
-  //           }
-
-  //           if (changed) {
-  //             saveSettings();
-  //           }
-
-  //       return;
-  //     }
-
   Future<void> _loadUnlockedThemes() async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -305,9 +265,6 @@ class _SettingsPageState extends State<SettingsPage> {
       setState(() {
         _unlockedSpecialThemes.clear();
       });
-
-      // 🔥 회원님 말씀대로 배경 영상/사진 자체는 무료이므로
-      // 앱이 멋대로 "사용 안 함"으로 강제 초기화해버리던 로직을 완전히 삭제했습니다!
 
       return;
     }
@@ -880,7 +837,6 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
-  // ✅ 커스텀 테마 삭제 로직 (에러 3 해결: 복구됨)
   void _deleteTheme(int index) async {
     setState(() {
       _localCustomPresets.removeAt(index);
@@ -894,7 +850,7 @@ class _SettingsPageState extends State<SettingsPage> {
             'digital': t.digital.value,
             'indicator': t.indicator.value,
             'bgVideo': t.bgVideo,
-            'clockVideo': t.clockVideo, // 🔥 추가
+            'clockVideo': t.clockVideo,
           },
         )
         .toList();
@@ -930,7 +886,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }, SetOptions(merge: true));
   }
 
-  // ---------------- 여기까지가 함수 교체 끝 ----------------
   Future<void> _saveCurrentAsPresetLocal() async {
     final newPreset = AppThemePreset(
       bg: globalBgColor.value,
@@ -938,7 +893,7 @@ class _SettingsPageState extends State<SettingsPage> {
       digital: globalDigitalColor.value,
       indicator: globalIndicatorColor.value,
       bgVideo: globalBgVideoName.value,
-      clockVideo: globalClockVideoName.value, // 🔥 추가
+      clockVideo: globalClockVideoName.value,
     );
 
     setState(() {
@@ -954,7 +909,7 @@ class _SettingsPageState extends State<SettingsPage> {
             'digital': t.digital.value,
             'indicator': t.indicator.value,
             'bgVideo': t.bgVideo,
-            'clockVideo': t.clockVideo, // 🔥 추가
+            'clockVideo': t.clockVideo,
           },
         )
         .toList();
@@ -967,7 +922,6 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  // ✅ [수정] 삭제 확인 팝업 (아이템 삭제 vs 슬롯 삭제 구분)
   void _confirmDeletion(
     String title,
     VoidCallback onDelete, {
@@ -1546,7 +1500,6 @@ class _SettingsPageState extends State<SettingsPage> {
     _previewOverlay = null;
   }
 
-  // ✅ [복구] 광고 보상 박스
   Widget _buildAdRewardBox(Color accentColor) {
     return Container(
       margin: const EdgeInsets.only(top: 16),
@@ -1573,7 +1526,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ✅ [고객센터 용] 인앱 피드백 전송 함수
   void _showFeedbackDialog(Color accentColor) {
     final TextEditingController feedbackController = TextEditingController();
     showDialog(
@@ -1932,7 +1884,7 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Map<String, dynamic>> _favorites = [];
 
   void _loadRewardedAd() {
-    if (kIsWeb) return; // ✅ [에러 해결] 웹 브라우저에서 광고 로드 명령 실행을 아예 막음
+    if (kIsWeb) return;
     if (_isLoadingAd) return;
     _isLoadingAd = true;
     RewardedAd.load(
@@ -2064,29 +2016,27 @@ class _SettingsPageState extends State<SettingsPage> {
     _scrollController.addListener(_onScroll);
     _user = FirebaseAuth.instance.currentUser;
     _refreshUser();
-    _loadFavorites(); // 🔥 추가
-    _loadCustomData(); // 🔥 이 줄을 추가하세요!
+    _loadFavorites();
+    _loadCustomData();
     _loadUnlockedThemes();
     _loadUnlockedAudioOptions();
-    _loadUnlockedItems(); // 🔥 추가: 포인트 잠금 해제 아이템 로드
+    _loadUnlockedItems();
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
-      _loadCustomData(); // 🔥 여기도 추가!
+      _loadCustomData();
       _loadUnlockedThemes();
       _loadUnlockedAudioOptions();
-      _loadUnlockedItems(); // 🔥 추가
+      _loadUnlockedItems();
     });
   }
 
-  // 🔥 추가된 부분 시작
   Future<void> _loadUnlockedItems() async {
     List<String> items = await _pointService.getUnlockedItems();
     setState(() {
       _unlockedItemIds = items.toSet();
     });
   }
-  // 🔥 추가된 부분 끝
 
   void _refreshUser() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -2187,7 +2137,7 @@ class _SettingsPageState extends State<SettingsPage> {
           .add(newFav);
       _favorites.add({
         ...newFav,
-        "docId": docRef.id, // 🔥 추가
+        "docId": docRef.id,
       });
     } else {
       // 비로그인 fallback
@@ -2332,7 +2282,6 @@ class _SettingsPageState extends State<SettingsPage> {
             final int columns = 6;
             final double spacing = 12.0;
 
-            // 1. 데이터 분류
             final solidOptions = _backgroundOptions
                 .where((e) => e.video == null)
                 .toList();
@@ -2340,7 +2289,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 .where((e) => e.video != null)
                 .toList();
 
-            // 2. [공통] 단색 및 기본 영상 그리드 빌더
             Widget buildGrid(List<ThemeItem> items) {
               return GridView.builder(
                 shrinkWrap: true,
@@ -2507,7 +2455,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     Expanded(
                       child: ListView(
                         children: [
-                          // ✅ 1. 단색 리스트 (복구됨)
                           Text(
                             "단색",
                             style: TextStyle(
@@ -2519,7 +2466,6 @@ class _SettingsPageState extends State<SettingsPage> {
                           const SizedBox(height: 8),
                           buildGrid(solidOptions),
 
-                          // ✅ 2. 기본 제공 영상 (배경색일 때만 표시, 복구됨)
                           if (title == "배경색") ...[
                             const SizedBox(height: 24),
                             Text(
@@ -2534,7 +2480,6 @@ class _SettingsPageState extends State<SettingsPage> {
                             buildGrid(presetMediaOptions),
                           ],
 
-                          // ✅ 3. 내 갤러리 사진 (슬롯 유지 버전)
                           const SizedBox(height: 24),
                           Text(
                             "내 사진",
@@ -2716,7 +2661,7 @@ class _SettingsPageState extends State<SettingsPage> {
         return PopScope(
           canPop: true,
           onPopInvokedWithResult: (didPop, result) {
-            GlobalBgmManager.stopAllSound(); // 🔥 뒤로가기 시 소리 끄기
+            GlobalBgmManager.stopAllSound();
           },
           child: Dialog(
             backgroundColor: Colors.white,
@@ -2752,7 +2697,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         return ListView.separated(
                           physics: const BouncingScrollPhysics(),
                           itemCount: options.length,
-                          // 🌟 내부 구분선 색상 동기화
                           separatorBuilder: (context, index) => Divider(
                             color: accentColor.withOpacity(0.2),
                             height: 1,
@@ -2851,7 +2795,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   const SizedBox(height: 8),
                   TextButton(
                     onPressed: () {
-                      GlobalBgmManager.stopAllSound(); // 🔥 추가
+                      GlobalBgmManager.stopAllSound();
                       Navigator.pop(context);
                     },
                     child: const Text(
@@ -2961,7 +2905,6 @@ class _SettingsPageState extends State<SettingsPage> {
     ValueNotifier<Color> notifier,
     Color accentColor,
   ) {
-    // 🔥 색상뿐만 아니라 배경/시계 사진이 바뀌는 것도 즉시 감지하여 100% 아이콘을 유지합니다.
     return AnimatedBuilder(
       animation: Listenable.merge([
         notifier,
@@ -2978,7 +2921,6 @@ class _SettingsPageState extends State<SettingsPage> {
           videoName = globalClockVideoName.value;
         }
 
-        // 🔥 노을, 밤하늘 예외 처리 필수! (안 그러면 갤러리 사진으로 착각해 회색 네모가 됨)
         bool isLocalImage =
             videoName != "사용 안 함" &&
             videoName != "비 오는 밤 (Rain)" &&
@@ -2986,7 +2928,6 @@ class _SettingsPageState extends State<SettingsPage> {
             videoName != "노을 (Sunset)" &&
             videoName != "밤하늘 (Sky Moon)";
 
-        // 영상이나 사진이 적용되어 있으면 무조건 아이콘 표시
         bool hasMedia = videoName != "사용 안 함";
 
         return Padding(
@@ -3008,7 +2949,6 @@ class _SettingsPageState extends State<SettingsPage> {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    // 로컬 갤러리 사진일 때만 회색으로, 내장 사진(노을 등)이면 주황색 유지!
                     color: color == Colors.transparent
                         ? Colors.transparent
                         : (isLocalImage ? Colors.grey : color),
@@ -3040,7 +2980,6 @@ class _SettingsPageState extends State<SettingsPage> {
       },
     );
   }
-  // ---------------- 교체 끝 ----------------
 
   Widget buildTwoOptionToggle(
     String title,
@@ -3135,7 +3074,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
           return Scaffold(
             backgroundColor: const Color(0xFFF9F9F9),
-            // 🔥 앱바 추가: 포인트 충전 버튼이 여기에 들어갑니다.
             appBar: AppBar(
               title: Text(
                 'SETTINGS',
@@ -3149,10 +3087,8 @@ class _SettingsPageState extends State<SettingsPage> {
               elevation: 0,
               iconTheme: IconThemeData(color: uiAccentColor),
               actions: [
-                // 🪙 상점으로 이동하는 버튼
                 TextButton.icon(
                   onPressed: () {
-                    // 포인트 상점 페이지로 화면 이동!
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -3343,10 +3279,8 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // ✅ [복구] 계정 섹션 위젯 (반응형 폰트 적용 완료)
   Widget _buildAccountSection(Color accentColor) {
     final size = MediaQuery.of(context).size;
-    // 태블릿인지 확인 (너비 600 이상)
     final bool isTablet = size.width > 600;
 
     return StreamBuilder<User?>(
@@ -3401,7 +3335,6 @@ class _SettingsPageState extends State<SettingsPage> {
                         Text(
                           user.email ?? "사용자",
                           style: TextStyle(
-                            // 🔥 반응형 폰트 크기: 태블릿에서는 최대 18로 제한
                             fontSize: (size.width * 0.04).clamp(14.0, 18.0),
                             fontWeight: FontWeight.bold,
                             color: accentColor,
@@ -3425,7 +3358,6 @@ class _SettingsPageState extends State<SettingsPage> {
                               child: Text(
                                 "포인트 : $point",
                                 style: TextStyle(
-                                  // 🔥 포인트 텍스트도 동일하게 제한
                                   fontSize: (size.width * 0.034).clamp(
                                     12.0,
                                     16.0,
@@ -3583,7 +3515,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               ),
                               TextButton(
                                 onPressed: () async {
-                                  await _deleteFavorite(i); // 🔥 핵심
+                                  await _deleteFavorite(i);
                                   Navigator.pop(context);
                                 },
                                 child: const Text(
@@ -3605,17 +3537,16 @@ class _SettingsPageState extends State<SettingsPage> {
               },
             ),
           const SizedBox(height: 12),
-          // 🔥 여기서 5개 이상일 경우 MAX 텍스트를, 아닐 경우 + 버튼을 보여줍니다.
           if (_favorites.length >= 5)
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Text(
                 "MAX",
                 style: TextStyle(
-                  color: accentColor, // 메뉴 글자들과 색상 맞춤
+                  color: accentColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
-                  letterSpacing: 1.5, // 글자 간격을 살짝 넓혀서 보기 좋게 설정
+                  letterSpacing: 1.5,
                 ),
               ),
             )
@@ -3635,7 +3566,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
         ],
       );
-      // ---------------- ✨ 여기서부터 통째로 교체 ✨ ----------------
     } else if (index == 2) {
       sectionContent = AnimatedBuilder(
         animation: Listenable.merge([
@@ -3644,7 +3574,7 @@ class _SettingsPageState extends State<SettingsPage> {
           globalDigitalColor,
           globalIndicatorColor,
           globalBgVideoName,
-          globalClockVideoName, // 🔥 [핵심] 시계 사진 변화 감지!
+          globalClockVideoName,
         ]),
         builder: (context, child) {
           final solidPresets = _themePresets
@@ -3654,23 +3584,19 @@ class _SettingsPageState extends State<SettingsPage> {
               .where((t) => t.bgVideo != "사용 안 함" || t.clockVideo != "사용 안 함")
               .toList();
 
-          // ---------------- ✨ 바꿀 코드 ✨ ----------------
-          // ✅ 공통으로 사용할 프리셋 위젯 빌더
           Widget buildPresetItem(AppThemePreset theme, bool isSelected) {
-            // 🔥 배경이 로컬 사진인지 체크
             bool isLocalBg =
                 theme.bgVideo != "사용 안 함" &&
                 theme.bgVideo != "비 오는 밤 (Rain)" &&
                 theme.bgVideo != "벚꽃 (Cherry Blossom)" &&
                 theme.bgVideo != "노을 (Sunset)" &&
-                theme.bgVideo != "밤하늘 (Sky Moon)"; // 🔥 새 사진 이름 추가!
-            // 🔥 시계가 로컬 사진인지 체크
+                theme.bgVideo != "밤하늘 (Sky Moon)";
             bool isLocalClock =
                 theme.clockVideo != "사용 안 함" &&
                 theme.clockVideo != "비 오는 밤 (Rain)" &&
                 theme.clockVideo != "벚꽃 (Cherry Blossom)" &&
                 theme.clockVideo != "노을 (Sunset)" &&
-                theme.clockVideo != "밤하늘 (Sky Moon)"; // 🔥 새 사진 이름 추가!
+                theme.clockVideo != "밤하늘 (Sky Moon)";
 
             bool hasAnyMedia =
                 theme.bgVideo != "사용 안 함" || theme.clockVideo != "사용 안 함";
@@ -3684,7 +3610,6 @@ class _SettingsPageState extends State<SettingsPage> {
                 globalBgVideoName.value = theme.bgVideo;
                 globalClockVideoName.value = theme.clockVideo;
               },
-              // (미리보기 로직 생략...)
               child: Container(
                 width: 56,
                 height: 56,
@@ -3698,7 +3623,6 @@ class _SettingsPageState extends State<SettingsPage> {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     stops: const [0.5, 0.5],
-                    // 🔥 로컬 사진 부위만 회색으로, 내장 테마는 원래 색상으로!
                     colors: [
                       isLocalBg ? Colors.grey : theme.bg,
                       isLocalClock ? Colors.grey : theme.clock,
@@ -4069,7 +3993,6 @@ class _SettingsPageState extends State<SettingsPage> {
           );
         },
       );
-      // ---------------- 여기까지 ----------------
     } else if (index == 3) {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4266,7 +4189,6 @@ class _SettingsPageState extends State<SettingsPage> {
             globalAlarmEnabled,
             accentColor,
           ),
-          // 🔥 여기 추가
           buildTwoOptionToggle(
             "진동",
             "ON",
@@ -4316,7 +4238,6 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       );
     }
-    // ✅ [고객 센터] 섹션 완성
     else if (index == 7) {
       sectionContent = Column(
         children: [
@@ -4358,8 +4279,7 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text("앱 튜토리얼 다시 보기"),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
-              Navigator.pop(context); // 설정 창을 닫고 메인으로 돌아갑니다.
-              // 🔥 글로벌 키를 사용해서 TimerPage의 startTutorial() 함수를 강제로 실행합니다.
+              Navigator.pop(context);
               final timerState =
                   globalTimerPageKey.currentState as TimerAppPageState?;
               timerState?.startTutorial();
@@ -4674,10 +4594,8 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
     super.initState();
 
     if (widget.videoName.startsWith("http")) {
-      // ✅ 갤러리에서 올린 파이어베이스 URL인 경우
       _assetPath = widget.videoName;
       _isNetwork = true;
-      // URL이나 메타데이터에 mp4가 있으면 비디오로 간주 (임시 처리)
       _isVideo = _assetPath.contains(".mp4") || _assetPath.contains("video");
 
       if (_isVideo) {
@@ -4690,7 +4608,6 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
           });
       }
     } else {
-      // ✅ 기존 에셋 파일인 경우
       if (widget.videoName == "비 오는 밤 (Rain)") {
         _assetPath = 'assets/video/rainwindow.mp4';
         _isVideo = true;
@@ -4698,11 +4615,11 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
         _assetPath = 'assets/video/sakura.mp4';
         _isVideo = true;
       } else if (widget.videoName == "노을 (Sunset)") {
-        _assetPath = 'assets/image/sunset.jpg'; // 🔥 노을 사진 경로
-        _isVideo = false; // 사진이므로 false
+        _assetPath = 'assets/image/sunset.jpg';
+        _isVideo = false;
       } else if (widget.videoName == "밤하늘 (Sky Moon)") {
-        _assetPath = 'assets/image/sky_moon.jpg'; // 🔥 밤하늘 사진 경로
-        _isVideo = false; // 사진이므로 false
+        _assetPath = 'assets/image/sky_moon.jpg';
+        _isVideo = false;
       }
 
       if (_isVideo && _assetPath.isNotEmpty) {
@@ -4723,7 +4640,6 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
     super.dispose();
   }
 
-  // _MediaPreviewWidgetState 의 build 부분
   @override
   Widget build(BuildContext context) {
     if (_assetPath.isEmpty)
@@ -4731,7 +4647,6 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
         child: Text("파일을 찾을 수 없습니다.", style: TextStyle(color: Colors.white)),
       );
 
-    // ✅ 로컬 기기의 파일 경로인지 확인 (앱 내부 경로는 보통 '/' 로 시작함)
     bool isLocalFile = _assetPath.startsWith('/');
 
     return Stack(
@@ -4754,7 +4669,7 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
                     ? Image.file(
                         File(_assetPath),
                         fit: BoxFit.cover,
-                      ) // 🔥 로컬 기기 파일
+                      )
                     : (_isNetwork
                           ? Image.network(
                               _assetPath,
@@ -4771,7 +4686,7 @@ class _MediaPreviewWidgetState extends State<MediaPreviewWidget> {
                           : Image.asset(
                               _assetPath,
                               fit: BoxFit.cover,
-                            ))), // 🔥 기존 에셋 파일
+                            ))),
         ),
       ],
     );
