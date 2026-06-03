@@ -64,6 +64,50 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231265814669:android:524bda4a9c82713516fac4",
+        "android_client_info": {
+          "package_name": "com.may.timer"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "231265814669-fu2l6geqf5n70bpe9m0ofsb12bhdfpq9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.may.timer",
+            "certificate_hash": "0b51e9eaa5b46e6deecdd7868348bc480c91c997"
+          }
+        },
+        {
+          "client_id": "231265814669-ifrqri52too4as8lns4j5drnfsqa581m.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC7fPiJiqnNUpzOVHWY1mGQYNs_ejGnHww"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "231265814669-ifrqri52too4as8lns4j5drnfsqa581m.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "231265814669-mtgb9a57hkges0kdc29vib7i10qiild0.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.timerApp"
+              }
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"
