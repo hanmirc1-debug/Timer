@@ -566,6 +566,22 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _showLoginRequiredDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("로그인 필요"),
+        content: const Text("로그인 후 구매하실 수 있습니다."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("확인"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showMediaSlotUnlockDialog(String type, Color accentColor, StateSetter dialogSetState) {
     showDialog(
       context: context,
@@ -2359,6 +2375,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   return GestureDetector(
                     onTap: () {
                       if (isLocked) {
+                        final user = FirebaseAuth.instance.currentUser;
+                        if (user == null) {
+                          _showLoginRequiredDialog();
+                          return;
+                        }
                         _showSpecialMediaUnlockDialog(item, accentColor, dialogSetState);
                         return;
                       }
@@ -2583,6 +2604,11 @@ class _SettingsPageState extends State<SettingsPage> {
                                     return GestureDetector(
                                       onTap: () {
                                         if (isSlotLocked) {
+                                          final user = FirebaseAuth.instance.currentUser;
+                                          if (user == null) {
+                                            _showLoginRequiredDialog();
+                                            return;
+                                          }
                                           _showMediaSlotUnlockDialog(title, accentColor, dialogSetState);
                                         } else {
                                           _pickLocalImage(title, dialogSetState: dialogSetState);
@@ -2799,6 +2825,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                                 if (isLocked) {
                                   if (user == null) {
+                                    _showLoginRequiredDialog();
                                     return;
                                   }
 
@@ -3749,11 +3776,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     onTap: () {
                       final user = FirebaseAuth.instance.currentUser;
 
-                      if (user == null) {
-                        return;
-                      }
-
                       if (isLocked) {
+                        if (user == null) {
+                          _showLoginRequiredDialog();
+                          return;
+                        }
                         _showThemeUnlockDialog(t);
                         return;
                       }
@@ -3940,6 +3967,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       final user = FirebaseAuth.instance.currentUser;
 
                       if (user == null) {
+                        _showLoginRequiredDialog();
                         return;
                       }
 
