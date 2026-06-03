@@ -69,32 +69,44 @@ class PointPurchaseService {
   // 4. 결제 스트림 처리 (가장 중요한 부분)
   void _onPurchaseUpdate(List<PurchaseDetails> purchaseDetailsList) {
     for (var purchaseDetails in purchaseDetailsList) {
-      if (purchaseDetails.status == PurchaseStatus.pending) {
-        onPurchaseMessage?.call("결제 진행 중...");
-      } else if (purchaseDetails.status == PurchaseStatus.error) {
-        onPurchaseMessage?.call("결제 실패: ${purchaseDetails.error?.message}");
-      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
-        onPurchaseMessage?.call("결제가 취소되었습니다.");
-      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-                 purchaseDetails.status == PurchaseStatus.restored) {
-        // 결제 성공! 서버(Firestore)에 포인트 지급
-        _verifyAndGrantPoints(purchaseDetails);
-      }
+      _handlePurchase(purchaseDetails);
+    }
+  }
 
-      // 에러가 나거나 성공했거나 처리가 끝났으면 complete 호출
-      if (purchaseDetails.pendingCompletePurchase) {
-        _iap.completePurchase(purchaseDetails);
+  Future<void> _handlePurchase(PurchaseDetails purchaseDetails) async {
+    bool grantSuccess = false;
+
+    if (purchaseDetails.status == PurchaseStatus.pending) {
+      onPurchaseMessage?.call("결제 진행 중...");
+    } else if (purchaseDetails.status == PurchaseStatus.error) {
+      onPurchaseMessage?.call("결제 실패: ${purchaseDetails.error?.message}");
+    } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+      onPurchaseMessage?.call("결제가 취소되었습니다.");
+    } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+               purchaseDetails.status == PurchaseStatus.restored) {
+      // 🔥 결제 성공! 서버(Firestore)에 포인트 지급 (완료될 때까지 기다림)
+      grantSuccess = await _verifyAndGrantPoints(purchaseDetails);
+    }
+
+    // 🔥 콘텐츠 지급이 성공(grantSuccess)했을 때만 완료(Consume) 처리!
+    if (purchaseDetails.pendingCompletePurchase) {
+      if (purchaseDetails.status != PurchaseStatus.purchased && purchaseDetails.status != PurchaseStatus.restored) {
+        // 에러나 취소 상태면 무조건 완료 처리해서 대기 큐에서 제거
+        await _iap.completePurchase(purchaseDetails);
+      } else if (grantSuccess) {
+        // 정상 결제 건은 파이어베이스에 포인트가 완벽히 들어간 경우에만 소비 처리
+        await _iap.completePurchase(purchaseDetails);
       }
     }
   }
 
   // 5. Firestore 트랜잭션을 이용한 안전한 포인트 지급 (중복 지급 방지)
-  Future<void> _verifyAndGrantPoints(PurchaseDetails purchaseDetails) async {
+  Future<bool> _verifyAndGrantPoints(PurchaseDetails purchaseDetails) async {
     final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null) return false;
 
     final purchaseId = purchaseDetails.purchaseID ?? purchaseDetails.transactionDate;
-    if (purchaseId == null) return;
+    if (purchaseId == null) return false;
 
     final userRef = _firestore.collection('users').doc(user.uid);
     final purchaseRecordRef = userRef.collection('pointPurchases').doc(purchaseId);
@@ -105,7 +117,7 @@ class PointPurchaseService {
       case 'point_1000': grantedPoints = 1000; break;
       case 'point_3000': grantedPoints = 3000; break;
       case 'point_5000': grantedPoints = 5000; break;
-      default: return;
+      default: return false; // 등록되지 않은 상품
     }
 
     try {
@@ -114,7 +126,7 @@ class PointPurchaseService {
         final recordSnapshot = await transaction.get(purchaseRecordRef);
         if (recordSnapshot.exists) {
           print("이미 지급 완료된 결제 건입니다.");
-          return; // 이미 지급됨
+          return; // 트랜잭션 종료
         }
 
         // 2. 현재 포인트 읽기
@@ -134,9 +146,11 @@ class PointPurchaseService {
         });
       });
       onPurchaseMessage?.call("$grantedPoints P가 지급되었습니다!");
+      return true; // 지급 성공!
     } catch (e) {
       print("포인트 지급 중 오류 발생: $e");
       onPurchaseMessage?.call("포인트 지급 지연. 고객센터로 문의해주세요.");
+      return false; // 지급 실패 (Consume 되지 않고 다음 접속 시 재시도됨)
     }
   }
 
