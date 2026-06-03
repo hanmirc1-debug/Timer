@@ -2542,7 +2542,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   mainAxisSpacing: spacing,
                                   childAspectRatio: 1.0,
                                 ),
-                                itemCount: currentList.length + 1,
+                                itemCount: currentSlots + 1,
                                 itemBuilder: (context, index) {
                                   if (index < currentList.length) {
                                     final path = currentList[index];
@@ -2579,7 +2579,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                     );
                                   } else {
                                     // + Button (Slot)
-                                    bool isSlotLocked = currentList.length >= currentSlots;
+                                    bool isSlotLocked = index >= currentSlots;
                                     return GestureDetector(
                                       onTap: () {
                                         if (isSlotLocked) {
@@ -2588,7 +2588,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                           _pickLocalImage(title, dialogSetState: dialogSetState);
                                         }
                                       },
-                                      onLongPress: currentSlots > currentList.length + 1
+                                      onLongPress: !isSlotLocked
                                           ? () {
                                               _confirmDeletion("사진 슬롯", () {
                                                 setState(() {
