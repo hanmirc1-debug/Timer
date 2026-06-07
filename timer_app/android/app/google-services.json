@@ -82,6 +82,14 @@
           }
         },
         {
+          "client_id": "231265814669-v1f5qmbgbrbiuj3esh2gtjd7l46hpmai.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.may.timer",
+            "certificate_hash": "6141a39f9b114e607327b57fadcd9c88eec971e5"
+          }
+        },
+        {
           "client_id": "231265814669-ifrqri52too4as8lns4j5drnfsqa581m.apps.googleusercontent.com",
           "client_type": 3
         }
