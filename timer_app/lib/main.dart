@@ -59,7 +59,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  bool isTimerMode = true;
   bool isRunning = false;
   bool isLocked = false;
   bool showLockIcon = false;
@@ -220,7 +219,9 @@ void _handleShortTap() {
                 },
                 onPointerUp: (_) {
                   if (!isBackgroundTouched) return;
-                  final duration = DateTime.now().difference(_touchStartTime!);
+                  final startTime = _touchStartTime;
+                  if (startTime == null) return;
+                  final duration = DateTime.now().difference(startTime);
                   if (!isLocked && duration.inMilliseconds < shortTapMs) {
                     _handleShortTap();
                   }

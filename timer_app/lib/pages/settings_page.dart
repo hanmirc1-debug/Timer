@@ -5,7 +5,6 @@ import 'package:flutter/gestures.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/firebase_settings_service.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -14,10 +13,8 @@ import 'package:video_player/video_player.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'timer_page.dart';
 import '../main.dart';
-import '../services/point_service.dart';
 import '../pages/point_shop_page.dart';
 import 'package:vibration/vibration.dart';
 
@@ -160,10 +157,6 @@ class _SettingsPageState extends State<SettingsPage> {
   RewardedAd? _rewardedAd;
   bool _isAdReady = false;
   bool _isLoadingAd = false;
-  User? _user;
-
-  final PointService _pointService = PointService();
-  Set<String> _unlockedItemIds = {};
 
   OverlayEntry? _previewOverlay;
   int _unlockedBgMediaSlots = 0; // 배경 사진 슬롯
@@ -172,9 +165,7 @@ class _SettingsPageState extends State<SettingsPage> {
   static const int _customThemeSlotPrice = 200;
   static const int _premiumAlarmPrice = 300;
   static const int _premiumBgmPrice = 300;
-  static const int _specialThemePrice = 500;
   static const int _customPhotoSlotPrice = 400;
-  static const int _specialBgPrice = 300;
 
   List<String> _localBgMediaPaths = []; // 배경 사진 저장 배열
   List<String> _localClockMediaPaths = []; // 시계 사진 저장 배열
@@ -1449,7 +1440,8 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showPreview(BuildContext context, String videoName) {
     if (_previewOverlay != null) return;
 
-    _previewOverlay = OverlayEntry(
+    // 인스턴스 변수(_previewOverlay) 대신 지역 변수(newOverlay)를 사용하여 타입 안정성을 확보합니다.
+    final newOverlay = OverlayEntry(
       builder: (context) {
         return Positioned.fill(
           child: Material(
@@ -1489,13 +1481,14 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       },
     );
+    _previewOverlay = newOverlay;
     Navigator.of(
       context,
       rootNavigator: true,
-    ).overlay?.insert(_previewOverlay!);
+    ).overlay?.insert(newOverlay);
   }
 
-  void _hidePreview() {
+  void _hidePreview() { 
     _previewOverlay?.remove();
     _previewOverlay = null;
   }
@@ -1860,8 +1853,6 @@ class _SettingsPageState extends State<SettingsPage> {
   int _selectedIndex = 0;
   final ScrollController _scrollController = ScrollController();
   bool _isTappingTab = false;
-
-  void _stopPreview() {}
   void _previewHapticIntensity(String intensity) {
     final String value = intensity.toUpperCase();
 
@@ -1904,15 +1895,6 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _addPoint(int amount) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-    final ref = FirebaseFirestore.instance.collection('users').doc(user.uid);
-    await ref.set({
-      'point': FieldValue.increment(amount),
-    }, SetOptions(merge: true));
-  }
-
   Future<void> _rewardPoint(int amount) async {
     final user = FirebaseAuth.instance.currentUser;
 
@@ -1939,11 +1921,13 @@ class _SettingsPageState extends State<SettingsPage> {
       ).showSnackBar(const SnackBar(content: Text("웹 버전에서는 광고가 지원되지 않습니다.")));
       return;
     }
-    if (!_isAdReady || _rewardedAd == null) {
+    // 인스턴스 변수인 _rewardedAd를 지역 변수 ad에 복사하여 타입 안정성을 높입니다.
+    final ad = _rewardedAd;
+    if (!_isAdReady || ad == null) {
       _loadRewardedAd();
       return;
     }
-    final ad = _rewardedAd!;
+    // 이제 컴파일러는 'ad'가 null이 아님을 확신할 수 있습니다.
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
@@ -2014,27 +1998,17 @@ class _SettingsPageState extends State<SettingsPage> {
     _sectionKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _tabKeys = List.generate(_tabTitles.length, (index) => GlobalKey());
     _scrollController.addListener(_onScroll);
-    _user = FirebaseAuth.instance.currentUser;
     _refreshUser();
     _loadFavorites();
     _loadCustomData();
     _loadUnlockedThemes();
     _loadUnlockedAudioOptions();
-    _loadUnlockedItems();
 
     FirebaseAuth.instance.authStateChanges().listen((user) {
       _loadFavorites();
       _loadCustomData();
       _loadUnlockedThemes();
       _loadUnlockedAudioOptions();
-      _loadUnlockedItems();
-    });
-  }
-
-  Future<void> _loadUnlockedItems() async {
-    List<String> items = await _pointService.getUnlockedItems();
-    setState(() {
-      _unlockedItemIds = items.toSet();
     });
   }
 
@@ -2042,7 +2016,6 @@ class _SettingsPageState extends State<SettingsPage> {
     final user = FirebaseAuth.instance.currentUser;
     await user?.reload();
     setState(() {
-      _user = FirebaseAuth.instance.currentUser;
     });
   }
 
@@ -2328,10 +2301,10 @@ class _SettingsPageState extends State<SettingsPage> {
                           _showLoginRequiredDialog();
                           return;
                         }
-                        _showSpecialMediaUnlockDialog(item, accentColor, dialogSetState);
+                      _showSpecialMediaUnlockDialog(item, accentColor, dialogSetState); 
                         return;
                       }
-                      if (item.color != null) colorNotifier.value = item.color!;
+                    if (item.color != null) colorNotifier.value = item.color!;
                       if (title == "배경색")
                         globalBgVideoName.value = item.video ?? "사용 안 함";
                       else if (title == "시계색")
@@ -3062,10 +3035,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) => _stopPreview(),
-      child: ValueListenableBuilder<Color>(
+    return ValueListenableBuilder<Color>(
         valueListenable: globalClockColor,
         builder: (context, rawAccentColor, child) {
           Color uiAccentColor = rawAccentColor == Colors.transparent
@@ -3173,8 +3143,7 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _loginButton(
@@ -3281,7 +3250,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAccountSection(Color accentColor) {
     final size = MediaQuery.of(context).size;
-    final bool isTablet = size.width > 600;
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
@@ -3384,9 +3352,7 @@ class _SettingsPageState extends State<SettingsPage> {
                               await user?.reload();
                               final refreshedUser =
                                   FirebaseAuth.instance.currentUser;
-                              setState(() {
-                                _user = refreshedUser;
-                              });
+                              setState(() {});
                               if (refreshedUser?.emailVerified == true) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("인증 완료!")),
@@ -3446,7 +3412,6 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSectionBox(int index, Color accentColor) {
-    bool showstopwatch = false;
     bool isLastItem = index == _tabTitles.length - 1;
     Widget sectionContent;
 
@@ -3997,20 +3962,6 @@ class _SettingsPageState extends State<SettingsPage> {
       sectionContent = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (showstopwatch) ...[
-            buildTwoOptionToggle(
-              "모드 선택",
-              "TMR",
-              "SW",
-              globalIsTimerMode,
-              accentColor,
-            ),
-            Divider(
-              color: accentColor.withOpacity(0.2),
-              height: 16,
-              thickness: 1,
-            ),
-          ],
           CustomWheelPicker(
             title: "타이머 최대 눈금",
             options: const [

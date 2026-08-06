@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:ui';
-import 'dart:async';
 import 'settings_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -152,13 +150,9 @@ void initSettingsListener() {
     final bool currentState = globalVibrationEnabled.value;
 
     if (!_lastVibrationState && currentState) {
-      try {
-        final hasVibrator = await Vibration.hasVibrator() ?? false;
-
-        if (hasVibrator) {
-          Vibration.vibrate(duration: 120, amplitude: 255);
-        }
-      } catch (e) {
+      try { 
+        Vibration.vibrate(duration: 120, amplitude: 255);
+      } catch (e) { 
         debugPrint("진동 테스트 실패: $e");
       }
     }
@@ -323,20 +317,6 @@ class GlobalBgmManager {
   static final AudioPlayer _bgmPlayer = AudioPlayer();
   static final AudioPlayer _alarmPlayer = AudioPlayer();
 
-  static bool _isInitialized = false;
-
-  static void init() {
-    if (_isInitialized) return;
-
-    _bgmPlayer.setReleaseMode(ReleaseMode.loop);
-
-    globalBgmEnabled.addListener(_updateBgm);
-    globalBgmTrack.addListener(_updateBgm);
-
-    _isInitialized = true;
-    _updateBgm();
-  }
-
   static Future<void> stopAllSound() async {
     await _bgmPlayer.stop();
     await _alarmPlayer.stop();
@@ -377,26 +357,6 @@ class GlobalBgmManager {
     await _bgmPlayer.stop();
     await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
     await _bgmPlayer.play(AssetSource(path));
-  }
-
-  static Future<void> _updateBgm() async {
-    if (globalBgmEnabled.value) {
-      String option = globalBgmTrack.value;
-
-      final path = bgmMap[option];
-
-      if (path != null) {
-        try {
-          await _bgmPlayer.stop();
-          await _bgmPlayer.setReleaseMode(ReleaseMode.loop);
-          await _bgmPlayer.play(AssetSource(path));
-        } catch (e) {
-          debugPrint("BGM 재생 실패: $e");
-        }
-      }
-    } else {
-      await _bgmPlayer.stop();
-    }
   }
 }
 
@@ -1517,11 +1477,6 @@ ValueNotifier<PomodoroState> globalPomodoroState = ValueNotifier<PomodoroState>(
   PomodoroState.work,
 );
 ValueNotifier<int> globalCompletedCycles = ValueNotifier<int>(0);
-
-void resetPomodoroStatus() {
-  globalPomodoroState.value = PomodoroState.work;
-  globalCompletedCycles.value = 0;
-}
 
 void initPomodoroResetListener() {
   globalPomodoroMode.addListener(() {

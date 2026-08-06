@@ -859,14 +859,15 @@ class TimerAppPageState extends State<TimerAppPage>
         _wasRunningWhenDragStarted = isRunning;
       },
       onPointerUp: (event) {
-        if (_dragStartTime == null || _tutorialStep > 0) return;
+        final startTime = _dragStartTime;
+        if (startTime == null || _tutorialStep > 0) return;
 
         if (_wasRunningWhenDragStarted) {
           return;
         }
 
         final dy = event.position.dy - _dragStartY;
-        final dt = DateTime.now().difference(_dragStartTime!).inMilliseconds;
+        final dt = DateTime.now().difference(startTime).inMilliseconds;
 
         if (dy > 50 && dt > 0 && dt < 500) {
           final velocity = dy / (dt / 1000);
