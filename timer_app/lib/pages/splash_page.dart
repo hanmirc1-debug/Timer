@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'package:timer_app/main.dart'; // MainScreen을 인식하기 위해 필요
-import 'package:timer_app/pages/shared_design.dart'; 
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});

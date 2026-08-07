@@ -257,7 +257,7 @@ case 9:
             if (specialEffectWidget != null)
               Align(
                 alignment: effectAlign,
-                child: specialEffectWidget!,
+                child: specialEffectWidget,
               ),
             
             Align(

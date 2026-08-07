@@ -71,18 +71,4 @@ class PointService {
       rethrow; // 에러를 UI로 던져서 팝업을 띄울 수 있게 함
     }
   }
-
-  // 4. 유저가 해제한 전체 아이템 ID 목록 가져오기
-  Future<List<String>> getUnlockedItems() async {
-    final user = _auth.currentUser;
-    if (user == null) return [];
-
-    final snapshot = await _firestore
-        .collection('users')
-        .doc(user.uid)
-        .collection('unlockedItems')
-        .get();
-
-    return snapshot.docs.map((doc) => doc.id).toList();
-  }
 }
