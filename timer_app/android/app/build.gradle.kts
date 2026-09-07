@@ -48,6 +48,10 @@ android {
 
     buildTypes {
         release {
+            // 🔥 앱 최적화, 리소스 축소, 코드 난독화 활성화
+            isShrinkResources = true
+            isMinifyEnabled = true
+            
             signingConfig = signingConfigs.getByName("release")
         }
     }
