@@ -14,7 +14,7 @@ class NoticeItem {
 final List<NoticeItem> notices = [
   NoticeItem(
     title: "타이머 앱 EXAMPLE 출시 안내",
-    content: "안녕하세요! 심플하고 강력한 타이머 앱이 EXAMPLE용으로 으로 출시되었습니다. 많은 이용 부탁드립니다.",
-    date: "2026.08.08",
+    content: "안녕하세요! 심플하고 강력한 타이머 앱이 출시되었습니다. 많은 이용 부탁드립니다.",
+    date: "2026.10.03",
   ),
 ];
